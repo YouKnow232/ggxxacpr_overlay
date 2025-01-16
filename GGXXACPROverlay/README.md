@@ -1,4 +1,4 @@
-# GGXXACPROverlay# GGXXACPROverlay
+# GGXXACPROverlay
 Displays hitboxes in a seamless overlay for the Steam release of Guilty Gear XX Accent Core Plus R.
 
 ## How to Use
