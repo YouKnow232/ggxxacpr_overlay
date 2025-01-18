@@ -14,3 +14,4 @@ Displays hitboxes in a seamless overlay for the Steam release of Guilty Gear XX 
 - michel-pi and contributors of [GameOverlay.Net](https://github.com/michel-pi/GameOverlay.Net)
 - Labreezy and contributors of [rev2-wakeup-tool](https://github.com/Labreezy/rev2-wakeup-tool)
 - odabugs and contributors of [kof-combo-hitboxes](https://github.com/odabugs/kof-combo-hitboxes)
+- TheLettuceClub and Ryn for +R reverse engineering knowledge [GGXXACPR_Framework](https://github.com/TheLettuceClub/GGXXACPR_Framework)
