@@ -34,11 +34,6 @@ namespace GGXXACPROverlay
         private Camera _camera = new ();
         private Projectile[] _projectiles = [];
 
-        private long _time = 0;
-        private short _frame = 0;
-        private long _drawCount = 0;
-        private long _prevDrawCount = 0;
-
         public Overlay()
         {
             _outlineBrushes = new SolidBrush[Enum.GetNames(typeof(Boxtypes)).Length];
@@ -80,21 +75,14 @@ namespace GGXXACPROverlay
                 return;
             }
 
-            //lock (_gameStateUpdater)
-            //{
+            lock (_gameStateUpdater)
+            {
                 WindowHelper.GetWindowClientBounds(_gameHandle, out WindowBounds gameWinDim);
                 _windowDimensions = new Drawing.Dimensions(gameWinDim.Right - gameWinDim.Left, gameWinDim.Bottom - gameWinDim.Top);
                 _players[0] = GGXXACPR.GetPlayerStruct(PlayerId.P1);
                 _players[1] = GGXXACPR.GetPlayerStruct(PlayerId.P2);
                 _camera = GGXXACPR.GetCameraStruct();
                 _projectiles = GGXXACPR.GetProjectiles();
-            //}
-            if (_frame++ > 60)
-            {
-                _frame = 1;
-                _time = DateTime.Now.Second;
-                Debug.WriteLine($"Time: {_time}, Draw Count: {_drawCount}, Draws/s: {(_drawCount - _prevDrawCount)}");
-                _prevDrawCount = _drawCount;
             }
         }
 
@@ -127,8 +115,8 @@ namespace GGXXACPROverlay
         {
             var g = e.Graphics;
 
-            //lock (_gameStateLock)
-            //{
+            lock (_gameStateLock)
+            {
                 g.ClearScene(bgBrush);
                 g.BeginScene();
 
@@ -186,6 +174,7 @@ namespace GGXXACPROverlay
                     _camera,
                     _windowDimensions
                 );
+
                 Drawing.DrawProjectileBoxes(
                     g,
                     _outlineBrushes[(int)Boxtypes.Hurt],
@@ -208,8 +197,7 @@ namespace GGXXACPROverlay
                 Drawing.DrawPlayerPivot(g, pivotBrush, _players[1], _camera, _windowDimensions);
 
                 g.EndScene();
-                _drawCount++;
-            //}
+            }
         }
         private void CleanupGraphics(object? sender, DestroyGraphicsEventArgs e)
         {
@@ -220,14 +208,15 @@ namespace GGXXACPROverlay
             Debug.WriteLine("Graphics cleaned up");
         }
 
-        private void RenderPlayer(Graphics g, Player p)
-        {
-            //
-        }
-        private void RenderProjEntities(Graphics g, Projectile[] projectiles)
-        {
-            //
-        }
+        // Will use these to organize RenderFrame eventually
+        //private void RenderPlayer(Graphics g, Player p)
+        //{
+        //    //
+        //}
+        //private void RenderProjEntities(Graphics g, Projectile[] projectiles)
+        //{
+        //    //
+        //}
 
         ~Overlay()
         {

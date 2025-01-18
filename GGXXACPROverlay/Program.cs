@@ -1,4 +1,5 @@
 ﻿using GameOverlay;
+using System.Reflection;
 
 namespace GGXXACPROverlay
 {
@@ -6,6 +7,8 @@ namespace GGXXACPROverlay
     {
         static void Main()
         {
+            Console.WriteLine($"GGXXACPR Overlay v{Assembly.GetEntryAssembly()?.GetName().Version}\n");
+
             TimerService.EnableHighPrecisionTimers();
             try
             {

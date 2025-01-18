@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Dynamic;
 using System.Net.Sockets;
 using System.Numerics;
 
@@ -28,13 +29,34 @@ namespace GGXXACPROverlay
     {
         public ushort CharId;           // 0x00
         public bool IsFacingRight;      // 0x02
-        public int Status;              // 0x0C
+        public StateFlags0x0C Status;   // 0x0C
+        public ushort AnimationCounter; // 0x1C
         public PlayerExtra extra;       // 0x2C
         public Hitbox[] HitboxSet;      // 0x54
         public byte BoxCount;           // 0x84
         public int XPos;                // 0xB0
         public int YPos;                // 0xB4
+        public byte HitstopCounter;     // 0xFD
         public Hitbox PushBox;          // Derived from state flags at 0x0C and static pointers
+    }
+
+    internal readonly struct StateFlags0x0C(uint flags)
+    {
+        private readonly uint _flags = flags;
+
+        public readonly bool IsAirborne     { get { return (_flags & 0x0010) > 0; } }
+        public readonly bool IsInHitstun    { get { return (_flags & 0x0020) > 0; } }
+        public readonly bool IsInRecovery   { get { return (_flags & 0x0040) > 0; } }
+        public readonly bool IsStrikeInvuln { get { return (_flags & 0x0080) > 0; } }
+        public readonly bool IsInBlockstun  { get { return (_flags & 0x0200) > 0; } }
+        public readonly bool IsCrouching    { get { return (_flags & 0x0400) > 0; } }
+        //public readonly bool Unknown0x0800 { get { return (_flags & 0x0800) > 0; } } // Unknown
+        public readonly bool IsPushboxType1 { get { return (_flags & 0x8000) > 0; } }
+        //public readonly bool Unknown0x20000 { get { return (_flags & 0x00020000) > 0; } } // Some kind of Invuln flag?
+        public readonly bool IsInNeutral    { get { return (_flags & 0x00040000) > 0; } }
+        public readonly bool IsThrowInuvln  { get { return (_flags & 0x00800000) > 0; } }
+
+        public static implicit operator StateFlags0x0C(uint flags) { return new StateFlags0x0C(flags); }
     }
 
     internal struct PlayerExtra
@@ -81,13 +103,17 @@ namespace GGXXACPROverlay
                                                               0x00573B6C, 0x00571E6C,
                                                               0x00571564, 0x00571E6C];
 
+        // Player Struct Offsets
         internal static readonly byte IS_FACING_RIGHT_OFFSET = 0x02;
         internal static readonly byte STATUS_OFFSET = 0x0C;
+        internal static readonly byte ANIMATION_FRAME_OFFSET = 0x1C;
         internal static readonly byte PLAYER_EXTRA_PTR_OFFSET = 0X2C;
         internal static readonly byte HITBOX_LIST_OFFSET = 0x54;
         internal static readonly byte HITBOX_LIST_LENGTH_OFFSET = 0x84;
         internal static readonly byte XPOS_OFFSET = 0xB0;
         internal static readonly byte YPOS_OFFSET = 0xB4;
+        internal static readonly byte HITSTOP_COUNTER_OFFSET = 0xFD;
+
 
         internal static readonly nint PROJECTILE_ARR_HEAD_TAIL_PTR = 0x006D27A8;
         internal static readonly nint PROJECTILE_ARR_HEAD_PTR = 0x006D27A8 + 0x04;
@@ -107,7 +133,7 @@ namespace GGXXACPROverlay
         internal static readonly byte CAMERA_ZOOM_OFFSET = 0x44;
 
         internal static readonly byte CAMERA_STRUCT_BUFFER = 0x48;
-        internal static readonly byte ENTITY_STRUCT_BUFFER = 0xB8;
+        internal static readonly short ENTITY_STRUCT_BUFFER = 0x130;
         internal static readonly byte HITBOX_ARRAY_STEP = 0x0C;
 
         internal static Camera GetCameraStruct()
@@ -152,10 +178,12 @@ namespace GGXXACPROverlay
             {
                 CharId = BitConverter.ToUInt16(data),
                 IsFacingRight = data[IS_FACING_RIGHT_OFFSET] == 1,
-                Status = BitConverter.ToInt32(data, STATUS_OFFSET),
+                AnimationCounter = BitConverter.ToUInt16(data, ANIMATION_FRAME_OFFSET),
+                Status = BitConverter.ToUInt32(data, STATUS_OFFSET),
                 BoxCount = data[HITBOX_LIST_LENGTH_OFFSET],
                 XPos = BitConverter.ToInt32(data, XPOS_OFFSET),
-                YPos = BitConverter.ToInt32(data, YPOS_OFFSET)
+                YPos = BitConverter.ToInt32(data, YPOS_OFFSET),
+                HitstopCounter = data[HITSTOP_COUNTER_OFFSET]
             };
 
             p.PushBox = GetPushBox(p);
@@ -198,8 +226,8 @@ namespace GGXXACPROverlay
         internal static Hitbox GetPushBox(Player p)
         {
             byte index = 4;
-            if ((p.Status & 0x400) == 0) index = 0;
-            else if ((p.Status & 0x020000) == 0) index = 2;
+            if (p.Status.IsCrouching) index = 0;
+            else if (p.Status.IsPushboxType1) index = 2;
 
             nint xAddr = Memory.GetBaseAddress() + PUSHBOX_ADDRESSES[index] + p.CharId * 2;
             nint yAddr = Memory.GetBaseAddress() + PUSHBOX_ADDRESSES[index+1] + p.CharId * 2;
@@ -249,6 +277,7 @@ namespace GGXXACPROverlay
             };
         }
 
+        internal static bool IsHitBox(Hitbox h) { return h.BoxTypeId == (short)BoxId.HIT; }
         internal static bool IsHurtBox(Hitbox h) { return h.BoxTypeId == (short)BoxId.HURT; }
 
         internal static Projectile[] GetProjectiles()
