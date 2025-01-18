@@ -26,9 +26,13 @@ namespace GGXXACPROverlay
 
         private readonly StickyWindow _overlayWindow;
 
+        private readonly Timer _gameStateUpdater;
+        private readonly object _gameStateLock = new object();
         private readonly nint _gameHandle;
+        private Drawing.Dimensions _windowDimensions;
         private readonly Player[] _players = new Player[2];
         private Camera _camera = new ();
+        private Projectile[] _projectiles = [];
 
         public Overlay()
         {
@@ -42,9 +46,12 @@ namespace GGXXACPROverlay
 
             _overlayWindow = new StickyWindow(_gameHandle, g)
             {
+                FPS = 240,
                 AttachToClientArea = true,
                 BypassTopmost = true
             };
+
+            _gameStateUpdater = new Timer(UpdateGameState, null, TimeSpan.Zero, TimeSpan.FromSeconds(1d/60d));
 
             _overlayWindow.DestroyGraphics += CleanupGraphics;
             _overlayWindow.DrawGraphics += RenderFrame;
@@ -58,6 +65,25 @@ namespace GGXXACPROverlay
         public bool IsRunning()
         {
             return _overlayWindow.IsRunning;
+        }
+
+        private void UpdateGameState(object? state)
+        {
+            if (!Memory.ProcessIsOpen())
+            {
+                Dispose();
+                return;
+            }
+
+            lock (_gameStateUpdater)
+            {
+                WindowHelper.GetWindowClientBounds(_gameHandle, out WindowBounds gameWinDim);
+                _windowDimensions = new Drawing.Dimensions(gameWinDim.Right - gameWinDim.Left, gameWinDim.Bottom - gameWinDim.Top);
+                _players[0] = GGXXACPR.GetPlayerStruct(PlayerId.P1);
+                _players[1] = GGXXACPR.GetPlayerStruct(PlayerId.P2);
+                _camera = GGXXACPR.GetCameraStruct();
+                _projectiles = GGXXACPR.GetProjectiles();
+            }
         }
 
         private void SetupGraphics(object? sender, SetupGraphicsEventArgs e)
@@ -87,100 +113,91 @@ namespace GGXXACPROverlay
         }
         private void RenderFrame(object? sender, DrawGraphicsEventArgs e)
         {
-            if (!Memory.ProcessIsOpen()) 
-            {
-                Dispose();
-                return;
-            }
-            var gameWinDim = new WindowBounds();
-            WindowHelper.GetWindowClientBounds(_gameHandle, out gameWinDim);
-            var windowDimensions = new Drawing.Dimensions(gameWinDim.Right - gameWinDim.Left, gameWinDim.Bottom - gameWinDim.Top);
-            _players[0] = GGXXACPR.GetPlayerStruct(PlayerId.P1);
-            _players[1] = GGXXACPR.GetPlayerStruct(PlayerId.P2);
-            _camera = GGXXACPR.GetCameraStruct();
-            Projectile[] projectiles = GGXXACPR.GetProjectiles();
-
             var g = e.Graphics;
 
-            g.ClearScene(bgBrush);
-            g.BeginScene();
+            lock (_gameStateLock)
+            {
+                g.ClearScene(bgBrush);
+                g.BeginScene();
 
-            Drawing.DrawPlayerPushBox(
-                g,
-                _outlineBrushes[(int)Boxtypes.Collision],
-                _fillBrushes[(int)Boxtypes.Collision],
-                _players[0],
-                _camera,
-                windowDimensions
-            );
-            Drawing.DrawPlayerBoxesById(
-                g,
-                _outlineBrushes[(int)Boxtypes.Hurt],
-                _fillBrushes[(int)Boxtypes.Hurt],
-                2,
-                _players[0],
-                _camera,
-                windowDimensions
-            );
-            Drawing.DrawPlayerBoxesById(
-                g,
-                _outlineBrushes[(int)Boxtypes.Hit],
-                _fillBrushes[(int)Boxtypes.Hit],
-                1,
-                _players[0],
-                _camera,
-                windowDimensions
-            );
+                Drawing.DrawPlayerPushBox(
+                    g,
+                    _outlineBrushes[(int)Boxtypes.Collision],
+                    _fillBrushes[(int)Boxtypes.Collision],
+                    _players[0],
+                    _camera,
+                    _windowDimensions
+                );
+                Drawing.DrawPlayerBoxesById(
+                    g,
+                    _outlineBrushes[(int)Boxtypes.Hurt],
+                    _fillBrushes[(int)Boxtypes.Hurt],
+                    2,
+                    _players[0],
+                    _camera,
+                    _windowDimensions
+                );
+                Drawing.DrawPlayerBoxesById(
+                    g,
+                    _outlineBrushes[(int)Boxtypes.Hit],
+                    _fillBrushes[(int)Boxtypes.Hit],
+                    1,
+                    _players[0],
+                    _camera,
+                    _windowDimensions
+                );
 
 
-            Drawing.DrawPlayerPushBox(
-                g,
-                _outlineBrushes[(int)Boxtypes.Collision],
-                _fillBrushes[(int)Boxtypes.Collision],
-                _players[1],
-                _camera,
-                windowDimensions
-            );
-            Drawing.DrawPlayerBoxesById(
-                g,
-                _outlineBrushes[(int)Boxtypes.Hurt],
-                _fillBrushes[(int)Boxtypes.Hurt],
-                2,
-                _players[1],
-                _camera,
-                windowDimensions
-            );
-            Drawing.DrawPlayerBoxesById(
-                g,
-                _outlineBrushes[(int)Boxtypes.Hit],
-                _fillBrushes[(int)Boxtypes.Hit],
-                1,
-                _players[1],
-                _camera,
-                windowDimensions
-            );
-            Drawing.DrawProjectileBoxes(
-                g,
-                _outlineBrushes[(int)Boxtypes.Hurt],
-                _fillBrushes[(int)Boxtypes.Hurt],
-                2,
-                projectiles,
-                _camera,
-                windowDimensions
-            );
-            Drawing.DrawProjectileBoxes(
-                g,
-                _outlineBrushes[(int)Boxtypes.Hit],
-                _fillBrushes[(int)Boxtypes.Hit],
-                1,
-                projectiles,
-                _camera,
-                windowDimensions
-            );
-            Drawing.DrawPlayerPivot(g, pivotBrush, _players[0], _camera, windowDimensions);
-            Drawing.DrawPlayerPivot(g, pivotBrush, _players[1], _camera, windowDimensions);
+                Drawing.DrawPlayerPushBox(
+                    g,
+                    _outlineBrushes[(int)Boxtypes.Collision],
+                    _fillBrushes[(int)Boxtypes.Collision],
+                    _players[1],
+                    _camera,
+                    _windowDimensions
+                );
+                Drawing.DrawPlayerBoxesById(
+                    g,
+                    _outlineBrushes[(int)Boxtypes.Hurt],
+                    _fillBrushes[(int)Boxtypes.Hurt],
+                    2,
+                    _players[1],
+                    _camera,
+                    _windowDimensions
+                );
+                Drawing.DrawPlayerBoxesById(
+                    g,
+                    _outlineBrushes[(int)Boxtypes.Hit],
+                    _fillBrushes[(int)Boxtypes.Hit],
+                    1,
+                    _players[1],
+                    _camera,
+                    _windowDimensions
+                );
 
-            g.EndScene();
+                Drawing.DrawProjectileBoxes(
+                    g,
+                    _outlineBrushes[(int)Boxtypes.Hurt],
+                    _fillBrushes[(int)Boxtypes.Hurt],
+                    2,
+                    _projectiles,
+                    _camera,
+                    _windowDimensions
+                );
+                Drawing.DrawProjectileBoxes(
+                    g,
+                    _outlineBrushes[(int)Boxtypes.Hit],
+                    _fillBrushes[(int)Boxtypes.Hit],
+                    1,
+                    _projectiles,
+                    _camera,
+                    _windowDimensions
+                );
+                Drawing.DrawPlayerPivot(g, pivotBrush, _players[0], _camera, _windowDimensions);
+                Drawing.DrawPlayerPivot(g, pivotBrush, _players[1], _camera, _windowDimensions);
+
+                g.EndScene();
+            }
         }
         private void CleanupGraphics(object? sender, DestroyGraphicsEventArgs e)
         {
@@ -191,14 +208,15 @@ namespace GGXXACPROverlay
             Debug.WriteLine("Graphics cleaned up");
         }
 
-        private void RenderPlayer(Graphics g, Player p)
-        {
-            //
-        }
-        private void RenderProjEntities(Graphics g, Projectile[] projectiles)
-        {
-            //
-        }
+        // Will use these to organize RenderFrame eventually
+        //private void RenderPlayer(Graphics g, Player p)
+        //{
+        //    //
+        //}
+        //private void RenderProjEntities(Graphics g, Projectile[] projectiles)
+        //{
+        //    //
+        //}
 
         ~Overlay()
         {

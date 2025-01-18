@@ -55,7 +55,16 @@ namespace GGXXACPROverlay
 
             foreach (Hitbox hitbox in p.HitboxSet)
             {
-                if (GGXXACPR.IsHurtBox(hitbox) && p.extra.InvulnCounter > 0 || hitbox.BoxTypeId != boxId)
+                if (GGXXACPR.IsHurtBox(hitbox) && (
+                        p.extra.InvulnCounter > 0 ||
+                        p.Status.IsStrikeInvuln
+                        ) ||
+                    // hitboxes are technically disabled in recovery state, but we're going to draw them during hitstop anyway
+                    (GGXXACPR.IsHitBox(hitbox) && (
+                        p.Status.IsInRecovery &&
+                        p.HitstopCounter == 0 
+                        )) ||
+                    hitbox.BoxTypeId != boxId)
                     { continue; }
 
                 var pos = new PointInt(p.XPos + hitbox.XOffset * 100 * FlipVector(p), p.YPos + hitbox.YOffset * 100);
