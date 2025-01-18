@@ -6,9 +6,9 @@ Displays hitboxes in a seamless overlay for the Steam release of Guilty Gear XX 
 2. Launch Overlay
 
 ## Known Issues
-- Some inactive hitboxes are displayed in certain attacks that reuse sprites associated with another attack animation that has an active hitbox during that sprite
-  - examples are Slayer's 236D and 214X~H
-- Grab ranges are not displayed
+- Flickering during frame-by-frame in replay playback
+  - The memory values themselves are flickering between the previous and current frame
+- No Grab range info yet
 
 ## Special Thanks / References
 - michel-pi and contributors of [GameOverlay.Net](https://github.com/michel-pi/GameOverlay.Net)
