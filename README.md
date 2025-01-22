@@ -18,9 +18,11 @@ Displays hitboxes and a frame meter in a seamless overlay for the Steam release 
 ![#785000](https://placehold.co/15x15/785000/785000.png) Armor / Guardpoint / Parry<br>
 
 ## Known Issues
-- Flickering during frame-by-frame in replay playback
-  - The memory values themselves are flickering between the previous and current frame
-- No Grab range info yet
+- Frame Meter startup being wrong on rare occurrences usually coupled with a missing active frame
+- Frame Meter includes some super flash frames in startup
+- Frame Meter doesn't rewind with replay
+- Hitbox flickering in replay playback
+- Grab ranges are not displayed
 
 ## Special Thanks / References
 - michel-pi and contributors of [GameOverlay.Net](https://github.com/michel-pi/GameOverlay.Net)
