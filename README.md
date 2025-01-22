@@ -1,5 +1,5 @@
 # GGXXACPROverlay
-Displays hitboxes in a seamless overlay for the Steam release of Guilty Gear XX Accent Core Plus R.
+Displays hitboxes and a frame meter in a seamless overlay for the Steam release of Guilty Gear XX Accent Core Plus R.
 
 ## How to Use
 1. Launch Plus R
