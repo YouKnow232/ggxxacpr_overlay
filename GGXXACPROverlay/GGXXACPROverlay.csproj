@@ -7,12 +7,13 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <StartupObject>GGXXACPROverlay.Program</StartupObject>
-    <Version>$(VersionPrefix)0.2$(VersionSuffix)</Version>
+    <Version>$(VersionPrefix)1.0-beta$(VersionSuffix)</Version>
     <PackageProjectUrl>https://github.com/YouKnow232/ggxxacpr_overlay</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/YouKnow232/ggxxacpr_overlay</RepositoryUrl>
     <AssemblyVersion></AssemblyVersion>
     <FileVersion></FileVersion>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,6 +25,10 @@
 
   <ItemGroup>
     <PackageReference Include="GameOverlay.Net" Version="4.3.1" />
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.162">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>
