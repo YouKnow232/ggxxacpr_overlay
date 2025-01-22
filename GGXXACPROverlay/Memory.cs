@@ -1,40 +1,44 @@
 ﻿using System.Diagnostics;
-using System.Diagnostics.Eventing.Reader;
 using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.Marshalling;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.System.Threading;
 
 namespace GGXXACPROverlay
 {
     internal static partial class Memory
     {
         // C# bool is 4bytes so we need to use this struct to handle casting from the 1 byte Bool from the P/Invoke functions
-        private readonly struct BoolByte(bool boolean)
-        {
-            private readonly byte b = (byte)(boolean ? 1 : 0);
+        //private readonly struct BoolByte(bool boolean)
+        //{
+        //    private readonly byte b = (byte)(boolean ? 1 : 0);
 
-            public static implicit operator BoolByte (bool b) { return new BoolByte (b); }
-            public static implicit operator bool (BoolByte boolByte) { return boolByte.b > 0; }
-        }
+        //    public static implicit operator BoolByte (bool b) { return new BoolByte (b); }
+        //    public static implicit operator bool (BoolByte boolByte) { return boolByte.b > 0; }
+        //}
 
-        [LibraryImport("kernel32.dll")]
-        private static partial nint OpenProcess(int dwDesiredAcess, BoolByte bInheritHandle, int dwProcessId);
-        [LibraryImport("kernel32.dll")]
-        private static partial BoolByte CloseHandle(nint hObject);
-        [LibraryImport("kernel32.dll")]
-        private static partial BoolByte ReadProcessMemory(
-            nint hProcess,
-            nint lpBaseAddress,
-            [Out, MarshalUsing(CountElementName ="dwSize")] byte[] lpBuff,
-            int dwSize,
-            out int lpNumberOfBytesRead
-        );
-        [LibraryImport("kernel32.dll")]
-        private static partial int GetLastError();
+        //[LibraryImport("kernel32.dll")]
+        //private static partial nint OpenProcess(int dwDesiredAcess, BoolByte bInheritHandle, int dwProcessId);
+        //[LibraryImport("kernel32.dll")]
+        //private static partial BoolByte CloseHandle(nint hObject);
+        //[LibraryImport("kernel32.dll")]
+        //private static partial BoolByte ReadProcessMemory(
+        //    nint hProcess,
+        //    nint lpBaseAddress,
+        //    [Out, MarshalUsing(CountElementName ="dwSize")] byte[] lpBuff,
+        //    int dwSize,
+        //    out int lpNumberOfBytesRead
+        //);
+        //[LibraryImport("kernel32.dll")]
+        //private static partial int GetLastError();
+        //[LibraryImport("kernel32.dll", StringMarshalling = StringMarshalling.Utf16)]
+        //private static partial nint GetModuleHandleA(string? lpModuleName);
+
 
         private static readonly int _PROCESS_VM_READ = 0x0010;
 
         private static Process? _process;
-        private static nint _procHandle;
+        private static HANDLE _procHandle;
         private static nint _baseAddress;
 
         internal static bool OpenProcess(string processName)
@@ -48,7 +52,7 @@ namespace GGXXACPROverlay
 
             _process = results[0];
             _baseAddress = _process.MainModule!.BaseAddress;
-            _procHandle = OpenProcess(_PROCESS_VM_READ, true, _process.Id);
+            _procHandle = PInvoke.OpenProcess(PROCESS_ACCESS_RIGHTS.PROCESS_VM_READ, true, (uint)_process.Id);
             Debug.WriteLine("Process Opened");
 
             return true;
@@ -62,7 +66,7 @@ namespace GGXXACPROverlay
 
         internal static void CloseProcess()
         {
-            bool success = CloseHandle(_procHandle);
+            bool success = PInvoke.CloseHandle(_procHandle);
             if (!success) { HandleSystemError("Error closing process."); }
             else { Debug.WriteLine("Process Closed"); }
         }
@@ -72,6 +76,32 @@ namespace GGXXACPROverlay
             if (_process == null) { throw new InvalidOperationException("Process has not been opened"); }
             return _process.MainWindowHandle;
         }
+
+        internal static uint GetGameThreadID()
+        {
+            if (_process == null) { throw new InvalidOperationException("Process has not been opened"); }
+            Debug.WriteLine($"threads: {_process.Threads}");
+            Debug.WriteLine($"threads: {_process.Threads.Count}");
+            return (uint)_process.Threads[1].Id;
+        }
+
+        //internal static nint GetDllHandle(Type T)
+        //{
+        //    string? dll = T.Assembly.GetName().Name;
+        //    if (dll != null)
+        //    {
+        //        nint modHandle = PInvoke.GetModuleHandle(dll);
+        //        if (modHandle == nint.Zero)
+        //        {
+        //            Memory.HandleSystemError("GetModuleHandleA returned null pointer.");
+        //        }
+        //        return modHandle;
+
+        //        throw new SystemException("GetModuleHandle returned null pointer.");
+        //    }
+
+        //    throw new SystemException("Executing Assemply full name is null.");
+        //}
 
         internal static nint GetBaseAddress()
         {
@@ -85,14 +115,18 @@ namespace GGXXACPROverlay
         }
 
         private static readonly int[] allowedErrors = [299];
-        internal static byte[] ReadMemory(nint address, int size)
+        internal unsafe static byte[] ReadMemory(nint address, int size)
         {
             if (_process == null) { throw new InvalidOperationException("Process has not been opened"); }
 
             byte[] buffer = new byte[size];
-            bool success = ReadProcessMemory(_procHandle, address, buffer, size, out int _);
+            bool success;
+            fixed (byte* pBuffer = buffer)
+            {
+                success = PInvoke.ReadProcessMemory(_procHandle, (void*)address, pBuffer, (nuint)size);
+            }
             if (!success) {
-                int errCode = GetLastError();
+                int errCode = Marshal.GetLastSystemError();
                 if (allowedErrors.Contains(errCode))
                 {
                     // Silently fail if expected error occurs. Usually when some game struct is not initialized (i.e. when there are no players)
@@ -112,7 +146,7 @@ namespace GGXXACPROverlay
         }
         public static void HandleSystemError(string message)
         {
-            int errCode = GetLastError();
+            int errCode = Marshal.GetLastSystemError();
             throw new SystemException($"{message} System Error Code: {errCode}");
         }
     }

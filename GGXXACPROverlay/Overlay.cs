@@ -1,48 +1,47 @@
 ﻿using System.Diagnostics;
 using GameOverlay.Drawing;
 using GameOverlay.Windows;
+using GGXXACPROverlay.GGXXACPR;
+using Windows.Win32;
+using Windows.Win32.UI.WindowsAndMessaging;
+using System.Runtime.InteropServices;
+using System.IO.Pipes;
 
 namespace GGXXACPROverlay
 {
     internal class Overlay : IDisposable
     {
         private static readonly string gameProcessName = "GGXXACPR_Win";
-        private static readonly int boxAlpha = 50;
 
-        private enum Boxtypes
-        {
-            None=0,
-            Hit,
-            Hurt,
-            Collision,
-            Grab
-        }
-
-        // TODO: Reogranize brushes
-        private SolidBrush bgBrush;
-        private SolidBrush pivotBrush;
-        private readonly SolidBrush[] _outlineBrushes;
-        private readonly SolidBrush[] _fillBrushes;
+        private readonly GraphicsResources _resources;
+        private readonly BoxId[] _drawList = new BoxId[2];
 
         private readonly StickyWindow _overlayWindow;
 
         private readonly Timer _gameStateUpdater;
-        private readonly object _gameStateLock = new object();
+        //private EventHandler<KeyboardEventArgs> _inputListenerCallback;
+        //private UnhookWindowsHookExSafeHandle hookHandle;
+        //private readonly Timer _inputListener;
+        private readonly object _gameStateLock = new();
         private readonly nint _gameHandle;
         private Drawing.Dimensions _windowDimensions;
-        private readonly Player[] _players = new Player[2];
-        private Camera _camera = new ();
-        private Projectile[] _projectiles = [];
+
+        private GameState _gameState;
+
+        private readonly FrameMeter _frameMeter = new();
+
+        //private int _time = 0;  // DEBUG
 
         public Overlay()
         {
-            _outlineBrushes = new SolidBrush[Enum.GetNames(typeof(Boxtypes)).Length];
-            _fillBrushes = new SolidBrush[Enum.GetNames(typeof(Boxtypes)).Length];
+            _drawList[0] = BoxId.HIT;
+            _drawList[1] = BoxId.HURT;
 
-            bool success = Memory.OpenProcess(gameProcessName);
+            Memory.OpenProcess(gameProcessName);
             _gameHandle = Memory.GetGameWindowHandle();
 
             var g = new Graphics();
+            _resources = new GraphicsResources();
 
             _overlayWindow = new StickyWindow(_gameHandle, g)
             {
@@ -51,7 +50,11 @@ namespace GGXXACPROverlay
                 BypassTopmost = true
             };
 
-            _gameStateUpdater = new Timer(UpdateGameState, null, TimeSpan.Zero, TimeSpan.FromSeconds(1d/60d));
+            //_inputListener = new Timer(UpdateToggles, null, TimeSpan.FromSeconds(2), TimeSpan.FromMilliseconds(5));
+            //_inputListenerCallback = new EventHandler<KeyboardEventArgs>(UpdateToggles);
+            //Injector.HookInputListener(Memory.GetGameThreadID(), _inputListenerCallback);
+            //TempSetHook();
+            _gameStateUpdater = new Timer(UpdateGameState, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(12));
 
             _overlayWindow.DestroyGraphics += CleanupGraphics;
             _overlayWindow.DrawGraphics += RenderFrame;
@@ -67,8 +70,46 @@ namespace GGXXACPROverlay
             return _overlayWindow.IsRunning;
         }
 
+        //private void UpdateToggles(object? state, KeyboardEventArgs e)
+        //{
+        //    Debug.WriteLine($"CALLBACK!! e: {e}");
+        //}
+
+        //private void TempSetHook()
+        //{
+        //    _inputListenerCallback = new EventHandler<KeyboardEventArgs>(UpdateToggles);
+
+        //    var modHandle = PInvoke.GetModuleHandle(typeof(Hooks).Assembly.GetName().Name);
+        //    Debug.WriteLine($"Hooks module is invalid: {modHandle.IsInvalid}");
+        //    hookHandle = PInvoke.SetWindowsHookEx(WINDOWS_HOOK_ID.WH_KEYBOARD, Hooks.KeyboardHookCallback, modHandle, Memory.GetGameThreadID());
+        //    if (hookHandle == null)
+        //    {
+        //        Memory.HandleSystemError("Set Windows Hook returned null");
+        //    }
+        //    Hooks.HHook = hookHandle;
+        //    Debug.WriteLine("Hooks set.");
+
+        //    Hooks.OnKeyUp += _inputListenerCallback;
+        //    Hooks.DebugMessage += (object? sender, DebugEventArgs e) =>
+        //    {
+        //        this.Debug1(e.Message);
+        //        Debug.WriteLine(e.Message);
+        //    };
+        //    Debug.WriteLine("Callbacks defined.");
+        //}
+
+        //private void TempInitPipe()
+        //{
+        //    // NamedPipeServerStream() communicate with ggxxacpr?
+        //}
+
         private void UpdateGameState(object? state)
         {
+            //// DEBUG
+            //var now = DateTime.Now.Millisecond;
+            //Debug.WriteLine($"Update Time: {now - _time}ms");
+            //_time = now;
+
             if (!Memory.ProcessIsOpen())
             {
                 Dispose();
@@ -79,10 +120,8 @@ namespace GGXXACPROverlay
             {
                 WindowHelper.GetWindowClientBounds(_gameHandle, out WindowBounds gameWinDim);
                 _windowDimensions = new Drawing.Dimensions(gameWinDim.Right - gameWinDim.Left, gameWinDim.Bottom - gameWinDim.Top);
-                _players[0] = GGXXACPR.GetPlayerStruct(PlayerId.P1);
-                _players[1] = GGXXACPR.GetPlayerStruct(PlayerId.P2);
-                _camera = GGXXACPR.GetCameraStruct();
-                _projectiles = GGXXACPR.GetProjectiles();
+                _gameState = GGXXACPR.GGXXACPR.GetGameState();
+                _frameMeter.Update(_gameState);
             }
         }
 
@@ -92,131 +131,44 @@ namespace GGXXACPROverlay
 
             if (e.RecreateResources)
             {
-                bgBrush.Dispose();
-                pivotBrush.Dispose();
-                foreach (var brush in _outlineBrushes) brush.Dispose();
-                foreach (var brush in _fillBrushes) brush.Dispose();
+                _resources.Dispose();
             }
 
-            bgBrush = g.CreateSolidBrush(0, 0, 0, 0);
-            pivotBrush = g.CreateSolidBrush(255, 255, 255, 255);
+            _resources.Initilize(g);
 
-            _outlineBrushes[(int)Boxtypes.None]       = g.CreateSolidBrush(10, 10, 10);
-               _fillBrushes[(int)Boxtypes.None]       = g.CreateSolidBrush(10, 10, 10, boxAlpha);
-            _outlineBrushes[(int)Boxtypes.Hit]        = g.CreateSolidBrush(255, 0, 0);
-               _fillBrushes[(int)Boxtypes.Hit]        = g.CreateSolidBrush(255, 0, 0, boxAlpha);
-            _outlineBrushes[(int)Boxtypes.Hurt]       = g.CreateSolidBrush(0, 255, 0);
-               _fillBrushes[(int)Boxtypes.Hurt]       = g.CreateSolidBrush(0, 255, 0, boxAlpha);
-            _outlineBrushes[(int)Boxtypes.Collision]  = g.CreateSolidBrush(0, 255, 255);
-               _fillBrushes[(int)Boxtypes.Collision]  = g.CreateSolidBrush(0, 255, 255, boxAlpha);
             Debug.WriteLine("Graphics setup");
         }
         private void RenderFrame(object? sender, DrawGraphicsEventArgs e)
         {
             var g = e.Graphics;
+            //Player[] players = [_gameState.Player1, _gameState.Player2];
 
             lock (_gameStateLock)
             {
-                g.ClearScene(bgBrush);
+                g.ClearScene();
                 g.BeginScene();
 
-                Drawing.DrawPlayerPushBox(
-                    g,
-                    _outlineBrushes[(int)Boxtypes.Collision],
-                    _fillBrushes[(int)Boxtypes.Collision],
-                    _players[0],
-                    _camera,
-                    _windowDimensions
-                );
-                Drawing.DrawPlayerBoxesById(
-                    g,
-                    _outlineBrushes[(int)Boxtypes.Hurt],
-                    _fillBrushes[(int)Boxtypes.Hurt],
-                    2,
-                    _players[0],
-                    _camera,
-                    _windowDimensions
-                );
-                Drawing.DrawPlayerBoxesById(
-                    g,
-                    _outlineBrushes[(int)Boxtypes.Hit],
-                    _fillBrushes[(int)Boxtypes.Hit],
-                    1,
-                    _players[0],
-                    _camera,
-                    _windowDimensions
-                );
+                Drawing.DrawPlayerPushBox(g, _resources, _gameState, _gameState.Player1, _windowDimensions);
+                Drawing.DrawPlayerBoxes(g, _resources, _drawList, _gameState, _gameState.Player1, _windowDimensions);
 
+                Drawing.DrawPlayerPushBox(g, _resources, _gameState, _gameState.Player2, _windowDimensions);
+                Drawing.DrawPlayerBoxes(g, _resources, _drawList, _gameState, _gameState.Player2, _windowDimensions);
 
-                Drawing.DrawPlayerPushBox(
-                    g,
-                    _outlineBrushes[(int)Boxtypes.Collision],
-                    _fillBrushes[(int)Boxtypes.Collision],
-                    _players[1],
-                    _camera,
-                    _windowDimensions
-                );
-                Drawing.DrawPlayerBoxesById(
-                    g,
-                    _outlineBrushes[(int)Boxtypes.Hurt],
-                    _fillBrushes[(int)Boxtypes.Hurt],
-                    2,
-                    _players[1],
-                    _camera,
-                    _windowDimensions
-                );
-                Drawing.DrawPlayerBoxesById(
-                    g,
-                    _outlineBrushes[(int)Boxtypes.Hit],
-                    _fillBrushes[(int)Boxtypes.Hit],
-                    1,
-                    _players[1],
-                    _camera,
-                    _windowDimensions
-                );
+                Drawing.DrawProjectileBoxes(g, _resources, _drawList, _gameState, _windowDimensions);
 
-                Drawing.DrawProjectileBoxes(
-                    g,
-                    _outlineBrushes[(int)Boxtypes.Hurt],
-                    _fillBrushes[(int)Boxtypes.Hurt],
-                    2,
-                    _projectiles,
-                    _camera,
-                    _windowDimensions
-                );
-                Drawing.DrawProjectileBoxes(
-                    g,
-                    _outlineBrushes[(int)Boxtypes.Hit],
-                    _fillBrushes[(int)Boxtypes.Hit],
-                    1,
-                    _projectiles,
-                    _camera,
-                    _windowDimensions
-                );
-                Drawing.DrawPlayerPivot(g, pivotBrush, _players[0], _camera, _windowDimensions);
-                Drawing.DrawPlayerPivot(g, pivotBrush, _players[1], _camera, _windowDimensions);
+                Drawing.DrawPlayerPivot(g, _resources, _gameState, _gameState.Player1, _windowDimensions);
+                Drawing.DrawPlayerPivot(g, _resources, _gameState, _gameState.Player2, _windowDimensions);
+
+                Drawing.DrawFrameMeter(g, _resources, _frameMeter, _windowDimensions);
 
                 g.EndScene();
             }
         }
         private void CleanupGraphics(object? sender, DestroyGraphicsEventArgs e)
         {
-            bgBrush.Dispose();
-            pivotBrush.Dispose();
-            foreach (var brush in _outlineBrushes) brush?.Dispose();
-            foreach (var brush in _fillBrushes) brush?.Dispose();
+            _resources.Dispose();
             Debug.WriteLine("Graphics cleaned up");
         }
-
-        // Will use these to organize RenderFrame eventually
-        //private void RenderPlayer(Graphics g, Player p)
-        //{
-        //    //
-        //}
-        //private void RenderProjEntities(Graphics g, Projectile[] projectiles)
-        //{
-        //    //
-        //}
 
         ~Overlay()
         {
@@ -230,6 +182,17 @@ namespace GGXXACPROverlay
             if (!disposedValue)
             {
                 _overlayWindow.Dispose();
+                _gameStateUpdater.Dispose();
+                //hookHandle?.Close();
+                //hookHandle.Dispose();
+                //Injector.UnhookInputListener(_inputListenerCallback);
+                //try {
+                //    bool success = Injector.UnhookInputListener(UpdateToggles);
+                //    if (!success) { Memory.HandleSystemError("UnhookInputListener failed."); }
+                //} catch (SystemException e)
+                //{
+                //    Debug.WriteLine(e);
+                //}
                 Memory.CloseProcess();
                 disposedValue = true;
             }
