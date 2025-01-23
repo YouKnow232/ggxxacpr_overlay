@@ -6,7 +6,7 @@ namespace GGXXACPROverlay.GGXXACPR
     public static class GGXXACPR
     {
         public static readonly int SCREEN_HEIGHT_PIXELS = 480;
-        public static readonly int SCREEN_GROUND_PIXEL_OFFSET = 48;
+        public static readonly int SCREEN_GROUND_PIXEL_OFFSET = 40;
 
         private static readonly nint CAMERA_ADDR = 0x006D5CD4;
         private static readonly nint PLAYER_1_PTR_ADDR = 0x006D1378;
