@@ -48,7 +48,7 @@ namespace GGXXACPROverlay
             g.OutlineFillRectangle(
                 r.CollisionOutlineBrush,
                 r.CollisionFillBrush,
-                CreateRectangle(coor, boxDim),
+                Shrink(CreateRectangle(coor, boxDim), (int)LINE_THICKNESS),
                 LINE_THICKNESS
             );
         }
@@ -59,6 +59,19 @@ namespace GGXXACPROverlay
                 p.Y,
                 p.X + dim.Width,
                 p.Y + dim.Height
+            );
+        }
+        /// <summary>
+        /// Creates a new rectangle smaller on all sides by n pixels.
+        /// We need this because OutlineFillBox extends the box proprotional to the outline thickness
+        /// </summary>
+        private static Rectangle Shrink(Rectangle r, int n)
+        {
+            return new Rectangle(
+                r.Left + n,
+                r.Top + n,
+                r.Right - n,
+                r.Bottom - n
             );
         }
 
@@ -93,7 +106,7 @@ namespace GGXXACPROverlay
                 g.OutlineFillRectangle(
                     r.GetOutlineBrush(hitbox.BoxTypeId),
                     r.GetFillBrush(hitbox.BoxTypeId),
-                    CreateRectangle(coor, boxDim),
+                    Shrink(CreateRectangle(coor, boxDim), (int)LINE_THICKNESS),
                     LINE_THICKNESS
                 );
             }
@@ -122,7 +135,7 @@ namespace GGXXACPROverlay
                     g.OutlineFillRectangle(
                         r.GetOutlineBrush(hitbox.BoxTypeId),
                         r.GetFillBrush(hitbox.BoxTypeId),
-                        CreateRectangle(coor, boxDim),
+                        Shrink(CreateRectangle(coor, boxDim), (int)LINE_THICKNESS),
                         LINE_THICKNESS
                     );
                 }
