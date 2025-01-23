@@ -84,7 +84,9 @@ namespace GGXXACPROverlay.GGXXACPR
 
         public static nint DereferencePointer(nint pointer)
         {
-            return BitConverter.ToInt32(Memory.ReadMemoryPlusBaseOffset(pointer, sizeof(int)));
+            byte[] data = Memory.ReadMemoryPlusBaseOffset(pointer, sizeof(int));
+            if ( data.Length == 0 ) { return nint.Zero; }
+            return BitConverter.ToInt32(data);
         }
 
         public static GameState GetGameState()
@@ -113,13 +115,9 @@ namespace GGXXACPROverlay.GGXXACPR
             };
         }
 
-        // TODO: cache player struct ptrs, they shouldn't change
         private static Player GetPlayerStruct(nint playerPtr)
         {
-            // Testing new code
-            //byte[] tempData = Memory.ReadMemoryPlusBaseOffset(PLAYER_PTR_ADDRS[player], sizeof(int));
-            //if (tempData.Length == 0) { return new(); }
-            //nint playerPtr = (nint)BitConverter.ToUInt32(tempData);
+            if (playerPtr == nint.Zero) { return new(); }
 
             byte[] data = Memory.ReadMemory(playerPtr, ENTITY_STRUCT_BUFFER);
             if (data.Length == 0) {
@@ -232,6 +230,7 @@ namespace GGXXACPROverlay.GGXXACPR
             // Deriving player ownership by tracing the parent pointer chain to a player pointer
             // Assumes the lower 6 bytes are a factor of 0x130 and that player 1's pointer begins with 0x000 (safe assumptions for +R)
             var parentIndices = entityArray.Select(e => (int)(e.ParentPtrRaw & 0xFFF) / 0x130).ToArray();
+            if (parentIndices.Length == 0) { return []; };
             parentIndices[0] = 0;   // P1
             parentIndices[1] = 1;   // P2
 
