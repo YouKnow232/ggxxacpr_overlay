@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Reflection.Metadata.Ecma335;
 using GGXXACPROverlay.GGXXACPR;
 using SharpDX.Direct2D1.Effects;
@@ -33,10 +34,20 @@ namespace GGXXACPROverlay
             SlashBack,
             TEST
         }
-        public readonly struct Frame(FrameType type = FrameType.None, FrameProperty prop = FrameProperty.Default, int actTimer = -1)
+        public enum FrameProperty2
+        {
+            Default,
+            FRC
+        }
+        public readonly struct Frame(
+            FrameType type = FrameType.None,
+            FrameProperty prop = FrameProperty.Default,
+            FrameProperty2 prop2 = FrameProperty2.Default,
+            int actTimer = -1)
         {
             public readonly FrameType Type = type;
             public readonly FrameProperty Property = prop;
+            public readonly FrameProperty2 Property2 = prop2;
             public readonly int ActTimer = actTimer;
         }
 
@@ -57,6 +68,8 @@ namespace GGXXACPROverlay
         private bool _isPaused = true;
         public Meter[] PlayerMeters = new Meter[2];
         public Meter[] EntityMeters = new Meter[2];
+        // DEBUG
+        public Meter TestMeter;
 
         public FrameMeter()
         {
@@ -65,6 +78,8 @@ namespace GGXXACPROverlay
             PlayerMeters[1] = new Meter("Player 2", METER_LENGTH);
             EntityMeters[0] = new Meter("P1 Sub", METER_LENGTH);
             EntityMeters[1] = new Meter("P2 Sub", METER_LENGTH);
+            // DEBUG
+            TestMeter = new Meter("Test", METER_LENGTH);
             ClearMeters();
         }
 
@@ -87,6 +102,7 @@ namespace GGXXACPROverlay
             }
             // Pause when both players are in hitstop (redunt when checking for unchanged animation timers)
             if (state.Player1.HitstopCounter > 0 && state.Player2.HitstopCounter > 0) { return; }
+            if (state.Player1.Status.Freeze || state.Player2.Status.Freeze) { return; }
             if (_isPaused)
             {
                 if ((DetermineFrameType(state, 0) == FrameType.Neutral) &&
@@ -109,8 +125,11 @@ namespace GGXXACPROverlay
             UpdateIndividualMeter(state, 1);
             UpdateIndividualEntityMeter(state, 0);
             UpdateIndividualEntityMeter(state, 1);
+            // DEBUG
+            UpdateTest(state);
 
             // Check if frame meter should pause
+            // TODO: account for frame properties
             _isPaused = true;
             bool a, b, c, d, e, f;
             for (int i = 0; i < PAUSE_THRESHOLD; i++)
@@ -130,7 +149,7 @@ namespace GGXXACPROverlay
                 }
             }
 
-            CalculateLabels();
+            CalculateLabels(state);
 
             _index = (_index + 1) % METER_LENGTH;
         }
@@ -143,6 +162,7 @@ namespace GGXXACPROverlay
                 PlayerMeters[1].FrameArr[i] = new Frame();
                 EntityMeters[0].FrameArr[i] = new Frame();
                 EntityMeters[1].FrameArr[i] = new Frame();
+                TestMeter.FrameArr[i] = new Frame();
             }
             PlayerMeters[0].Startup = -1;
             PlayerMeters[0].Advantage = -1;
@@ -154,11 +174,51 @@ namespace GGXXACPROverlay
             EntityMeters[1].Hide = true;
         }
 
+        // DEBUG
+        private void UpdateTest(GameState state)
+        {
+            FrameType type = FrameType.None;
+
+            if (state.GlobalFlags.ThrowFlags.Player1ThrowActive && state.GlobalFlags.ThrowFlags.Player2ThrowActive)
+            {
+                type = FrameType.CounterHitState;
+            }
+            else if (state.GlobalFlags.ThrowFlags.Player2ThrowActive)
+            {
+                type = FrameType.Active;
+            }
+            else if (state.GlobalFlags.ThrowFlags.Player1ThrowActive)
+            {
+                type = FrameType.Recovery;
+            }
+            else if (state.Player1.BufferFlags.Unknown8)
+            {
+                type = FrameType.BlockStun;
+            }
+
+            TestMeter.FrameArr[_index] = new Frame(type, FrameProperty.Default, FrameProperty2.Default, state.Player1.AnimationCounter);
+            TestMeter.FrameArr[(_index + 2 + METER_LENGTH) % METER_LENGTH] = new Frame(); // Forward erasure
+        }
+
         private static FrameType DetermineFrameType(GameState state, int index)
         {
             var player = index == 0 ? state.Player1 : state.Player2;
 
-            if (player.Status.IsInBlockstun || player.Extra.SBTime > 0)
+            // Is active if there is a hitbox and either the player recovery flag is not set or the move is not in recovery and has connect
+            //else if (player.HitboxSet.Any((Hitbox h) => h.BoxTypeId == BoxId.HIT) &&
+            //    !player.AttackFlags.IsInRecovery &&
+            //    (!player.Status.DisableHitboxes || player.AttackFlags.HasConnected) )
+            if (player.HitboxSet.Any(h => h.BoxTypeId == BoxId.HIT) && !player.Status.DisableHitboxes)
+            {
+                return FrameType.Active;
+            }
+            // TODO: see what game state really ensures a throw. This flag is close, but can be overriden by other actions
+            //else if ((state.GlobalFlags.ThrowFlags.Player1ThrowActive && index == 0) ||
+            //    (state.GlobalFlags.ThrowFlags.Player2ThrowActive && index == 1))
+            //{
+            //    return FrameType.Active
+            //}
+            else if (player.Status.IsInBlockstun || player.Extra.SBTime > 0)
             {
                 return FrameType.BlockStun;
             }
@@ -169,14 +229,6 @@ namespace GGXXACPROverlay
             else if (player.AttackFlags.IsInRecovery)
             {
                 return FrameType.Recovery;
-            }
-            // Is active if there is a hitbox and either the player recovery flag is not set or the move is not in recovery and has connect
-            //else if (player.HitboxSet.Any((Hitbox h) => h.BoxTypeId == BoxId.HIT) &&
-            //    !player.AttackFlags.IsInRecovery &&
-            //    (!player.Status.DisableHitboxes || player.AttackFlags.HasConnected) )
-            else if (player.HitboxSet.Any((Hitbox h) => h.BoxTypeId == BoxId.HIT) && !player.Status.DisableHitboxes)
-            {
-                return FrameType.Active;
             }
             else if (player.CommandFlags.IsMove && !player.AttackFlags.IsInRecovery)
             {
@@ -224,12 +276,14 @@ namespace GGXXACPROverlay
 
             FrameType type = DetermineFrameType(state, index);
             FrameProperty prop = FrameProperty.Default;
+            FrameProperty2 prop2 = FrameProperty2.Default;
 
             if (players[index].Extra.RCTime > 0)
             {
-                prop = FrameProperty.FRC;
+                prop2 = FrameProperty2.FRC;
             }
-            else if (players[index].Extra.SBTime > 0)
+
+            if (players[index].Extra.SBTime > 0)
             {
                 prop = FrameProperty.SlashBack;
             }
@@ -237,11 +291,14 @@ namespace GGXXACPROverlay
                     players[index].Status.StrikeInvuln ||
                     players[index].Extra.InvulnCounter > 0 ||
                     !players[index].HitboxSet.Any((Hitbox h) => h.BoxTypeId == BoxId.HURT)
-                ) && players[index].Status.IsThrowInuvln)
+                ) && (players[index].Status.IsThrowInuvln ||
+                    players[index].Extra.ThrowProtectionTimer > 0))
             {
                 prop = FrameProperty.InvulnFull;
             }
-            else if (players[index].Status.IsThrowInuvln)
+            else if (players[index].Status.IsThrowInuvln ||
+                (players[index].Extra.ThrowProtectionTimer > 0 &&
+                    !(players[index].Status.IsInHitstun || players[index].Status.IsInBlockstun)))
             {
                 prop = FrameProperty.InvulnThrow;
             }
@@ -276,7 +333,7 @@ namespace GGXXACPROverlay
                 }
             }
 
-            PlayerMeters[index].FrameArr[_index] = new Frame(type, prop, players[index].AnimationCounter);
+            PlayerMeters[index].FrameArr[_index] = new Frame(type, prop, prop2, players[index].AnimationCounter);
             PlayerMeters[index].FrameArr[(_index + 2 + METER_LENGTH) % METER_LENGTH] = new Frame(); // Forward erasure
         }
 
@@ -292,30 +349,16 @@ namespace GGXXACPROverlay
         }
 
         // TODO: proj startup
-        private void CalculateLabels()
+        private void CalculateLabels(GameState state)
         {
             // Startup
             if (FrameAtOffset(0, 0).Type == FrameType.Active && FrameAtOffset(-1, 0).Type == FrameType.CounterHitState)
             {
-                for (int i = 1; i < METER_LENGTH; i++)
-                {
-                    if (FrameAtOffset(-i, 0).Type != FrameType.CounterHitState)
-                    {
-                        PlayerMeters[0].Startup = i;
-                        break;
-                    }
-                }
+                PlayerMeters[0].Startup = state.Player1.AnimationCounter;
             }
             if (FrameAtOffset(0, 1).Type == FrameType.Active && FrameAtOffset(-1, 1).Type == FrameType.CounterHitState)
             {
-                for (int i = 1; i < METER_LENGTH; i++)
-                {
-                    if (FrameAtOffset(-i, 0).Type != FrameType.CounterHitState)
-                    {
-                        PlayerMeters[1].Startup = i;
-                        break;
-                    }
-                }
+                PlayerMeters[1].Startup = state.Player2.AnimationCounter;
             }
 
             // Advantage TODO: clean redundancy

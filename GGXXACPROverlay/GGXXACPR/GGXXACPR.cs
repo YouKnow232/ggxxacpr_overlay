@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Numerics;
 using SharpDX.Direct2D1;
 
 namespace GGXXACPROverlay.GGXXACPR
@@ -10,8 +11,7 @@ namespace GGXXACPROverlay.GGXXACPR
 
         private static readonly nint CAMERA_ADDR = 0x006D5CD4;
         private static readonly nint PLAYER_1_PTR_ADDR = 0x006D1378;
-        private static readonly nint PLAYER_2_PTR_ADDR = 0x006D4C84;
-        private static readonly nint[] PLAYER_PTR_ADDRS = [PLAYER_1_PTR_ADDR, PLAYER_2_PTR_ADDR];
+        //private static readonly nint PLAYER_2_PTR_ADDR = 0x006D4C84;
 
         private static readonly nint[] PUSHBOX_ADDRESSES =
         [
@@ -20,14 +20,25 @@ namespace GGXXACPROverlay.GGXXACPR
             0x00571564, 0x00571E6C  // ?? x,y
         ];
 
+        // short, index with CharId*2
+        private static readonly int GROUND_THROW_RANGE_ARRAY_ADDR = 0x0057005C; // TODO
+
+        // one byte [P1Throwable, P2Throwable, P1ThrowActive P2ThrowActive]
+        private static readonly nint GLOBAL_THROW_FLAGS_ADDR = 0x006D5D7C;
+
         // Player Struct Offsets
         private static readonly int IS_FACING_RIGHT_OFFSET = 0x02;
         private static readonly int STATUS_OFFSET = 0x0C;
+        private static readonly int BUFFER_FLAGS_OFFSET = 0x12;
         private static readonly int ANIMATION_FRAME_OFFSET = 0x1C;
         private static readonly int GUARD_FLAGS_OFFSET = 0x2A;
         private static readonly int PLAYER_EXTRA_PTR_OFFSET = 0X2C;
         private static readonly int ATTACK_FLAGS_OFFSET = 0x34;
         private static readonly int COMMAND_FLAGS_OFFSET = 0X38;
+        private static readonly int CORE_X_OFFSET = 0x4C;
+        private static readonly int CORE_Y_OFFSET = 0x4E;
+        private static readonly int SCALE_X_OFFSET = 0x50;
+        private static readonly int SCALE_Y_OFFSET= 0x52;
         private static readonly int HITBOX_LIST_OFFSET = 0x54;
         private static readonly int HITBOX_LIST_LENGTH_OFFSET = 0x84;
         private static readonly int HITBOX_ITERATION_VAR_OFFSET = 0x85;
@@ -46,6 +57,7 @@ namespace GGXXACPROverlay.GGXXACPR
         private static readonly int PROJECTILE_PARENT_PTR_OFFSET = 0x20;
         private static readonly int PROJECTILE_PARENT_FLAG_OFFSET = 0x28;
         // Player Extra Struct Offsets
+        private static readonly int PLAYER_EXTRA_THROW_PROTECTION_TIMER_OFFSET = 0x18;
         private static readonly int PLAYER_EXTRA_INVULN_COUNTER_OFFSET = 0x2A;
         private static readonly int PLAYER_EXTRA_RC_TIME_OFFSET = 0x32;
         private static readonly int PLAYER_EXTRA_COMBO_TIME_OFFSET = 0xF6;
@@ -82,7 +94,7 @@ namespace GGXXACPROverlay.GGXXACPR
             }
         }
 
-        public static nint DereferencePointer(nint pointer)
+        private static nint DereferencePointer(nint pointer)
         {
             byte[] data = Memory.ReadMemoryPlusBaseOffset(pointer, sizeof(int));
             if ( data.Length == 0 ) { return nint.Zero; }
@@ -95,8 +107,23 @@ namespace GGXXACPROverlay.GGXXACPR
                 GetPlayerStruct(Player1Pointer),
                 GetPlayerStruct(Player2Pointer),
                 GetCameraStruct(),
-                GetEntities()
+                GetEntities(),
+                GetGlobals()
             );
+        }
+
+        private static GlobalFlags GetGlobals()
+        {
+            ThrowFlags throwFlags = new();
+            byte[] data = Memory.ReadMemoryPlusBaseOffset(GLOBAL_THROW_FLAGS_ADDR, 1);
+            if (data.Length != 0) {
+                throwFlags = new ThrowFlags(data[0]);
+            }
+
+            return new()
+            {
+                ThrowFlags = throwFlags
+            };
         }
 
         private static Camera GetCameraStruct()
@@ -138,16 +165,28 @@ namespace GGXXACPROverlay.GGXXACPR
             Hitbox[] boxSet = [];
             if (hitboxArrayPtr != 0) { boxSet = GetHitboxes(hitboxArrayPtr, boxCount); }
 
+            var coreX  = BitConverter.ToInt16(data, CORE_X_OFFSET);
+            var coreY  = BitConverter.ToInt16(data, CORE_Y_OFFSET);
+            var scaleX = BitConverter.ToInt16(data, SCALE_X_OFFSET);
+            var scaleY = BitConverter.ToInt16(data, SCALE_Y_OFFSET);
+
+            //boxSet = ScaleHitboxes(boxSet, scaleX, scaleY, coreX, coreY);
+
             return new()
             {
                 CharId           = charId,
                 IsFacingRight    = data[IS_FACING_RIGHT_OFFSET] == 1,
                 Status           = status,
+                BufferFlags      = BitConverter.ToUInt16(data, BUFFER_FLAGS_OFFSET),
                 AnimationCounter = BitConverter.ToUInt16(data, ANIMATION_FRAME_OFFSET),
                 GuardFlags       = BitConverter.ToUInt16(data, GUARD_FLAGS_OFFSET),
                 Extra            = extra,
                 AttackFlags      = BitConverter.ToUInt32(data, ATTACK_FLAGS_OFFSET),
                 CommandFlags     = BitConverter.ToUInt16(data, COMMAND_FLAGS_OFFSET),
+                CoreX            = coreX,
+                CoreY            = coreY,
+                ScaleX           = scaleX,
+                ScaleY           = scaleY,
                 HitboxSet        = boxSet,
                 BoxCount         = boxCount,
                 BoxIter          = data[HITBOX_ITERATION_VAR_OFFSET],
@@ -165,6 +204,7 @@ namespace GGXXACPROverlay.GGXXACPR
 
             return new()
             {
+                ThrowProtectionTimer = BitConverter.ToInt16(data, PLAYER_EXTRA_THROW_PROTECTION_TIMER_OFFSET),
                 InvulnCounter = data[PLAYER_EXTRA_INVULN_COUNTER_OFFSET],
                 RCTime = data[PLAYER_EXTRA_RC_TIME_OFFSET],
                 ComboTime = BitConverter.ToInt16(data, PLAYER_EXTRA_COMBO_TIME_OFFSET),
@@ -209,7 +249,7 @@ namespace GGXXACPROverlay.GGXXACPR
             return output;
         }
 
-        internal static Hitbox ByteArrToHitbox(byte[] data, int offset)
+        private static Hitbox ByteArrToHitbox(byte[] data, int offset)
         {
             return new()
             {
@@ -222,6 +262,7 @@ namespace GGXXACPROverlay.GGXXACPR
             };
         }
 
+        // TODO use state flags for ownership
         private static Entity[] GetEntities()
         {
             Entity[] entityArray = ByteArrayToEntities(Memory.ReadMemory(Player1Pointer, ENTITY_STRUCT_BUFFER * ENTITY_ARRAY_SIZE));
@@ -246,10 +287,6 @@ namespace GGXXACPROverlay.GGXXACPR
                     }
                 }
             }
-
-            // DEBUG
-            bool reduced = !parentIndices.Any(i => i > 1);
-            Debug.WriteLine($"Ent arr has completely reduced: {reduced}");
 
             // Assigning ownership
             for (int i = 0; i < entityArray.Length; i++)
@@ -288,20 +325,31 @@ namespace GGXXACPROverlay.GGXXACPR
                 hitboxes = GetHitboxes(boxSetArr, numBoxes);
             }
 
+            var coreX = BitConverter.ToInt16(data, CORE_X_OFFSET + offset);
+            var coreY = BitConverter.ToInt16(data, CORE_Y_OFFSET + offset);
+            var scaleX = BitConverter.ToInt16(data, SCALE_X_OFFSET + offset);
+            var scaleY = BitConverter.ToInt16(data, SCALE_Y_OFFSET + offset);
+
+            //hitboxes = ScaleHitboxes(hitboxes, scaleX, scaleY, coreX, coreY);
+
             return new()
             {
-                Id = BitConverter.ToUInt16(data, offset),
+                Id            = BitConverter.ToUInt16(data, offset),
                 IsFacingRight = data[offset + IS_FACING_RIGHT_OFFSET] == 1,
-                BackPtr = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_BACK_PTR_OFFSET),
-                NextPtr = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_NEXT_PTR_OFFSET),
-                Status = BitConverter.ToUInt32(data, offset + STATUS_OFFSET),
-                ParentPtrRaw = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_PARENT_PTR_OFFSET),
-                ParentFlag = BitConverter.ToUInt16(data, offset + PROJECTILE_PARENT_FLAG_OFFSET),
-                HitboxSetPtr = (nint)BitConverter.ToUInt32(data, offset + HITBOX_LIST_OFFSET),
-                HitboxSet = hitboxes,
-                BoxCount = numBoxes,
-                XPos = BitConverter.ToInt32(data, offset + XPOS_OFFSET),
-                YPos = BitConverter.ToInt32(data, offset + YPOS_OFFSET)
+                BackPtr       = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_BACK_PTR_OFFSET),
+                NextPtr       = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_NEXT_PTR_OFFSET),
+                Status        = BitConverter.ToUInt32(data, offset + STATUS_OFFSET),
+                ParentPtrRaw  = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_PARENT_PTR_OFFSET),
+                ParentFlag    = BitConverter.ToUInt16(data, offset + PROJECTILE_PARENT_FLAG_OFFSET),
+                CoreX         = coreX,
+                CoreY         = coreY,
+                ScaleX        = scaleX,
+                ScaleY        = scaleY,
+                HitboxSetPtr  = (nint)BitConverter.ToUInt32(data, offset + HITBOX_LIST_OFFSET),
+                HitboxSet     = hitboxes,
+                BoxCount      = numBoxes,
+                XPos          = BitConverter.ToInt32(data, offset + XPOS_OFFSET),
+                YPos          = BitConverter.ToInt32(data, offset + YPOS_OFFSET)
             };
         }
     }

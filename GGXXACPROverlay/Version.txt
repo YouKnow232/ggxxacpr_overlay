@@ -1,0 +1,22 @@
+# 1.0.1-beta
+- Fixed a crash that would occur when the overlay is launched before the game has loaded any characters
+- Fixed Hitboxes drawing 1 screen px too thick
+- Fixed Hitboxes being drawn 8 game pixels too high
+- Fixed Hitboxes that were incorrectly scaled (e.g. Justice's nukes)
+- Fixed Hitboxes that were incorrectly displayed during strike invuln
+- Changed the method for calculating startup to use the player's animation counter (not a permanent change).
+	- Some moves transition through multiple move IDs internally (thus restarting their animation counter) so it's not 100% correct yet, but this should be consistent and handle gatlings much better
+- Changed FRC windows to a hatched pattern to avoid overwritting other frame properties
+- Added Throw invuln from throw protection to the frame meter
+- Changed the Slashback window under line color to red for better clarity
+
+# 1.0-beta
+- Added frame meter
+- Improved memory performance
+
+# 0.2-alpha
+- Improved memory and rendering performance
+- Corrected some inaccurate boxes that were supposed to be disabled by certain state flags
+
+# 0.1-alpha
+- Initial release

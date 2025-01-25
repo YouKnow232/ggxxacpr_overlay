@@ -17,11 +17,14 @@ namespace GGXXACPROverlay
         private readonly Dictionary<BoxId, SolidBrush> _hitboxFillPalette;
         private readonly Dictionary<FrameMeter.FrameType, SolidBrush> _frameTypePalette;
         private readonly Dictionary<FrameMeter.FrameProperty, SolidBrush> _framePropertyPalette;
+        private readonly Dictionary<FrameMeter.FrameProperty2, SolidBrush> _frameProperty2Palette;
 
         // Frame Meter
 
         [AllowNull]
         public SolidBrush PivotBrush { get; private set; }
+        [AllowNull]
+        public SolidBrush EntityCoreBrush { get; private set; }
         [AllowNull]
         public SolidBrush CollisionOutlineBrush { get; private set; }
         [AllowNull]
@@ -39,11 +42,13 @@ namespace GGXXACPROverlay
             _hitboxFillPalette = [];
             _frameTypePalette = [];
             _framePropertyPalette = [];
+            _frameProperty2Palette = [];
         }
 
         public void Initilize(Graphics g)
         {
-            PivotBrush = g.CreateSolidBrush(255, 255, 255, 255);
+            PivotBrush = g.CreateSolidBrush(255, 255, 255);
+            EntityCoreBrush = g.CreateSolidBrush(255, 0, 255);
             CollisionOutlineBrush = g.CreateSolidBrush(_defaultCollisionboxClr);
             CollisionFillBrush = g.CreateSolidBrush(new Color(_defaultCollisionboxClr, _boxAlpha));
 
@@ -77,7 +82,7 @@ namespace GGXXACPROverlay
             _framePropertyPalette.Add(FrameMeter.FrameProperty.TEST, g.CreateSolidBrush(255, 0, 255));
             _framePropertyPalette.Add(FrameMeter.FrameProperty.Default, g.CreateSolidBrush(0, 0, 0));
             _framePropertyPalette.Add(FrameMeter.FrameProperty.FRC, g.CreateSolidBrush(255, 255, 0));
-            _framePropertyPalette.Add(FrameMeter.FrameProperty.SlashBack, g.CreateSolidBrush(255, 255, 0));
+            _framePropertyPalette.Add(FrameMeter.FrameProperty.SlashBack, g.CreateSolidBrush(255, 0, 0));
             _framePropertyPalette.Add(FrameMeter.FrameProperty.InvulnFull, g.CreateSolidBrush(255, 255, 255));
             _framePropertyPalette.Add(FrameMeter.FrameProperty.InvulnThrow, g.CreateSolidBrush(255, 125, 0));
             _framePropertyPalette.Add(FrameMeter.FrameProperty.InvulnStrike, g.CreateSolidBrush(0, 125, 255));
@@ -86,6 +91,9 @@ namespace GGXXACPROverlay
             _framePropertyPalette.Add(FrameMeter.FrameProperty.GuardPointFull, g.CreateSolidBrush(120, 80, 0));
             _framePropertyPalette.Add(FrameMeter.FrameProperty.GuardPointHigh, g.CreateSolidBrush(120, 80, 0));
             _framePropertyPalette.Add(FrameMeter.FrameProperty.GuardPointLow, g.CreateSolidBrush(120, 80, 0));
+
+            _frameProperty2Palette.Add(FrameMeter.FrameProperty2.Default, g.CreateSolidBrush(0, 0, 0));
+            _frameProperty2Palette.Add(FrameMeter.FrameProperty2.FRC, g.CreateSolidBrush(255, 255, 0));
         }
 
         public SolidBrush GetOutlineBrush(BoxId type)
@@ -103,6 +111,10 @@ namespace GGXXACPROverlay
         public SolidBrush GetBrush(FrameMeter.FrameProperty property)
         {
             return _framePropertyPalette[property];
+        }
+        public SolidBrush GetBrush(FrameMeter.FrameProperty2 property)
+        {
+            return _frameProperty2Palette[property];
         }
 
         ~GraphicsResources()
