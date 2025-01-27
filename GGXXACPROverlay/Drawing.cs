@@ -1,5 +1,4 @@
 ﻿
-using System.Diagnostics;
 using GameOverlay.Drawing;
 using GGXXACPROverlay.GGXXACPR;
 
@@ -8,15 +7,16 @@ namespace GGXXACPROverlay
     internal class Drawing
     {
         private static readonly float LINE_THICKNESS = 1f;
-        private static readonly int PIVOT_CROSS_SIZE = 6;
         // Values in game pixels
+        private static readonly int PIVOT_CROSS_SIZE = 6;
         private static readonly int FRAME_METER_X = 19;
         private static readonly int FRAME_METER_Y = 390;
         private static readonly int FRAME_METER_PIP_WIDTH = 5;
         private static readonly int FRAME_METER_PIP_HEIGHT = 7;
         private static readonly int FRAME_METER_ENTITY_PIP_HEIGHT = 4;
         private static readonly int FRAME_METER_PIP_SPACING = 1 + FRAME_METER_PIP_WIDTH;
-        private static readonly int FRAME_METER_PROPERTY_HIGHLIGHT_TOP = -2 + FRAME_METER_PIP_HEIGHT;
+        private static readonly int FRAME_METER_PROPERTY_HIGHLIGHT_HEIGHT = 2;
+        private static readonly int FRAME_METER_PROPERTY_HIGHLIGHT_TOP = FRAME_METER_PIP_HEIGHT - FRAME_METER_PROPERTY_HIGHLIGHT_HEIGHT;
         private static readonly int FRAME_METER_VERTICAL_SPACING = 1;
         private static readonly int FRAME_METER_FONT_SPACING = 5;
 
@@ -170,8 +170,15 @@ namespace GGXXACPROverlay
         {
             FrameMeter.Frame[] frameArr;
             Rectangle rect;
-            Line line;
 
+            // Border
+            g.FillRectangle(r.FontBorderBrush, PixelToWindow(new Rectangle(
+                FRAME_METER_X - 1,
+                FRAME_METER_Y - 1,
+                FRAME_METER_X + FRAME_METER_PIP_SPACING * frameMeter.PlayerMeters[0].FrameArr.Length,
+                FRAME_METER_Y + 2 + FRAME_METER_PIP_HEIGHT * 2),
+                windowDimensions
+            ));
 
             // Player
             for (int j = 0; j < frameMeter.PlayerMeters.Length; j++)
@@ -188,20 +195,15 @@ namespace GGXXACPROverlay
                     g.FillRectangle(r.GetBrush(frameArr[i].Type), PixelToWindow(rect, windowDimensions));
                     if (frameArr[i].Property2 != FrameMeter.FrameProperty2.Default)
                     {
-                        g.ClipRegionStart(PixelToWindow(rect, windowDimensions));
-                        for (int k = 0; k < FRAME_METER_PIP_HEIGHT + FRAME_METER_PIP_WIDTH; k += (int)(LINE_THICKNESS*2.5f))
-                        {
-                            line = new Line(
-                                FRAME_METER_X + (i * FRAME_METER_PIP_SPACING),
-                                FRAME_METER_Y + (j * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT)) + k - FRAME_METER_PIP_WIDTH,
-                                FRAME_METER_X + FRAME_METER_PIP_WIDTH + (i * FRAME_METER_PIP_SPACING),
-                                FRAME_METER_Y + (j * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT)) + k
-                            );
-                            g.DrawLine(r.GetBrush(frameArr[i].Property2), PixelToWindow(line, windowDimensions), LINE_THICKNESS);
-                        }
-                        g.ClipRegionEnd();
+                        rect = new Rectangle(
+                            FRAME_METER_X + (i * FRAME_METER_PIP_SPACING),
+                            FRAME_METER_Y + (j * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT)),
+                            FRAME_METER_X + FRAME_METER_PIP_WIDTH + (i * FRAME_METER_PIP_SPACING),
+                            FRAME_METER_Y + (j * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT)) + FRAME_METER_PROPERTY_HIGHLIGHT_HEIGHT
+                        );
+                        g.FillRectangle(r.GetBrush(frameArr[i].Property2), PixelToWindow(rect, windowDimensions));
                     }
-                    if (frameArr[i].Property != FrameMeter.FrameProperty.Default)
+                    if (frameArr[i].Property != FrameMeter.FrameProperty1.Default)
                     {
                         rect = new Rectangle(
                             FRAME_METER_X + (i * FRAME_METER_PIP_SPACING),
@@ -214,10 +216,20 @@ namespace GGXXACPROverlay
                 }
             }
 
+            
+
             // Entity
-            for (int i=0; i < frameMeter.EntityMeters[0].FrameArr.Length; i++)
+            if (!frameMeter.EntityMeters[0].Hide)
             {
-                if (!frameMeter.EntityMeters[0].Hide)
+                // Border
+                g.FillRectangle(r.FontBorderBrush, PixelToWindow(new Rectangle(
+                    FRAME_METER_X - 1,
+                    FRAME_METER_Y - 1 - FRAME_METER_VERTICAL_SPACING - FRAME_METER_ENTITY_PIP_HEIGHT,
+                    FRAME_METER_X + FRAME_METER_PIP_SPACING * frameMeter.PlayerMeters[0].FrameArr.Length,
+                    FRAME_METER_Y - 1),
+                    windowDimensions
+                ));
+                for (int i=0; i < frameMeter.EntityMeters[0].FrameArr.Length; i++)
                 {
                     rect = new Rectangle(
                         FRAME_METER_X + (i * FRAME_METER_PIP_SPACING),
@@ -227,13 +239,24 @@ namespace GGXXACPROverlay
                     );
                     g.FillRectangle(r.GetBrush(frameMeter.EntityMeters[0].FrameArr[i].Type), PixelToWindow(rect, windowDimensions));
                 }
-                if (!frameMeter.EntityMeters[1].Hide)
-                {
+            }
+            if (!frameMeter.EntityMeters[1].Hide)
+            {
+                // Border
+                g.FillRectangle(r.FontBorderBrush, PixelToWindow(new Rectangle(
+                    FRAME_METER_X - 1,
+                    FRAME_METER_Y + 2 * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT),
+                    FRAME_METER_X + FRAME_METER_PIP_SPACING * frameMeter.PlayerMeters[1].FrameArr.Length,
+                    FRAME_METER_Y + 1 + FRAME_METER_ENTITY_PIP_HEIGHT + 2 * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT)),
+                    windowDimensions
+                ));
+                for (int i = 0; i < frameMeter.EntityMeters[1].FrameArr.Length; i++)
+                    {
                     rect = new Rectangle(
                         FRAME_METER_X + (i * FRAME_METER_PIP_SPACING),
-                        FRAME_METER_Y + (2 * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT)),
+                        FRAME_METER_Y + 2 * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT),
                         FRAME_METER_X + FRAME_METER_PIP_WIDTH + (i * FRAME_METER_PIP_SPACING),
-                        FRAME_METER_Y + FRAME_METER_ENTITY_PIP_HEIGHT + (2 * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT))
+                        FRAME_METER_Y + FRAME_METER_ENTITY_PIP_HEIGHT + 2 * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT)
                     );
                     g.FillRectangle(r.GetBrush(frameMeter.EntityMeters[1].FrameArr[i].Type), PixelToWindow(rect, windowDimensions));
                 }
@@ -263,20 +286,25 @@ namespace GGXXACPROverlay
                 pos = new Point(pos.X + (r.Font.FontSize * 4), pos.Y);
                 g.DrawTextWithBackground(r.Font, r.FontBrush, r.FontBorderBrush, pos, $"Adv:{frameMeter.PlayerMeters[1].Advantage}");
             }
+        }
 
-
-            // DEBUG
-            //for (int i = 0; i < frameMeter.TestMeter.FrameArr.Length; i++)
-            //{
-            //    rect = new Rectangle(
-            //        FRAME_METER_X + (i * FRAME_METER_PIP_SPACING),
-            //        FRAME_METER_Y - 300,
-            //        FRAME_METER_X + FRAME_METER_PIP_WIDTH + (i * FRAME_METER_PIP_SPACING),
-            //        FRAME_METER_Y + FRAME_METER_PIP_HEIGHT - 300
-            //    );
-            //    g.FillRectangle(r.GetBrush(frameMeter.TestMeter.FrameArr[i].Type), PixelToWindow(rect, windowDimensions));
-            //}
-
+        private static void HatchRegion(Graphics g, SolidBrush b, Rectangle rect, Dimensions windowDimensions)
+        {
+            Line line;
+            g.ClipRegionStart(PixelToWindow(rect, windowDimensions));
+            float height = rect.Bottom - rect.Top;
+            float width = rect.Right - rect.Left;
+            for (int k = 0; k < height + width; k += (int)(LINE_THICKNESS * 2.5f))
+            {
+                line = new Line(
+                    rect.Left,
+                    rect.Top - rect.Right + rect.Left + k,
+                    rect.Right,
+                    rect.Top + k
+                );
+                g.DrawLine(b, PixelToWindow(line, windowDimensions), LINE_THICKNESS);
+            }
+            g.ClipRegionEnd();
         }
 
         internal static int FlipVector(Player p) { return p.IsFacingRight ? -1 : 1; }
@@ -352,7 +380,7 @@ namespace GGXXACPROverlay
                 Width = (short)Math.Floor(hitbox.Width * scaleX / 1000f),
                 Height = (short)Math.Floor(hitbox.Height * scaleY / 1000f),
                 BoxTypeId = hitbox.BoxTypeId,
-                Filler = hitbox.Filler
+                BoxFlags = hitbox.BoxFlags
             };
         }
         private static Hitbox ScaleHitbox(Hitbox hitbox, Entity e)
@@ -369,7 +397,7 @@ namespace GGXXACPROverlay
                 Width = (short)(hitbox.Width * scaleX / 1000),
                 Height = (short)(hitbox.Height * scaleY / 1000),
                 BoxTypeId = hitbox.BoxTypeId,
-                Filler = hitbox.Filler
+                BoxFlags = hitbox.BoxFlags
             };
         }
     }

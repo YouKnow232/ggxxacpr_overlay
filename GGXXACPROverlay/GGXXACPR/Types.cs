@@ -34,16 +34,16 @@
         public short Width = 0;
         public short Height = 0;
         public BoxId BoxTypeId = BoxId.DUMMY;
-        public short Filler = 1; //Should always be 0, used for error checking
+        public short BoxFlags = 0;  // Always 0 for hit and hurt boxes, used for some unknown box types
     }
     public enum BoxId
     {
         DUMMY = 0,
         HIT = 1,
         HURT = 2,
-        UNKNOWN3 = 3,
-        UNKNOWN5 = 5,
-        UNKNOWN6 = 6,
+        UNKNOWN_3 = 3,
+        UNKNOWN_5 = 5,
+        UNKNOWN_6 = 6,
     }
 
     public struct Player()
@@ -67,6 +67,7 @@
         /*0xB0*/ public int XPos = 0;
         /*0xB4*/ public int YPos = 0;
         /*0xFD*/ public byte HitstopCounter = 0;
+        /*0xFF*/ public byte Mark = 0;  // Multi-use variable used for move-specific behavior (For Axl, holds parry active state)
         /*none*/ public Hitbox PushBox = new();
     }
     public struct PlayerExtra()
@@ -74,6 +75,7 @@
         /*0x0018*/ public short ThrowProtectionTimer = 0;
         /*0x002A*/ public byte InvulnCounter = 0;
         /*0x0032*/ public byte RCTime = 0;
+        /*0x0090*/ public byte JamParryTime = 0;    // Parry is active when 0xFF, after 8F begins counting down from 14. Likely a lockout timer.
         /*0x00F6*/ public short ComboTime = 0;
         /*0x010B*/ public byte SBTime = 0;
     }
@@ -89,7 +91,7 @@
         public readonly bool IsAirborne { get { return (_flags & 0x0010) > 0; } }
         public readonly bool IsInHitstun { get { return (_flags & 0x0020) > 0; } }
         public readonly bool DisableHitboxes { get { return (_flags & 0x0040) > 0; } }
-        public readonly bool DisableHurtboxes { get { return (_flags & 0x0080) > 0; } }    // Disable hurtboxes?
+        public readonly bool DisableHurtboxes { get { return (_flags & 0x0080) > 0; } }    // Similar to StrikeInvuln
         public readonly bool IsInBlockstun { get { return (_flags & 0x0200) > 0; } }
         public readonly bool IsCrouching { get { return (_flags & 0x0400) > 0; } }
         //public readonly bool Unknown0x0800 { get { return (_flags & 0x0800) > 0; } } // Unknown
@@ -100,7 +102,6 @@
         public readonly bool IsAtScreenLimit { get { return (_flags & 0x2000) > 0; } }
         public readonly bool Unknown0x4000 { get { return (_flags & 0x4000) > 0; } } // Round end thing? In a throw animation? In some locked animation?
         public readonly bool IsPushboxType1 { get { return (_flags & 0x8000) > 0; } }
-        // Some kind of Invuln flag?
         public readonly bool StrikeInvuln { get { return (_flags & 0x00020000) > 0; } }
         public readonly bool IsIdle { get { return (_flags & 0x00040000) > 0; } }
         public readonly bool Freeze { get { return (_flags & 0x00080000) > 0; } } // Super flash?
@@ -108,7 +109,7 @@
         public readonly bool Unknownx00100000 { get { return (_flags & 0x00100000) > 0; } } // Slayer back dash?
         // AirOptions flag?
         public readonly bool JumpRestrict { get { return (_flags & 0x00200000) > 0; } }
-        public readonly bool Unknown0x00400000 { get { return (_flags & 0x00400000) > 0; } } // Assocated with player->0xF4 having values 0x100
+        public readonly bool Unknown0x00400000 { get { return (_flags & 0x00400000) > 0; } } // Assocated with player->0xF4 having value of 0x100
         public readonly bool IsThrowInuvln { get { return (_flags & 0x00800000) > 0; } }
 
         public static implicit operator ActionStateFlags(uint flags) { return new ActionStateFlags(flags); }
@@ -170,7 +171,7 @@
     {
         public readonly uint _flags = flags;
 
-        public readonly bool IsIdle { get { return _flags == 0x1010; } }
+        public readonly bool IsIdle { get { return (_flags & 0x0000FFFF) == 0x1010; } }
         public readonly bool IsMove { get { return (_flags & 0x0000FFFF) == 0xC05F; } }   // Has this value when any commital action is performed (?)
 
 
@@ -183,7 +184,7 @@
         public readonly bool Unknown0x0200 { get { return (_flags & 0x0200) > 0; } }
         public readonly bool Unknown0x2000 { get { return (_flags & 0x2000) > 0; } } // Jump cancelable state?
         public readonly bool AirNeutral { get { return (_flags & 0x4000) > 0; } }
-        public readonly bool AirtechOkay { get { return (_flags & 0x8000) > 0; } }   // Associated with Airtech
+        public readonly bool AirtechOkay { get { return (_flags & 0x8000) > 0; } }   // Needs Confirmation
 
         public static implicit operator CommandFlags(uint flags) { return new CommandFlags(flags); }
     }
@@ -199,8 +200,8 @@
         public readonly bool IsInBlockStun { get { return (_flags & 0x40) == 0; } } // True when SlashBack?
         public readonly bool GuardPoint { get { return (_flags & 0x0200) > 0; } }
         public readonly bool Armor { get { return (_flags & 0x0400) > 0; } }
-        public readonly bool Unknownx0800 { get { return (_flags & 0x0800) > 0; } } // Justice parry, Axl parry
-        public readonly bool Parry { get { return (_flags & 0x1000) > 0; } } // Testament Warrant, Jam Parry?
+        public readonly bool Parry1 { get { return (_flags & 0x0800) > 0; } } // Justice parry, Axl parry
+        public readonly bool Parry2 { get { return (_flags & 0x1000) > 0; } } // Testament Warrant, Jam Parry?
         public readonly bool Unknownx4000 { get { return (_flags & 0x4000) > 0; } } // Block stun but stops earlier than Status.IsInBlockstun ??
 
 
@@ -214,7 +215,7 @@
         /*0x02*/ public bool IsFacingRight = false;
         /*0x04*/ public nint BackPtr = nint.Zero;   // points to previous item in entity array
         /*0x08*/ public nint NextPtr = nint.Zero;   // points to next item in the entity array
-        /*0x0C*/ public ActionStateFlags Status = new(0);
+        /*0x0C*/ public ActionStateFlags Status = 0;
         /*0x20*/ public nint ParentPtrRaw = nint.Zero;
         /*0x28*/ public ushort ParentFlag = 0;
         /*0x4C*/ public short CoreX = 0;

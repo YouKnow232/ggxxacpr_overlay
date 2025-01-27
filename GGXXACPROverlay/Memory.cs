@@ -8,34 +8,9 @@ namespace GGXXACPROverlay
 {
     internal static partial class Memory
     {
-        // C# bool is 4bytes so we need to use this struct to handle casting from the 1 byte Bool from the P/Invoke functions
-        //private readonly struct BoolByte(bool boolean)
-        //{
-        //    private readonly byte b = (byte)(boolean ? 1 : 0);
-
-        //    public static implicit operator BoolByte (bool b) { return new BoolByte (b); }
-        //    public static implicit operator bool (BoolByte boolByte) { return boolByte.b > 0; }
-        //}
-
-        //[LibraryImport("kernel32.dll")]
-        //private static partial nint OpenProcess(int dwDesiredAcess, BoolByte bInheritHandle, int dwProcessId);
-        //[LibraryImport("kernel32.dll")]
-        //private static partial BoolByte CloseHandle(nint hObject);
-        //[LibraryImport("kernel32.dll")]
-        //private static partial BoolByte ReadProcessMemory(
-        //    nint hProcess,
-        //    nint lpBaseAddress,
-        //    [Out, MarshalUsing(CountElementName ="dwSize")] byte[] lpBuff,
-        //    int dwSize,
-        //    out int lpNumberOfBytesRead
-        //);
-        //[LibraryImport("kernel32.dll")]
-        //private static partial int GetLastError();
-        //[LibraryImport("kernel32.dll", StringMarshalling = StringMarshalling.Utf16)]
-        //private static partial nint GetModuleHandleA(string? lpModuleName);
-
-
         private static readonly int _PROCESS_VM_READ = 0x0010;
+        private static readonly uint WS_POPUP = 0x80000000;
+        private static readonly uint WS_EX_TOPMOST = 0x00000008;
 
         private static Process? _process;
         private static HANDLE _procHandle;
@@ -84,24 +59,6 @@ namespace GGXXACPROverlay
             Debug.WriteLine($"threads: {_process.Threads.Count}");
             return (uint)_process.Threads[1].Id;
         }
-
-        //internal static nint GetDllHandle(Type T)
-        //{
-        //    string? dll = T.Assembly.GetName().Name;
-        //    if (dll != null)
-        //    {
-        //        nint modHandle = PInvoke.GetModuleHandle(dll);
-        //        if (modHandle == nint.Zero)
-        //        {
-        //            Memory.HandleSystemError("GetModuleHandleA returned null pointer.");
-        //        }
-        //        return modHandle;
-
-        //        throw new SystemException("GetModuleHandle returned null pointer.");
-        //    }
-
-        //    throw new SystemException("Executing Assemply full name is null.");
-        //}
 
         internal static nint GetBaseAddress()
         {
