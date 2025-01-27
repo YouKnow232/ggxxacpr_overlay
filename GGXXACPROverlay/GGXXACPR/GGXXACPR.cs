@@ -1,6 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Numerics;
-using SharpDX.Direct2D1;
 
 namespace GGXXACPROverlay.GGXXACPR
 {

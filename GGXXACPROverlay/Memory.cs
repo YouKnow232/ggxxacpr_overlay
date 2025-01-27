@@ -60,14 +60,6 @@ namespace GGXXACPROverlay
             return (uint)_process.Threads[1].Id;
         }
 
-        internal static uint GetGameThreadID()
-        {
-            if (_process == null) { throw new InvalidOperationException("Process has not been opened"); }
-            Debug.WriteLine($"threads: {_process.Threads}");
-            Debug.WriteLine($"threads: {_process.Threads.Count}");
-            return (uint)_process.Threads[1].Id;
-        }
-
         internal static nint GetBaseAddress()
         {
             if (_baseAddress == 0) { throw new InvalidOperationException("Base Address is 0, has the process been opened with Memory.OpenProcess()? "); }

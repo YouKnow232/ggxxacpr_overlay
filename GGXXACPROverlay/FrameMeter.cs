@@ -1,8 +1,5 @@
-﻿using System;
-using System.Diagnostics;
-using System.Reflection.Metadata.Ecma335;
+﻿using System.Diagnostics;
 using GGXXACPROverlay.GGXXACPR;
-using SharpDX.Direct2D1.Effects;
 
 namespace GGXXACPROverlay
 {
@@ -224,41 +221,11 @@ namespace GGXXACPROverlay
 
         private static FrameProperty1 DetermineFrameProperty1(GameState state, int index)
         {
-            // LINQ is so nice
-            var ownerEntitiesHitboxes =
-                state.Entities.Where(e => e.ParentIndex == index && !e.Status.DisableHitboxes)
-                              .SelectMany(e => e.HitboxSet)
-                              .Where(h => h.BoxTypeId == BoxId.HIT);
-
-            var ownerEntityHurtboxes =
-                state.Entities.Where(e => e.ParentIndex == index && !e.Status.DisableHurtboxes)
-                              .SelectMany(e => e.HitboxSet)
-                              .Where(h => h.BoxTypeId == BoxId.HURT);
-
-            if (ownerEntitiesHitboxes.ToArray().Length > 0)
-            {
-                return FrameType.Active;
-            }
-            else if (ownerEntityHurtboxes.ToArray().Length > 0)
-            {
-                return FrameType.Startup;
-            } else
-            {
-                return FrameType.None;
-            }
-        }
-
-        private void UpdateIndividualMeter(GameState state, int index)
-        {
             Player[] players = [state.Player1, state.Player2];
 
             if (players[index].Extra.SBTime > 0)
             {
                 return FrameProperty1.SlashBack;
-            }
-            else if (players[index].Extra.SBTime > 0)
-            {
-                prop = FrameProperty.SlashBack;
             }
             else if ((players[index].Status.DisableHurtboxes ||
                     players[index].Status.StrikeInvuln ||
