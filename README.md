@@ -22,14 +22,14 @@ Displays hitboxes and a frame meter in a seamless overlay for the Steam release 
 ## Known Issues
 - Fullscreen is not currently supported
 - Frame Meter does not fully support Replay mode
-    - Rewinding is not recognized by the Frame
-    - Frame Meter may skip ahead while paused in a replay
-- Startup implementation is still a WIP and may be incorrect or not displayed
+    - Rewinding is not recognized by the Frame Meter
+    - Frame Meter may skip ahead while replay is paused
+- Startup implementation is still a WIP and may be incorrect
     - Projectile startup is not implemented
     - Startup is wrong for supers that animate during super flash
     - Startup is wrong for moves that have multiple internal animation IDs
-- Throw boxes, active frame, and startup are not implemented
-- Collision boxes may be wrong. They currently only account for standing and crouching states.
+- Throw boxes, active frames, and startup are not implemented
+- Collision boxes may be wrong. They currently only account for standing and crouching states
 - Justice's fullscreen super has incorrect invuln
 - When multiple frame properties overlap only one state is reported on the frame meter
     - e.g. Throw invuln will overwrite guard point for Anji's 3K, 6H, Rin, and FB Rin
