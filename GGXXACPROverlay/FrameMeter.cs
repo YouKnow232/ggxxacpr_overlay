@@ -1,8 +1,5 @@
-﻿using System;
-using System.Diagnostics;
-using System.Reflection.Metadata.Ecma335;
+﻿using System.Diagnostics;
 using GGXXACPROverlay.GGXXACPR;
-using SharpDX.Direct2D1.Effects;
 
 namespace GGXXACPROverlay
 {

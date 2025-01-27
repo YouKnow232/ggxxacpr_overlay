@@ -1,8 +1,5 @@
 ﻿using GameOverlay;
-using SharpDX.Direct2D1.Effects;
-using System.Diagnostics;
 using System.Reflection;
-using static GGXXACPROverlay.FrameMeter;
 
 namespace GGXXACPROverlay
 {
