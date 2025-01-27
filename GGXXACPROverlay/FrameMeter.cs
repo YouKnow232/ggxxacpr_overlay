@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Reflection.Metadata.Ecma335;
 using GGXXACPROverlay.GGXXACPR;
 using SharpDX.Direct2D1.Effects;
@@ -18,7 +19,11 @@ namespace GGXXACPROverlay
             BlockStun,
             HitStun
         }
-        public enum FrameProperty
+
+        /// <summary>
+        /// Drawn on bottom of frame meter pip
+        /// </summary>
+        public enum FrameProperty1
         {
             Default,
             InvulnFull,
@@ -33,10 +38,25 @@ namespace GGXXACPROverlay
             SlashBack,
             TEST
         }
-        public readonly struct Frame(FrameType type = FrameType.None, FrameProperty prop = FrameProperty.Default, int actTimer = -1)
+
+        /// <summary>
+        /// Drawn on top of frame meter pip
+        /// </summary>
+        public enum FrameProperty2
+        {
+            Default,
+            FRC
+        }
+
+        public readonly struct Frame(
+            FrameType type = FrameType.None,
+            FrameProperty1 prop = FrameProperty1.Default,
+            FrameProperty2 prop2 = FrameProperty2.Default,
+            int actTimer = -1)
         {
             public readonly FrameType Type = type;
-            public readonly FrameProperty Property = prop;
+            public readonly FrameProperty1 Property = prop;
+            public readonly FrameProperty2 Property2 = prop2;
             public readonly int ActTimer = actTimer;
         }
 
@@ -71,6 +91,7 @@ namespace GGXXACPROverlay
         public void Update(GameState state)
         {
             // Check if meter should update
+            // Skip update if both character haven't advanced a frame (TODO: Should update this logic after D3D hook update)
             if (state.Player1.AnimationCounter == FrameAtOffset(-1, 0).ActTimer &&
                 state.Player2.AnimationCounter == FrameAtOffset(-1, 1).ActTimer)
             {
@@ -85,8 +106,12 @@ namespace GGXXACPROverlay
                 //Debug.WriteLine($"Skipping frame double count. {tempSkipCounter}");
                 return;
             }
-            // Pause when both players are in hitstop (redunt when checking for unchanged animation timers)
+            // Skip update when both players are in hitstop (currently redundant when checking for unchanged animation timers)
             if (state.Player1.HitstopCounter > 0 && state.Player2.HitstopCounter > 0) { return; }
+            // Skip update if either player is frozen in super flash
+            if (state.Player1.Status.Freeze || state.Player2.Status.Freeze) { return; }
+
+            // Pause logic
             if (_isPaused)
             {
                 if ((DetermineFrameType(state, 0) == FrameType.Neutral) &&
@@ -111,6 +136,7 @@ namespace GGXXACPROverlay
             UpdateIndividualEntityMeter(state, 1);
 
             // Check if frame meter should pause
+            // TODO: account for frame properties
             _isPaused = true;
             bool a, b, c, d, e, f;
             for (int i = 0; i < PAUSE_THRESHOLD; i++)
@@ -130,7 +156,7 @@ namespace GGXXACPROverlay
                 }
             }
 
-            CalculateLabels();
+            CalculateLabels(state);
 
             _index = (_index + 1) % METER_LENGTH;
         }
@@ -158,7 +184,11 @@ namespace GGXXACPROverlay
         {
             var player = index == 0 ? state.Player1 : state.Player2;
 
-            if (player.Status.IsInBlockstun || player.Extra.SBTime > 0)
+            if (player.HitboxSet.Any(h => h.BoxTypeId == BoxId.HIT) && !player.Status.DisableHitboxes)
+            {
+                return FrameType.Active;
+            }
+            else if (player.Status.IsInBlockstun || player.Extra.SBTime > 0)
             {
                 return FrameType.BlockStun;
             }
@@ -192,7 +222,7 @@ namespace GGXXACPROverlay
             }
         }
 
-        private static FrameType DetermineEntityFrameType(GameState state, int index)
+        private static FrameProperty1 DetermineFrameProperty1(GameState state, int index)
         {
             // LINQ is so nice
             var ownerEntitiesHitboxes =
@@ -222,12 +252,9 @@ namespace GGXXACPROverlay
         {
             Player[] players = [state.Player1, state.Player2];
 
-            FrameType type = DetermineFrameType(state, index);
-            FrameProperty prop = FrameProperty.Default;
-
-            if (players[index].Extra.RCTime > 0)
+            if (players[index].Extra.SBTime > 0)
             {
-                prop = FrameProperty.FRC;
+                return FrameProperty1.SlashBack;
             }
             else if (players[index].Extra.SBTime > 0)
             {
@@ -237,46 +264,118 @@ namespace GGXXACPROverlay
                     players[index].Status.StrikeInvuln ||
                     players[index].Extra.InvulnCounter > 0 ||
                     !players[index].HitboxSet.Any((Hitbox h) => h.BoxTypeId == BoxId.HURT)
-                ) && players[index].Status.IsThrowInuvln)
+                ) && (players[index].Status.IsThrowInuvln ||
+                    players[index].Extra.ThrowProtectionTimer > 0))
             {
-                prop = FrameProperty.InvulnFull;
+                return FrameProperty1.InvulnFull;
             }
-            else if (players[index].Status.IsThrowInuvln)
+            else if (players[index].Status.IsThrowInuvln ||
+                (players[index].Extra.ThrowProtectionTimer > 0 &&
+                    !(players[index].Status.IsInHitstun || players[index].Status.IsInBlockstun)))
             {
-                prop = FrameProperty.InvulnThrow;
+                return FrameProperty1.InvulnThrow;
             }
             else if (players[index].Status.DisableHurtboxes ||
                     players[index].Status.StrikeInvuln ||
                     players[index].Extra.InvulnCounter > 0 ||
                     !players[index].HitboxSet.Any((Hitbox h) => h.BoxTypeId == BoxId.HURT))
             {
-                prop = FrameProperty.InvulnStrike;
+                return FrameProperty1.InvulnStrike;
             }
             else if (players[index].GuardFlags.Armor)
             {
-                prop = FrameProperty.Armor;
+                return FrameProperty1.Armor;
             }
-            else if (players[index].GuardFlags.Parry)
+            else if (players[index].GuardFlags.Parry1 || players[index].GuardFlags.Parry2)
             {
-                prop = FrameProperty.Parry;
+                // If Jam
+                if (players[index].CharId == 12 && players[index].GuardFlags.Parry2)
+                {
+                    // Jam parry flips her Parry2 flag for the rest of her current animation and uses a character specific counter for the active window
+                    if (players[index].Extra.JamParryTime == 0xFF)
+                    {
+                        return FrameProperty1.Parry;
+                    }
+                }
+                // If Axl
+                else if (players[index].CharId == 5 && players[index].GuardFlags.Parry1)
+                {
+                    // Testing Mark property here. Seems to be necessary for Axl parry.
+                    //  For some reason his parry is marked as a parry state for the full animation (despite being active 5F-17F in practice) and
+                    //  uses some extra move properties to actually determine if the move should parry.
+                    if (players[index].Mark == 0)
+                    {
+                        return FrameProperty1.Parry;
+                    }
+                }
+                else
+                {
+                    return FrameProperty1.Parry;
+                }
             }
             else if (players[index].GuardFlags.GuardPoint)
             {
                 if (players[index].GuardFlags.IsStandBlocking && players[index].GuardFlags.IsCrouchBlocking)
                 {
-                    prop = FrameProperty.GuardPointFull;
+                    return FrameProperty1.GuardPointFull;
                 }
                 else if (players[index].GuardFlags.IsStandBlocking)
                 {
-                    prop = FrameProperty.GuardPointHigh;
+                    return FrameProperty1.GuardPointHigh;
                 }
                 else if (players[index].GuardFlags.IsCrouchBlocking)
                 {
-                    prop = FrameProperty.GuardPointLow;
+                    return FrameProperty1.GuardPointLow;
                 }
             }
 
-            PlayerMeters[index].FrameArr[_index] = new Frame(type, prop, players[index].AnimationCounter);
+            return FrameProperty1.Default;
+        }
+
+        private static FrameType DetermineEntityFrameType(GameState state, int index)
+        {
+            Func<Entity, bool> OwnershipExpression = e => (e.Status.IsPlayer1 && index == 0) || (e.Status.IsPlayer2 && index == 1);
+
+            // LINQ is so nice
+            var ownerEntitiesHitboxes =
+                //state.Entities.Where(e => e.ParentIndex == index && !e.Status.DisableHitboxes)
+                state.Entities.Where(e => OwnershipExpression(e) && !e.Status.DisableHitboxes)
+                              .SelectMany(e => e.HitboxSet)
+                              .Where(h => h.BoxTypeId == BoxId.HIT);
+
+            var ownerEntityHurtboxes =
+                //state.Entities.Where(e => e.ParentIndex == index && !e.Status.DisableHurtboxes)
+                state.Entities.Where(e => OwnershipExpression(e) && !e.Status.DisableHitboxes)
+                              .SelectMany(e => e.HitboxSet)
+                              .Where(h => h.BoxTypeId == BoxId.HURT);
+
+            if (ownerEntitiesHitboxes.ToArray().Length > 0)
+            {
+                return FrameType.Active;
+            }
+            else if (ownerEntityHurtboxes.ToArray().Length > 0)
+            {
+                return FrameType.Startup;
+            } else
+            {
+                return FrameType.None;
+            }
+        }
+
+        private void UpdateIndividualMeter(GameState state, int index)
+        {
+            Player[] players = [state.Player1, state.Player2];
+
+            FrameType type = DetermineFrameType(state, index);
+            FrameProperty1 prop = DetermineFrameProperty1(state, index);
+            FrameProperty2 prop2 = FrameProperty2.Default;
+
+            if (players[index].Extra.RCTime > 0)
+            {
+                prop2 = FrameProperty2.FRC;
+            }
+
+            PlayerMeters[index].FrameArr[_index] = new Frame(type, prop, prop2, players[index].AnimationCounter);
             PlayerMeters[index].FrameArr[(_index + 2 + METER_LENGTH) % METER_LENGTH] = new Frame(); // Forward erasure
         }
 
@@ -291,31 +390,17 @@ namespace GGXXACPROverlay
             EntityMeters[index].Hide = !EntityMeters[index].FrameArr.Any((Frame f) => f.Type != FrameType.None);
         }
 
-        // TODO: proj startup
-        private void CalculateLabels()
+        // TODO: proj startup, startup logic
+        private void CalculateLabels(GameState state)
         {
             // Startup
             if (FrameAtOffset(0, 0).Type == FrameType.Active && FrameAtOffset(-1, 0).Type == FrameType.CounterHitState)
             {
-                for (int i = 1; i < METER_LENGTH; i++)
-                {
-                    if (FrameAtOffset(-i, 0).Type != FrameType.CounterHitState)
-                    {
-                        PlayerMeters[0].Startup = i;
-                        break;
-                    }
-                }
+                PlayerMeters[0].Startup = state.Player1.AnimationCounter;
             }
             if (FrameAtOffset(0, 1).Type == FrameType.Active && FrameAtOffset(-1, 1).Type == FrameType.CounterHitState)
             {
-                for (int i = 1; i < METER_LENGTH; i++)
-                {
-                    if (FrameAtOffset(-i, 0).Type != FrameType.CounterHitState)
-                    {
-                        PlayerMeters[1].Startup = i;
-                        break;
-                    }
-                }
+                PlayerMeters[1].Startup = state.Player2.AnimationCounter;
             }
 
             // Advantage TODO: clean redundancy

@@ -2,10 +2,6 @@
 using GameOverlay.Drawing;
 using GameOverlay.Windows;
 using GGXXACPROverlay.GGXXACPR;
-using Windows.Win32;
-using Windows.Win32.UI.WindowsAndMessaging;
-using System.Runtime.InteropServices;
-using System.IO.Pipes;
 
 namespace GGXXACPROverlay
 {
@@ -19,9 +15,6 @@ namespace GGXXACPROverlay
         private readonly StickyWindow _overlayWindow;
 
         private readonly Timer _gameStateUpdater;
-        //private EventHandler<KeyboardEventArgs> _inputListenerCallback;
-        //private UnhookWindowsHookExSafeHandle hookHandle;
-        //private readonly Timer _inputListener;
         private readonly object _gameStateLock = new();
         private readonly nint _gameHandle;
         private Drawing.Dimensions _windowDimensions;
@@ -29,8 +22,6 @@ namespace GGXXACPROverlay
         private GameState _gameState;
 
         private readonly FrameMeter _frameMeter = new();
-
-        //private int _time = 0;  // DEBUG
 
         public Overlay()
         {
@@ -50,10 +41,6 @@ namespace GGXXACPROverlay
                 BypassTopmost = true
             };
 
-            //_inputListener = new Timer(UpdateToggles, null, TimeSpan.FromSeconds(2), TimeSpan.FromMilliseconds(5));
-            //_inputListenerCallback = new EventHandler<KeyboardEventArgs>(UpdateToggles);
-            //Injector.HookInputListener(Memory.GetGameThreadID(), _inputListenerCallback);
-            //TempSetHook();
             _gameStateUpdater = new Timer(UpdateGameState, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(12));
 
             _overlayWindow.DestroyGraphics += CleanupGraphics;
@@ -183,16 +170,6 @@ namespace GGXXACPROverlay
             {
                 _overlayWindow.Dispose();
                 _gameStateUpdater.Dispose();
-                //hookHandle?.Close();
-                //hookHandle.Dispose();
-                //Injector.UnhookInputListener(_inputListenerCallback);
-                //try {
-                //    bool success = Injector.UnhookInputListener(UpdateToggles);
-                //    if (!success) { Memory.HandleSystemError("UnhookInputListener failed."); }
-                //} catch (SystemException e)
-                //{
-                //    Debug.WriteLine(e);
-                //}
                 Memory.CloseProcess();
                 disposedValue = true;
             }

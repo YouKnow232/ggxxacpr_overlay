@@ -1,0 +1,28 @@
+# 1.1-beta
+- Fixed a crash that would occur when the overlay is launched before the game has loaded any characters
+- Fixed Hitboxes drawing 1 screen px too thick
+- Fixed Hitboxes being drawn 8 game pixels too high
+- Fixed Hitboxes that were incorrectly scaled (e.g. Justice's nukes)
+- Fixed Hitboxes that were incorrectly displayed during strike invuln
+- Fixed Axl parry mistakenly being marked as in parry state for it's full animation. (He seems to be a unique exception for the prior parry detection logic)
+- Fixed Jam parry extending parry frames past it's actual active window. (She has a unique variable for her parry. 8F active, 14F parry miss lockout)
+- Changed the method for calculating startup to use the player's animation counter (startup calculation is still a WIP).
+	- Some moves transition through multiple move IDs internally (thus restarting their animation counter) so it's not 100% correct yet, but this should be consistent and handle gatlings much better
+	- The fundamental issue is gatlings can look identical to certain multihit moves with the information I currently have available.
+- Changed FRC windows to draw a yellow line on top of the frame meter pip so as not to draw over invuln properties
+- Added Throw invuln from throw protection to the frame meter
+- Changed the Slashback window under line color to red for better clarity
+- Added border to Frame Meter
+- Simplified projectile ownership calculation (minor performance improvement)
+- Entity (e.g. projectile) pivot positions are now drawn similar to players'
+
+# 1.0-beta
+- Added frame meter
+- Improved memory performance
+
+# 0.2-alpha
+- Improved memory and rendering performance
+- Corrected some inaccurate boxes that were supposed to be disabled by certain state flags
+
+# 0.1-alpha
+- Initial release

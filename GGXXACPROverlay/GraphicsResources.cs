@@ -16,17 +16,21 @@ namespace GGXXACPROverlay
         private readonly Dictionary<BoxId, SolidBrush> _hitboxOutlinePalette;
         private readonly Dictionary<BoxId, SolidBrush> _hitboxFillPalette;
         private readonly Dictionary<FrameMeter.FrameType, SolidBrush> _frameTypePalette;
-        private readonly Dictionary<FrameMeter.FrameProperty, SolidBrush> _framePropertyPalette;
+        private readonly Dictionary<FrameMeter.FrameProperty1, SolidBrush> _framePropertyPalette;
+        private readonly Dictionary<FrameMeter.FrameProperty2, SolidBrush> _frameProperty2Palette;
 
         // Frame Meter
 
         [AllowNull]
         public SolidBrush PivotBrush { get; private set; }
         [AllowNull]
+        public SolidBrush EntityCoreBrush { get; private set; }
+        [AllowNull]
         public SolidBrush CollisionOutlineBrush { get; private set; }
         [AllowNull]
         public SolidBrush CollisionFillBrush { get; private set; }
         [AllowNull]
+
         public Font Font { get; private set; }
         [AllowNull]
         public SolidBrush FontBrush { get; private set; }
@@ -39,11 +43,13 @@ namespace GGXXACPROverlay
             _hitboxFillPalette = [];
             _frameTypePalette = [];
             _framePropertyPalette = [];
+            _frameProperty2Palette = [];
         }
 
         public void Initilize(Graphics g)
         {
-            PivotBrush = g.CreateSolidBrush(255, 255, 255, 255);
+            PivotBrush = g.CreateSolidBrush(255, 255, 255);
+            EntityCoreBrush = g.CreateSolidBrush(255, 0, 255);
             CollisionOutlineBrush = g.CreateSolidBrush(_defaultCollisionboxClr);
             CollisionFillBrush = g.CreateSolidBrush(new Color(_defaultCollisionboxClr, _boxAlpha));
 
@@ -54,18 +60,18 @@ namespace GGXXACPROverlay
             _hitboxOutlinePalette.Add(BoxId.DUMMY, g.CreateSolidBrush(10, 10, 10));
             _hitboxOutlinePalette.Add(BoxId.HIT, g.CreateSolidBrush(_defaultHitboxClr));
             _hitboxOutlinePalette.Add(BoxId.HURT, g.CreateSolidBrush(_defaultHurtboxClr));
-            _hitboxOutlinePalette.Add(BoxId.UNKNOWN3, g.CreateSolidBrush(10, 10, 10));
-            _hitboxOutlinePalette.Add(BoxId.UNKNOWN5, g.CreateSolidBrush(10, 10, 10));
-            _hitboxOutlinePalette.Add(BoxId.UNKNOWN6, g.CreateSolidBrush(10, 10, 10));
+            _hitboxOutlinePalette.Add(BoxId.UNKNOWN_3, g.CreateSolidBrush(10, 10, 10));
+            _hitboxOutlinePalette.Add(BoxId.UNKNOWN_5, g.CreateSolidBrush(10, 10, 10));
+            _hitboxOutlinePalette.Add(BoxId.UNKNOWN_6, g.CreateSolidBrush(10, 10, 10));
 
             _hitboxFillPalette.Add(BoxId.DUMMY, g.CreateSolidBrush(10, 10, 10, _boxAlpha));
             _hitboxFillPalette.Add(BoxId.HIT, g.CreateSolidBrush(new Color(_defaultHitboxClr, _boxAlpha)));
             _hitboxFillPalette.Add(BoxId.HURT, g.CreateSolidBrush(new Color(_defaultHurtboxClr, _boxAlpha)));
-            _hitboxFillPalette.Add(BoxId.UNKNOWN3, g.CreateSolidBrush(10, 10, 10, _boxAlpha));
-            _hitboxFillPalette.Add(BoxId.UNKNOWN5, g.CreateSolidBrush(10, 10, 10, _boxAlpha));
-            _hitboxFillPalette.Add(BoxId.UNKNOWN6, g.CreateSolidBrush(10, 10, 10, _boxAlpha));
+            _hitboxFillPalette.Add(BoxId.UNKNOWN_3, g.CreateSolidBrush(10, 10, 10, _boxAlpha));
+            _hitboxFillPalette.Add(BoxId.UNKNOWN_5, g.CreateSolidBrush(10, 10, 10, _boxAlpha));
+            _hitboxFillPalette.Add(BoxId.UNKNOWN_6, g.CreateSolidBrush(10, 10, 10, _boxAlpha));
 
-            _frameTypePalette.Add(FrameMeter.FrameType.None, g.CreateSolidBrush(5, 5, 5));
+            _frameTypePalette.Add(FrameMeter.FrameType.None, g.CreateSolidBrush(15, 15, 15));
             _frameTypePalette.Add(FrameMeter.FrameType.Neutral, g.CreateSolidBrush(27, 27, 27));
             _frameTypePalette.Add(FrameMeter.FrameType.CounterHitState, g.CreateSolidBrush(1, 181, 151));
             _frameTypePalette.Add(FrameMeter.FrameType.Startup, g.CreateSolidBrush(1, 181, 151));
@@ -74,18 +80,19 @@ namespace GGXXACPROverlay
             _frameTypePalette.Add(FrameMeter.FrameType.BlockStun, g.CreateSolidBrush(200, 200, 0));
             _frameTypePalette.Add(FrameMeter.FrameType.HitStun, g.CreateSolidBrush(200, 200, 0));
 
-            _framePropertyPalette.Add(FrameMeter.FrameProperty.TEST, g.CreateSolidBrush(255, 0, 255));
-            _framePropertyPalette.Add(FrameMeter.FrameProperty.Default, g.CreateSolidBrush(0, 0, 0));
-            _framePropertyPalette.Add(FrameMeter.FrameProperty.FRC, g.CreateSolidBrush(255, 255, 0));
-            _framePropertyPalette.Add(FrameMeter.FrameProperty.SlashBack, g.CreateSolidBrush(255, 255, 0));
-            _framePropertyPalette.Add(FrameMeter.FrameProperty.InvulnFull, g.CreateSolidBrush(255, 255, 255));
-            _framePropertyPalette.Add(FrameMeter.FrameProperty.InvulnThrow, g.CreateSolidBrush(255, 125, 0));
-            _framePropertyPalette.Add(FrameMeter.FrameProperty.InvulnStrike, g.CreateSolidBrush(0, 125, 255));
-            _framePropertyPalette.Add(FrameMeter.FrameProperty.Armor, g.CreateSolidBrush(120, 80, 0));
-            _framePropertyPalette.Add(FrameMeter.FrameProperty.Parry, g.CreateSolidBrush(120, 80, 0));
-            _framePropertyPalette.Add(FrameMeter.FrameProperty.GuardPointFull, g.CreateSolidBrush(120, 80, 0));
-            _framePropertyPalette.Add(FrameMeter.FrameProperty.GuardPointHigh, g.CreateSolidBrush(120, 80, 0));
-            _framePropertyPalette.Add(FrameMeter.FrameProperty.GuardPointLow, g.CreateSolidBrush(120, 80, 0));
+            _framePropertyPalette.Add(FrameMeter.FrameProperty1.Default, g.CreateSolidBrush(0, 0, 0));
+            _framePropertyPalette.Add(FrameMeter.FrameProperty1.SlashBack, g.CreateSolidBrush(255, 0, 0));
+            _framePropertyPalette.Add(FrameMeter.FrameProperty1.InvulnFull, g.CreateSolidBrush(255, 255, 255));
+            _framePropertyPalette.Add(FrameMeter.FrameProperty1.InvulnThrow, g.CreateSolidBrush(255, 125, 0));
+            _framePropertyPalette.Add(FrameMeter.FrameProperty1.InvulnStrike, g.CreateSolidBrush(0, 125, 255));
+            _framePropertyPalette.Add(FrameMeter.FrameProperty1.Armor, g.CreateSolidBrush(120, 80, 0));
+            _framePropertyPalette.Add(FrameMeter.FrameProperty1.Parry, g.CreateSolidBrush(120, 80, 0));
+            _framePropertyPalette.Add(FrameMeter.FrameProperty1.GuardPointFull, g.CreateSolidBrush(120, 80, 0));
+            _framePropertyPalette.Add(FrameMeter.FrameProperty1.GuardPointHigh, g.CreateSolidBrush(120, 80, 0));
+            _framePropertyPalette.Add(FrameMeter.FrameProperty1.GuardPointLow, g.CreateSolidBrush(120, 80, 0));
+
+            _frameProperty2Palette.Add(FrameMeter.FrameProperty2.Default, g.CreateSolidBrush(0, 0, 0));
+            _frameProperty2Palette.Add(FrameMeter.FrameProperty2.FRC, g.CreateSolidBrush(255, 255, 0));
         }
 
         public SolidBrush GetOutlineBrush(BoxId type)
@@ -100,9 +107,13 @@ namespace GGXXACPROverlay
         {
             return _frameTypePalette[type];
         }
-        public SolidBrush GetBrush(FrameMeter.FrameProperty property)
+        public SolidBrush GetBrush(FrameMeter.FrameProperty1 property)
         {
             return _framePropertyPalette[property];
+        }
+        public SolidBrush GetBrush(FrameMeter.FrameProperty2 property)
+        {
+            return _frameProperty2Palette[property];
         }
 
         ~GraphicsResources()
@@ -117,8 +128,12 @@ namespace GGXXACPROverlay
             if (!disposedValue)
             {
                 PivotBrush.Dispose();
+                EntityCoreBrush.Dispose();
                 CollisionOutlineBrush.Dispose();
                 CollisionFillBrush.Dispose();
+                Font.Dispose();
+                FontBrush.Dispose();
+                FontBorderBrush.Dispose();
                 foreach (SolidBrush brush in _hitboxOutlinePalette.Values) { brush.Dispose(); }
                 _hitboxOutlinePalette.Clear();
                 foreach (SolidBrush brush in _hitboxFillPalette.Values) { brush.Dispose(); }
@@ -127,6 +142,8 @@ namespace GGXXACPROverlay
                 _frameTypePalette.Clear();
                 foreach (SolidBrush brush in _framePropertyPalette.Values) { brush.Dispose(); }
                 _framePropertyPalette.Clear();
+                foreach (SolidBrush brush in _frameProperty2Palette.Values) { brush.Dispose(); }
+                _frameProperty2Palette.Clear();
 
                 disposedValue = true;
             }
