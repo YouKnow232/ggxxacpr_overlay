@@ -141,7 +141,9 @@ namespace GGXXACPROverlay
                 DrawEntityPivot(g, r, state, e, windowDimensions);
                 foreach(Hitbox hitbox in e.HitboxSet)
                 {
-                    if (e.Status.DisableHitboxes && hitbox.BoxTypeId == BoxId.HIT || !drawList.Contains(hitbox.BoxTypeId))
+                    if (e.Status.DisableHitboxes && hitbox.BoxTypeId == BoxId.HIT ||
+                        e.Status.DisableHurtboxes && hitbox.BoxTypeId == BoxId.HURT ||
+                        !drawList.Contains(hitbox.BoxTypeId))
                     { continue; }
 
                     Hitbox drawbox = ScaleHitbox(hitbox, e);

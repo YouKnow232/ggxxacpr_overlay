@@ -270,7 +270,7 @@ namespace GGXXACPROverlay
                     // Testing Mark property here. Seems to be necessary for Axl parry.
                     //  For some reason his parry is marked as a parry state for the full animation (despite being active 5F-17F in practice) and
                     //  uses some extra move properties to actually determine if the move should parry.
-                    if (players[index].Mark == 0)
+                    if (players[index].Mark == 1)
                     {
                         return FrameProperty1.Parry;
                     }
@@ -408,13 +408,7 @@ namespace GGXXACPROverlay
         /// </summary>
         private Frame FrameAtOffset(int offset, int player)
         {
-            if (player == 0)
-            {
-                return PlayerMeters[0].FrameArr[(_index + offset + METER_LENGTH) % METER_LENGTH];
-            } else
-            {
-                return PlayerMeters[1].FrameArr[(_index + offset + METER_LENGTH) % METER_LENGTH];
-            }
+            return PlayerMeters[player].FrameArr[(_index + offset + METER_LENGTH) % METER_LENGTH];
         }
     }
 }
