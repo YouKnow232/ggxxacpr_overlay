@@ -87,7 +87,7 @@
         public readonly bool IsEntity { get { return (_flags & 0x0001) > 0; } }   // Always on?
         public readonly bool IsPlayer1 { get { return (_flags & 0x0002) > 0; } }   // Is or is owned by Player 1
         public readonly bool IsPlayer2 { get { return (_flags & 0x0004) > 0; } }   // Is or is owned by Player 2
-        public readonly bool Unknownx08 { get { return (_flags & 0x0008) > 0; } }   // Always on?
+        public readonly bool DrawSprite { get { return (_flags & 0x0008) > 0; } }   // Almost always on. Turns off when player is invis (e.g. Slayer dash)
         public readonly bool IsAirborne { get { return (_flags & 0x0010) > 0; } }
         public readonly bool IsInHitstun { get { return (_flags & 0x0020) > 0; } }
         public readonly bool DisableHitboxes { get { return (_flags & 0x0040) > 0; } }
@@ -105,12 +105,12 @@
         // Some kind of Invuln flag?
         public readonly bool StrikeInvuln { get { return (_flags & 0x00020000) > 0; } }
         public readonly bool IsIdle { get { return (_flags & 0x00040000) > 0; } }
-        public readonly bool Freeze { get { return (_flags & 0x00080000) > 0; } } // Super flash?
+        public readonly bool Freeze { get { return (_flags & 0x00080000) > 0; } } // Super flash
         // Duplicate? HasJumped?
-        public readonly bool Unknownx00100000 { get { return (_flags & 0x00100000) > 0; } } // Slayer back dash?
+        public readonly bool NoCollision { get { return (_flags & 0x00100000) > 0; } } // Disable push box
         // AirOptions flag?
         public readonly bool JumpRestrict { get { return (_flags & 0x00200000) > 0; } }
-        public readonly bool Unknown0x00400000 { get { return (_flags & 0x00400000) > 0; } } // Assocated with player->0xF4 having value of 0x100
+        public readonly bool Unknown0x00400000 { get { return (_flags & 0x00400000) > 0; } } // Assocated with player->0xF4 having value of 0x100 (??)
         public readonly bool IsThrowInuvln { get { return (_flags & 0x00800000) > 0; } }
 
         public static implicit operator ActionStateFlags(uint flags) { return new ActionStateFlags(flags); }
@@ -183,6 +183,8 @@
         public readonly bool NoFreeAttackCancel { get { return (_flags & 0x0040) > 0; } } // On during most animations, off during cancel period of taunt and in neutral
         public readonly bool Unknown0x0100 { get { return (_flags & 0x0100) > 0; } } // can't block if 0x0300
         public readonly bool Unknown0x0200 { get { return (_flags & 0x0200) > 0; } }
+        public readonly bool Unknown0x0400 { get { return (_flags & 0x0800) > 0; } } // Airborne thing?
+        public readonly bool CanUkemi { get { return (_flags & 0x0800) > 0; } } // Need Confirmation
         public readonly bool Unknown0x2000 { get { return (_flags & 0x2000) > 0; } } // Jump cancelable state?
         public readonly bool AirNeutral { get { return (_flags & 0x4000) > 0; } }
         public readonly bool AirtechOkay { get { return (_flags & 0x8000) > 0; } }   // Needs Confirmation

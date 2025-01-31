@@ -59,6 +59,8 @@ namespace GGXXACPROverlay
         }
         internal static void DrawPlayerPushBox(Graphics g, GraphicsResources r, GameState state, Player player, Dimensions windowDimensions)
         {
+            if (player.Status.NoCollision) { return; }
+
             var pos = new PointInt(player.XPos + player.PushBox.XOffset * 100, player.YPos + player.PushBox.YOffset * 100);
 
             PointInt coor = PixelToWindow(WorldToPixel(pos, state.Camera), windowDimensions);

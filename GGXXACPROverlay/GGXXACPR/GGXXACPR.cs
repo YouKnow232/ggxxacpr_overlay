@@ -14,10 +14,15 @@ namespace GGXXACPROverlay.GGXXACPR
 
         private static readonly nint[] PUSHBOX_ADDRESSES =
         [
-            0x00573154, 0x00573B38, // Standing x,y
-            0x00573B6C, 0x00571E6C, // Crouching x,y
-            0x00571564, 0x00571E6C  // ?? x,y
+            0x00573154, 0x00573B38, // Standing width/height
+            0x00573B6C, 0x00571E6C, // Crouching width/height
+            0x00571564, 0x00571E6C,  // (??) width/height
+            0x00573B6C, 0x00573BA0, // Airborne width/height
         ];
+
+        // Y offset values for Airborne pushboxes (Almost always equal to abs(YPos)+4000 except for Kliff)
+        private static readonly nint PUSHBOX_P1_JUMP_OFFSET_ADDRESS = 0x006D6378;
+        private static readonly nint PUSHBOX_P2_JUMP_OFFSET_ADDRESS = 0x006D637C;
 
         // short, index with CharId*2
         private static readonly int GROUND_THROW_RANGE_ARRAY_ADDR = 0x0057005C; // TODO
@@ -157,7 +162,8 @@ namespace GGXXACPROverlay.GGXXACPR
             var charId = BitConverter.ToUInt16(data);
             var status = BitConverter.ToUInt32(data, STATUS_OFFSET);
             var boxCount = data[HITBOX_LIST_LENGTH_OFFSET];
-            var pushBox = GetPushBox(charId, status);
+            var yPos = BitConverter.ToInt32(data, YPOS_OFFSET);
+            var pushBox = GetPushBox(charId, status, yPos);
 
             nint playerExtraPtr = (nint)BitConverter.ToUInt32(data, PLAYER_EXTRA_PTR_OFFSET);
             nint hitboxArrayPtr = (nint)BitConverter.ToUInt32(data, HITBOX_LIST_OFFSET);
@@ -186,7 +192,7 @@ namespace GGXXACPROverlay.GGXXACPR
                 BoxCount         = boxCount,
                 BoxIter          = data[HITBOX_ITERATION_VAR_OFFSET],
                 XPos             = BitConverter.ToInt32(data, XPOS_OFFSET),
-                YPos             = BitConverter.ToInt32(data, YPOS_OFFSET),
+                YPos             = yPos,
                 HitstopCounter   = data[HITSTOP_TIMER_OFFSET],
                 Mark             = data[MARK_OFFSET],
                 PushBox          = pushBox
@@ -210,11 +216,25 @@ namespace GGXXACPROverlay.GGXXACPR
         }
 
         // TODO: Cache the data at the pushbox addresses. They shouldn't change.
-        private static Hitbox GetPushBox(ushort charId, ActionStateFlags status)
+        private static Hitbox GetPushBox(ushort charId, ActionStateFlags status, int yPos)
         {
+            int yOffset = 0;
             byte index = 4;
             if (status.IsCrouching) index = 0;
             else if (status.IsPushboxType1) index = 2;
+            else if (status.IsAirborne)
+            {
+                index = 6;
+                // Special offsets for pushbox collision checks
+                if (status.IsPlayer1)
+                {
+                    yOffset = BitConverter.ToInt32(Memory.ReadMemoryPlusBaseOffset(PUSHBOX_P1_JUMP_OFFSET_ADDRESS, sizeof(int))) + yPos;
+                }
+                else if (status.IsPlayer2)
+                {
+                    yOffset = BitConverter.ToInt32(Memory.ReadMemoryPlusBaseOffset(PUSHBOX_P2_JUMP_OFFSET_ADDRESS, sizeof(int))) + yPos;
+                }
+            }
 
             nint xPtr = Memory.GetBaseAddress() + PUSHBOX_ADDRESSES[index] + charId * 2;
             nint yPtr = Memory.GetBaseAddress() + PUSHBOX_ADDRESSES[index + 1] + charId * 2;
@@ -225,7 +245,7 @@ namespace GGXXACPROverlay.GGXXACPR
             return new Hitbox()
             {
                 XOffset = (short)(w / -100),
-                YOffset = (short)(h / -100),
+                YOffset = (short)((h + yOffset) / -100),
                 Width   = (short)(w / 100 * 2),
                 Height  = (short)(h / 100)
             };
@@ -262,38 +282,7 @@ namespace GGXXACPROverlay.GGXXACPR
         private static Entity[] GetEntities()
         {
             Entity[] entityArray = ByteArrayToEntities(Memory.ReadMemory(Player1Pointer, ENTITY_STRUCT_BUFFER * ENTITY_ARRAY_SIZE));
-            Entity[] validEntities = entityArray.Where(e => e.Id != 0).ToArray();
 
-            // Deriving player ownership by tracing the parent pointer chain to a player pointer
-            // Assumes the lower 6 bytes are a factor of 0x130 and that player 1's pointer begins with 0x000 (safe assumptions for +R)
-            var parentIndices = entityArray.Select(e => (int)(e.ParentPtrRaw & 0xFFF) / 0x130).ToArray();
-            parentIndices[0] = 0;   // P1
-            parentIndices[1] = 1;   // P2
-
-            int nextParentIndex;
-            for (int j = 0; j < validEntities.Length; j++)
-            {
-                for(int i = 0; i < entityArray.Length; i++)
-                {
-                    nextParentIndex = parentIndices[i];
-                    if (nextParentIndex > 1)
-                    {
-                        parentIndices[i] = parentIndices[nextParentIndex];
-                    }
-                }
-            }
-
-            // DEBUG
-            bool reduced = !parentIndices.Any(i => i > 1);
-            Debug.WriteLine($"Ent arr has completely reduced: {reduced}");
-
-            // Assigning ownership
-            for (int i = 0; i < entityArray.Length; i++)
-            {
-                entityArray[i].ParentIndex = parentIndices[i];
-            }
-
-            // Skip player entries and filter out blank entries
             return entityArray.Skip(2).Where(e => e.Id != 0).ToArray();
         }
 
@@ -326,22 +315,22 @@ namespace GGXXACPROverlay.GGXXACPR
 
             return new()
             {
-                Id            = BitConverter.ToUInt16(data, offset),
-                IsFacingRight = data[offset + IS_FACING_RIGHT_OFFSET] == 1,
-                BackPtr       = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_BACK_PTR_OFFSET),
-                NextPtr       = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_NEXT_PTR_OFFSET),
-                Status        = BitConverter.ToUInt32(data, offset + STATUS_OFFSET),
-                ParentPtrRaw  = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_PARENT_PTR_OFFSET),
-                ParentFlag    = BitConverter.ToUInt16(data, offset + PROJECTILE_PARENT_FLAG_OFFSET),
-                CoreX         = BitConverter.ToInt16(data, CORE_X_OFFSET + offset),
-                CoreY         = BitConverter.ToInt16(data, CORE_Y_OFFSET + offset),
-                ScaleX        = BitConverter.ToInt16(data, SCALE_X_OFFSET + offset),
-                ScaleY        = BitConverter.ToInt16(data, SCALE_Y_OFFSET + offset),
-                HitboxSetPtr  = (nint)BitConverter.ToUInt32(data, offset + HITBOX_LIST_OFFSET),
-                HitboxSet     = hitboxes,
-                BoxCount      = numBoxes,
-                XPos          = BitConverter.ToInt32(data, offset + XPOS_OFFSET),
-                YPos          = BitConverter.ToInt32(data, offset + YPOS_OFFSET)
+                Id              = BitConverter.ToUInt16(data, offset),
+                IsFacingRight   = data[offset + IS_FACING_RIGHT_OFFSET] == 1,
+                BackPtr         = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_BACK_PTR_OFFSET),
+                NextPtr         = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_NEXT_PTR_OFFSET),
+                Status          = BitConverter.ToUInt32(data, offset + STATUS_OFFSET),
+                ParentPtrRaw    = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_PARENT_PTR_OFFSET),
+                ParentFlag      = BitConverter.ToUInt16(data, offset + PROJECTILE_PARENT_FLAG_OFFSET),
+                CoreX           = BitConverter.ToInt16(data, CORE_X_OFFSET + offset),
+                CoreY           = BitConverter.ToInt16(data, CORE_Y_OFFSET + offset),
+                ScaleX          = BitConverter.ToInt16(data, SCALE_X_OFFSET + offset),
+                ScaleY          = BitConverter.ToInt16(data, SCALE_Y_OFFSET + offset),
+                HitboxSetPtr    = (nint)BitConverter.ToUInt32(data, offset + HITBOX_LIST_OFFSET),
+                HitboxSet       = hitboxes,
+                BoxCount        = numBoxes,
+                XPos            = BitConverter.ToInt32(data, offset + XPOS_OFFSET),
+                YPos            = BitConverter.ToInt32(data, offset + YPOS_OFFSET)
             };
         }
     }

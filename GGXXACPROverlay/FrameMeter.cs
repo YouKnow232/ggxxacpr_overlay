@@ -197,14 +197,6 @@ namespace GGXXACPROverlay
             {
                 return FrameType.Recovery;
             }
-            // Is active if there is a hitbox and either the player recovery flag is not set or the move is not in recovery and has connect
-            //else if (player.HitboxSet.Any((Hitbox h) => h.BoxTypeId == BoxId.HIT) &&
-            //    !player.AttackFlags.IsInRecovery &&
-            //    (!player.Status.DisableHitboxes || player.AttackFlags.HasConnected) )
-            else if (player.HitboxSet.Any((Hitbox h) => h.BoxTypeId == BoxId.HIT) && !player.Status.DisableHitboxes)
-            {
-                return FrameType.Active;
-            }
             else if (player.CommandFlags.IsMove && !player.AttackFlags.IsInRecovery)
             {
                 return FrameType.CounterHitState;
@@ -301,18 +293,16 @@ namespace GGXXACPROverlay
 
         private static FrameType DetermineEntityFrameType(GameState state, int index)
         {
-            Func<Entity, bool> OwnershipExpression = e => (e.Status.IsPlayer1 && index == 0) || (e.Status.IsPlayer2 && index == 1);
-
             // LINQ is so nice
             var ownerEntitiesHitboxes =
                 //state.Entities.Where(e => e.ParentIndex == index && !e.Status.DisableHitboxes)
-                state.Entities.Where(e => OwnershipExpression(e) && !e.Status.DisableHitboxes)
+                state.Entities.Where(e => (e.Status.IsPlayer1 && index == 0 || e.Status.IsPlayer2 && index == 1) && !e.Status.DisableHitboxes)
                               .SelectMany(e => e.HitboxSet)
                               .Where(h => h.BoxTypeId == BoxId.HIT);
 
             var ownerEntityHurtboxes =
                 //state.Entities.Where(e => e.ParentIndex == index && !e.Status.DisableHurtboxes)
-                state.Entities.Where(e => OwnershipExpression(e) && !e.Status.DisableHitboxes)
+                state.Entities.Where(e => (e.Status.IsPlayer1 && index == 0 || e.Status.IsPlayer2 && index == 1) && !e.Status.DisableHitboxes)
                               .SelectMany(e => e.HitboxSet)
                               .Where(h => h.BoxTypeId == BoxId.HURT);
 
