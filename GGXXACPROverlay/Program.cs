@@ -34,7 +34,7 @@ namespace GGXXACPROverlay
                 using var overlay = new Overlay();
                 overlay.Run();
 
-                Console.WriteLine("Press any key to exit");
+                Console.WriteLine("Press any key to exit\n");
                 while (!Console.KeyAvailable && overlay.IsRunning())
                 {
                     Thread.Sleep(30);
@@ -44,7 +44,7 @@ namespace GGXXACPROverlay
             catch (InvalidOperationException e)
             {
                 Console.WriteLine(e.Message + "\n");
-                Console.WriteLine("Press any key to exit");
+                Console.WriteLine("Press any key to exit\n");
                 Console.ReadKey();
             }
         }

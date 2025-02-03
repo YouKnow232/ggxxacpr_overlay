@@ -9,6 +9,7 @@ namespace GGXXACPROverlay
         {
             None,
             Neutral,
+            Movement,
             CounterHitState,
             Startup,
             Active,
@@ -49,20 +50,24 @@ namespace GGXXACPROverlay
             FrameType type = FrameType.None,
             FrameProperty1 prop = FrameProperty1.Default,
             FrameProperty2 prop2 = FrameProperty2.Default,
+            int actId = -1,
             int actTimer = -1)
         {
             public readonly FrameType Type = type;
             public readonly FrameProperty1 Property = prop;
             public readonly FrameProperty2 Property2 = prop2;
+            public readonly int ActId = actId;
             public readonly int ActTimer = actTimer;
         }
 
         private static readonly int PAUSE_THRESHOLD = 10;
         private static readonly int METER_LENGTH = 100;
+
         public struct Meter(string name, int length)
         {
             public readonly string Label = name;
             public int Startup = -1;
+            public int LastAttackActId = -1;
             public int Total = -1;
             public int Advantage = 0;
             public bool DisplayAdvantage = false;
@@ -87,16 +92,18 @@ namespace GGXXACPROverlay
 
         public void Update(GameState state)
         {
+            Frame p1PrevFrame = FrameAtOffset(PlayerMeters[0], -1);
+            Frame p2PrevFrame = FrameAtOffset(PlayerMeters[1], -1);
             // Check if meter should update
             // Skip update if both character haven't advanced a frame (TODO: Should update this logic after D3D hook update)
-            if (state.Player1.AnimationCounter == FrameAtOffset(-1, 0).ActTimer &&
-                state.Player2.AnimationCounter == FrameAtOffset(-1, 1).ActTimer)
+            if (state.Player1.AnimationCounter == p1PrevFrame.ActTimer &&
+                state.Player2.AnimationCounter == p2PrevFrame.ActTimer)
             {
-                if (state.Player1.AnimationCounter != FrameAtOffset(-1, 0).ActTimer ||
-                    state.Player2.AnimationCounter != FrameAtOffset(-1, 1).ActTimer)
+                if (state.Player1.AnimationCounter != p1PrevFrame.ActTimer ||
+                    state.Player2.AnimationCounter != p2PrevFrame.ActTimer)
                 {
-                    Debug.WriteLine($"{state.Player1.AnimationCounter} != {FrameAtOffset(-1, 0).ActTimer} ||");
-                    Debug.WriteLine($"{state.Player2.AnimationCounter} != {FrameAtOffset(-1, 1).ActTimer}");
+                    Debug.WriteLine($"{state.Player1.AnimationCounter} != {p1PrevFrame.ActTimer} ||");
+                    Debug.WriteLine($"{state.Player2.AnimationCounter} != {p2PrevFrame.ActTimer}");
                     // Mid update reads usually happen between player animation counter update and entity array fully updating
                     //Debug.WriteLine($"Mid Update Read!!!!! {state.Player1.BoxIter}/{state.Player2.BoxIter}");
                 }
@@ -133,48 +140,53 @@ namespace GGXXACPROverlay
             UpdateIndividualEntityMeter(state, 1);
 
             // Check if frame meter should pause
-            // TODO: account for frame properties
+            // TODO: account for frame properties?
             _isPaused = true;
-            bool a, b, c, d, e, f;
+            FrameType p1FrameType, p2FrameType;
             for (int i = 0; i < PAUSE_THRESHOLD; i++)
             {
-                // TODO: clean this
-                a = (PlayerMeters[0].FrameArr[(_index - i + METER_LENGTH) % METER_LENGTH].Type != FrameType.Neutral);
-                b = (PlayerMeters[0].FrameArr[(_index - i + METER_LENGTH) % METER_LENGTH].Type != FrameType.None);
-                c = (PlayerMeters[1].FrameArr[(_index - i + METER_LENGTH) % METER_LENGTH].Type != FrameType.Neutral);
-                d = (PlayerMeters[1].FrameArr[(_index - i + METER_LENGTH) % METER_LENGTH].Type != FrameType.None);
-                e = (EntityMeters[0].FrameArr[(_index - i + METER_LENGTH) % METER_LENGTH].Type != FrameType.None);
-                f = (EntityMeters[1].FrameArr[(_index - i + METER_LENGTH) % METER_LENGTH].Type != FrameType.None);
+                p1FrameType = FrameAtOffset(PlayerMeters[0], -i).Type;
+                p2FrameType = FrameAtOffset(PlayerMeters[1], -i).Type;
 
-                if (((a && b) || (c && d)) || e || f)
+                if ((p1FrameType != FrameType.Neutral && p1FrameType != FrameType.None) ||
+                    (p2FrameType != FrameType.Neutral && p2FrameType != FrameType.None) ||
+                    FrameAtOffset(EntityMeters[0], -i).Type != FrameType.None ||
+                    FrameAtOffset(EntityMeters[1], -i).Type != FrameType.None)
                 {
                     _isPaused = false;
                     break;
                 }
             }
 
-            CalculateLabels(state);
+            // Labels
+            //UpdateStartupByAnimCounter(state.Player1, ref PlayerMeters[0], EntityMeters[0]);
+            //UpdateStartupByAnimCounter(state.Player2, ref PlayerMeters[1], EntityMeters[1]);
+            UpdateStartupByCountBackWithMoveData(state.Player1, ref PlayerMeters[0], EntityMeters[0]);
+            UpdateStartupByCountBackWithMoveData(state.Player2, ref PlayerMeters[1], EntityMeters[1]);
+            UpdateAdvantageByCountBack();
 
             _index = (_index + 1) % METER_LENGTH;
         }
 
         private void ClearMeters()
         {
-            for (int i = 0; i < METER_LENGTH; i++)
+            ClearMeter(ref PlayerMeters[0], false);
+            ClearMeter(ref PlayerMeters[1], false);
+            ClearMeter(ref EntityMeters[0], true);
+            ClearMeter(ref EntityMeters[1], true);
+        }
+        private static void ClearMeter(ref Meter m, bool hide)
+        {
+            for(int i = 0; i < METER_LENGTH; i++)
             {
-                PlayerMeters[0].FrameArr[i] = new Frame();
-                PlayerMeters[1].FrameArr[i] = new Frame();
-                EntityMeters[0].FrameArr[i] = new Frame();
-                EntityMeters[1].FrameArr[i] = new Frame();
+                m.FrameArr[i] = new Frame();
             }
-            PlayerMeters[0].Startup = -1;
-            PlayerMeters[0].Advantage = -1;
-            PlayerMeters[0].DisplayAdvantage = false;
-            PlayerMeters[1].Startup = -1;
-            PlayerMeters[1].Advantage = -1;
-            PlayerMeters[1].DisplayAdvantage = false;
-            EntityMeters[0].Hide = true;
-            EntityMeters[1].Hide = true;
+            m.Startup = -1;
+            m.LastAttackActId = -1;
+            m.Advantage = -1;
+            m.Total = -1;
+            m.DisplayAdvantage = false;
+            m.Hide = hide;
         }
 
         private static FrameType DetermineFrameType(GameState state, int index)
@@ -204,6 +216,10 @@ namespace GGXXACPROverlay
             else if (player.CommandFlags.IsMove || player.Status.DisableHitboxes)
             {
                 return FrameType.Startup;
+            }
+            else if (player.CommandFlags.IsTaunt)
+            {
+                return FrameType.Movement;
             }
             else
             {
@@ -247,8 +263,7 @@ namespace GGXXACPROverlay
             }
             else if (players[index].GuardFlags.Parry1 || players[index].GuardFlags.Parry2)
             {
-                // If Jam
-                if (players[index].CharId == 12 && players[index].GuardFlags.Parry2)
+                if (players[index].CharId == (int)CharacterID.JAM && players[index].GuardFlags.Parry2)
                 {
                     // Jam parry flips her Parry2 flag for the rest of her current animation and uses a character specific counter for the active window
                     if (players[index].Extra.JamParryTime == 0xFF)
@@ -256,8 +271,7 @@ namespace GGXXACPROverlay
                         return FrameProperty1.Parry;
                     }
                 }
-                // If Axl
-                else if (players[index].CharId == 5 && players[index].GuardFlags.Parry1)
+                else if (players[index].CharId == (int)CharacterID.AXL && players[index].GuardFlags.Parry1)
                 {
                     // Testing Mark property here. Seems to be necessary for Axl parry.
                     //  For some reason his parry is marked as a parry state for the full animation (despite being active 5F-17F in practice) and
@@ -302,7 +316,7 @@ namespace GGXXACPROverlay
 
             var ownerEntityHurtboxes =
                 //state.Entities.Where(e => e.ParentIndex == index && !e.Status.DisableHurtboxes)
-                state.Entities.Where(e => (e.Status.IsPlayer1 && index == 0 || e.Status.IsPlayer2 && index == 1) && !e.Status.DisableHitboxes)
+                state.Entities.Where(e => (e.Status.IsPlayer1 && index == 0 || e.Status.IsPlayer2 && index == 1) && !e.Status.DisableHurtboxes)
                               .SelectMany(e => e.HitboxSet)
                               .Where(h => h.BoxTypeId == BoxId.HURT);
 
@@ -313,7 +327,8 @@ namespace GGXXACPROverlay
             else if (ownerEntityHurtboxes.ToArray().Length > 0)
             {
                 return FrameType.Startup;
-            } else
+            }
+            else
             {
                 return FrameType.None;
             }
@@ -332,7 +347,7 @@ namespace GGXXACPROverlay
                 prop2 = FrameProperty2.FRC;
             }
 
-            PlayerMeters[index].FrameArr[_index] = new Frame(type, prop, prop2, players[index].AnimationCounter);
+            PlayerMeters[index].FrameArr[_index] = new Frame(type, prop, prop2, players[index].ActionId, players[index].AnimationCounter);
             PlayerMeters[index].FrameArr[(_index + 2 + METER_LENGTH) % METER_LENGTH] = new Frame(); // Forward erasure
         }
 
@@ -347,46 +362,54 @@ namespace GGXXACPROverlay
             EntityMeters[index].Hide = !EntityMeters[index].FrameArr.Any((Frame f) => f.Type != FrameType.None);
         }
 
-        // TODO: proj startup, startup logic
-        private void CalculateLabels(GameState state)
+        private void UpdateAdvantageByCountBack()
         {
-            // Startup
-            if (FrameAtOffset(0, 0).Type == FrameType.Active && FrameAtOffset(-1, 0).Type == FrameType.CounterHitState)
-            {
-                PlayerMeters[0].Startup = state.Player1.AnimationCounter;
-            }
-            if (FrameAtOffset(0, 1).Type == FrameType.Active && FrameAtOffset(-1, 1).Type == FrameType.CounterHitState)
-            {
-                PlayerMeters[1].Startup = state.Player2.AnimationCounter;
-            }
-
-            // Advantage TODO: clean redundancy
-            if (FrameAtOffset(0,0).Type == FrameType.Neutral &&
-                FrameAtOffset(-1, 0).Type != FrameType.Neutral &&
-                FrameAtOffset(0, 1).Type == FrameType.Neutral)
+            AdvCountBackFromPlayer(ref PlayerMeters[0], ref PlayerMeters[1]);
+            AdvCountBackFromPlayer(ref PlayerMeters[1], ref PlayerMeters[0]);
+        }
+        private void AdvCountBackFromPlayer(ref Meter pMeterA, ref Meter pMeterB)
+        {
+            if (FrameAtOffset(pMeterA, 0).Type == FrameType.Neutral &&
+                FrameAtOffset(pMeterA, -1).Type != FrameType.Neutral &&
+                FrameAtOffset(pMeterB, 0).Type == FrameType.Neutral)
             {
                 for (int i = 1; i < METER_LENGTH; i++)
                 {
-                    if (FrameAtOffset(-i, 1).Type != FrameType.Neutral)
+                    if (FrameAtOffset(pMeterB, -i).Type != FrameType.Neutral)
                     {
-                        PlayerMeters[0].Advantage = 1 - i;
-                        PlayerMeters[1].Advantage = i - 1;
-                        PlayerMeters[0].DisplayAdvantage = true;
+                        pMeterA.Advantage = 1 - i;
+                        pMeterB.Advantage = i - 1;
+                        pMeterA.DisplayAdvantage = true;
+                        pMeterB.DisplayAdvantage = true;
                         break;
                     }
                 }
             }
-            if (FrameAtOffset(0, 1).Type == FrameType.Neutral &&
-                FrameAtOffset(-1, 1).Type != FrameType.Neutral &&
-                FrameAtOffset(0, 0).Type == FrameType.Neutral)
+        }
+        private void UpdateStartupByAnimCounter(Player p, ref Meter pMeter, Meter eMeter)
+        {
+            FrameType prevFrameType = FrameAtOffset(pMeter, -1).Type;
+            if (FrameAtOffset(pMeter, 0).Type == FrameType.Active &&
+                (prevFrameType == FrameType.CounterHitState || prevFrameType == FrameType.Startup))
             {
+                pMeter.Startup = p.AnimationCounter;
+            }
+        }
+        private void UpdateStartupByCountBackWithMoveData(Player p, ref Meter pMeter, Meter eMeter)
+        {
+            Frame currFrame = FrameAtOffset(pMeter, 0);
+            FrameType prevFrameType = FrameAtOffset(pMeter, -1).Type;
+            if (currFrame.Type == FrameType.Active &&
+                (prevFrameType == FrameType.CounterHitState || prevFrameType == FrameType.Startup))
+            {
+                pMeter.LastAttackActId = currFrame.ActId;
+                Frame frame;
                 for (int i = 1; i < METER_LENGTH; i++)
                 {
-                    if (FrameAtOffset(-i, 0).Type != FrameType.Neutral)
+                    frame = FrameAtOffset(pMeter, -i);
+                    if (frame.ActId != pMeter.LastAttackActId && !MoveData.IsPrevAnimSameMove(p.CharId, frame.ActId, pMeter.LastAttackActId))
                     {
-                        PlayerMeters[0].Advantage = i - 1;
-                        PlayerMeters[1].Advantage = 1 - i;
-                        PlayerMeters[0].DisplayAdvantage = true;
+                        pMeter.Startup = i;
                         break;
                     }
                 }
@@ -396,9 +419,9 @@ namespace GGXXACPROverlay
         /// <summary>
         /// Gets the Frame object at the current index plus an offset. Handles array looping.
         /// </summary>
-        private Frame FrameAtOffset(int offset, int player)
+        private Frame FrameAtOffset(Meter meter, int offset)
         {
-            return PlayerMeters[player].FrameArr[(_index + offset + METER_LENGTH) % METER_LENGTH];
+            return meter.FrameArr[(_index + offset + METER_LENGTH) % METER_LENGTH];
         }
     }
 }

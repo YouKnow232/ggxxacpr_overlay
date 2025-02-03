@@ -33,19 +33,22 @@ namespace GGXXACPROverlay
 
         internal static void DrawPlayerPivot(Graphics g, GraphicsResources r, GameState state, Player p, Dimensions windowDimensions)
         {
-            PointInt coor = PixelToWindow(WorldToPixel(new PointInt(p.XPos, p.YPos), state.Camera), windowDimensions);
-            // GameOverlay.Net Lines seem to not include the starting point pixel. The line defintions are extended to compensate.
-            var line1 = new Line(coor.X - PIVOT_CROSS_SIZE - 1, coor.Y, coor.X + PIVOT_CROSS_SIZE, coor.Y);
-            var line2 = new Line(coor.X, coor.Y - PIVOT_CROSS_SIZE - 1, coor.X, coor.Y + PIVOT_CROSS_SIZE);
-            g.DrawLine(r.PivotBrush, line1, LINE_THICKNESS);
-            g.DrawLine(r.PivotBrush, line2, LINE_THICKNESS);
+            DrawPivot(g, r, state, p.XPos, p.YPos, windowDimensions);
         }
         internal static void DrawEntityPivot(Graphics g, GraphicsResources r, GameState state, Entity e, Dimensions windowDimensions)
         {
-            PointInt coor = PixelToWindow(WorldToPixel(new PointInt(e.XPos, e.YPos), state.Camera), windowDimensions);
+            DrawPivot(g, r, state, e.XPos, e.YPos, windowDimensions);
+        }
+        private static void DrawPivot(Graphics g, GraphicsResources r, GameState state, int x, int y, Dimensions windowDimensions)
+        {
+            PointInt coor = PixelToWindow(WorldToPixel(new PointInt(x, y), state.Camera), windowDimensions);
             // GameOverlay.Net Lines seem to not include the starting point pixel. The line defintions are extended to compensate.
+            var outline1 = new Line(coor.X - PIVOT_CROSS_SIZE - 2, coor.Y, coor.X + PIVOT_CROSS_SIZE + 1, coor.Y);
+            var outline2 = new Line(coor.X, coor.Y - PIVOT_CROSS_SIZE - 2, coor.X, coor.Y + PIVOT_CROSS_SIZE + 1);
             var line1 = new Line(coor.X - PIVOT_CROSS_SIZE - 1, coor.Y, coor.X + PIVOT_CROSS_SIZE, coor.Y);
             var line2 = new Line(coor.X, coor.Y - PIVOT_CROSS_SIZE - 1, coor.X, coor.Y + PIVOT_CROSS_SIZE);
+            g.DrawLine(r.FontBorderBrush, outline1, LINE_THICKNESS * 3);
+            g.DrawLine(r.FontBorderBrush, outline2, LINE_THICKNESS * 3);
             g.DrawLine(r.PivotBrush, line1, LINE_THICKNESS);
             g.DrawLine(r.PivotBrush, line2, LINE_THICKNESS);
         }
@@ -140,7 +143,6 @@ namespace GGXXACPROverlay
         {
             foreach(Entity e in state.Entities)
             {
-                DrawEntityPivot(g, r, state, e, windowDimensions);
                 foreach(Hitbox hitbox in e.HitboxSet)
                 {
                     if (e.Status.DisableHitboxes && hitbox.BoxTypeId == BoxId.HIT ||
@@ -167,6 +169,7 @@ namespace GGXXACPROverlay
                         LINE_THICKNESS
                     );
                 }
+                DrawEntityPivot(g, r, state, e, windowDimensions);
             }
         }
 

@@ -16,7 +16,7 @@ namespace GGXXACPROverlay.GGXXACPR
         [
             0x00573154, 0x00573B38, // Standing width/height
             0x00573B6C, 0x00571E6C, // Crouching width/height
-            0x00571564, 0x00571E6C,  // (??) width/height
+            0x00571564, 0x00571E6C, // (??) width/height
             0x00573B6C, 0x00573BA0, // Airborne width/height
         ];
 
@@ -24,7 +24,7 @@ namespace GGXXACPROverlay.GGXXACPR
         private static readonly nint PUSHBOX_P1_JUMP_OFFSET_ADDRESS = 0x006D6378;
         private static readonly nint PUSHBOX_P2_JUMP_OFFSET_ADDRESS = 0x006D637C;
 
-        // short, index with CharId*2
+        // short arr, index with CharId*2
         private static readonly int GROUND_THROW_RANGE_ARRAY_ADDR = 0x0057005C; // TODO
 
         // one byte [P1Throwable, P2Throwable, P1ThrowActive P2ThrowActive]
@@ -34,6 +34,7 @@ namespace GGXXACPROverlay.GGXXACPR
         private static readonly int IS_FACING_RIGHT_OFFSET = 0x02;
         private static readonly int STATUS_OFFSET = 0x0C;
         private static readonly int BUFFER_FLAGS_OFFSET = 0x12;
+        private static readonly int ACT_ID_OFFSET = 0x18;
         private static readonly int ANIMATION_FRAME_OFFSET = 0x1C;
         private static readonly int GUARD_FLAGS_OFFSET = 0x2A;
         private static readonly int PLAYER_EXTRA_PTR_OFFSET = 0X2C;
@@ -55,7 +56,7 @@ namespace GGXXACPROverlay.GGXXACPR
         private static readonly nint ENTITY_ARR_HEAD_PTR = 0x006D27A8 + 0x04;
         private static readonly nint ENTITY_ARR_TAIL_PTR = 0x006D27A8 + 0x08;
         private static readonly nint ENTITY_LIST_PTR = 0x006D137C;
-        private static readonly int ENTITY_ARRAY_SIZE = 32;
+        private static readonly int ENTITY_ARRAY_SIZE = 32; // Not a game thing, just a lookup limit
         // Projectile Struct Offsets (Similar to Player)
         private static readonly int PROJECTILE_BACK_PTR_OFFSET = 0x04;
         private static readonly int PROJECTILE_NEXT_PTR_OFFSET = 0x08;
@@ -179,6 +180,7 @@ namespace GGXXACPROverlay.GGXXACPR
                 IsFacingRight    = data[IS_FACING_RIGHT_OFFSET] == 1,
                 Status           = status,
                 BufferFlags      = BitConverter.ToUInt16(data, BUFFER_FLAGS_OFFSET),
+                ActionId         = BitConverter.ToUInt16(data, ACT_ID_OFFSET),
                 AnimationCounter = BitConverter.ToUInt16(data, ANIMATION_FRAME_OFFSET),
                 GuardFlags       = BitConverter.ToUInt16(data, GUARD_FLAGS_OFFSET),
                 Extra            = extra,
