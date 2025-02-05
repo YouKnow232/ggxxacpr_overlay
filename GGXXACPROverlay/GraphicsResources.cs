@@ -30,10 +30,13 @@ namespace GGXXACPROverlay
         [AllowNull]
         public SolidBrush CollisionFillBrush { get; private set; }
         [AllowNull]
-
         public Font Font { get; private set; }
         [AllowNull]
         public SolidBrush FontBrush { get; private set; }
+        [AllowNull]
+        public SolidBrush FontBrushGreen { get; private set; }
+        [AllowNull]
+        public SolidBrush FontBrushRed { get; private set; }
         [AllowNull]
         public SolidBrush FontBorderBrush { get; private set; }
 
@@ -53,8 +56,10 @@ namespace GGXXACPROverlay
             CollisionOutlineBrush = g.CreateSolidBrush(_defaultCollisionboxClr);
             CollisionFillBrush = g.CreateSolidBrush(new Color(_defaultCollisionboxClr, _boxAlpha));
 
-            Font = g.CreateFont("Arial Bold", 14);
-            FontBrush= g.CreateSolidBrush(255, 255, 255);
+            Font = g.CreateFont("Arial Bold", 24);
+            FontBrush = g.CreateSolidBrush(255, 255, 255);
+            FontBrushGreen = g.CreateSolidBrush(150, 255, 150);
+            FontBrushRed = g.CreateSolidBrush(255, 150, 150);
             FontBorderBrush = g.CreateSolidBrush(0, 0, 0);
 
             _hitboxOutlinePalette.Add(BoxId.DUMMY, g.CreateSolidBrush(10, 10, 10));

@@ -5,6 +5,7 @@ namespace GGXXACPROverlay.GGXXACPR
     public static class GGXXACPR
     {
         public const int SCREEN_HEIGHT_PIXELS = 480;
+        public const int SCREEN_WIDTH_PIXELS = 640;
         public const int SCREEN_GROUND_PIXEL_OFFSET = 40;
 
         // Exception to the ActionStatusFlags.IsPlayer1/2 flag. Dizzy bubble is flagged as the opponent's entity while attackable by Dizzy.

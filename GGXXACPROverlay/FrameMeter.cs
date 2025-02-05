@@ -64,8 +64,8 @@ namespace GGXXACPROverlay
             public readonly ActionStateFlags Status = status;
         }
 
+        public const int METER_LENGTH = 80;
         private const int PAUSE_THRESHOLD = 10;
-        private const int METER_LENGTH = 100;
 
         public struct Meter(string name, int length)
         {

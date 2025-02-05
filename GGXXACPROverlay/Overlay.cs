@@ -92,11 +92,6 @@ namespace GGXXACPROverlay
 
         private void UpdateGameState(object? state)
         {
-            //// DEBUG
-            //var now = DateTime.Now.Millisecond;
-            //Debug.WriteLine($"Update Time: {now - _time}ms");
-            //_time = now;
-
             if (!Memory.ProcessIsOpen())
             {
                 Dispose();
@@ -136,7 +131,6 @@ namespace GGXXACPROverlay
         private void RenderFrame(object? sender, DrawGraphicsEventArgs e)
         {
             var g = e.Graphics;
-            //Player[] players = [_gameState.Player1, _gameState.Player2];
 
             lock (_gameStateLock)
             {
