@@ -108,7 +108,15 @@ namespace GGXXACPROverlay
                 WindowHelper.GetWindowClientBounds(_gameHandle, out WindowBounds gameWinDim);
                 _windowDimensions = new Drawing.Dimensions(gameWinDim.Right - gameWinDim.Left, gameWinDim.Bottom - gameWinDim.Top);
                 _gameState = GGXXACPR.GGXXACPR.GetGameState();
-                _frameMeter.Update(_gameState);
+                int exitCode = _frameMeter.Update(_gameState);
+                // Update refresh if bad gamestate read is detected
+                // TODO: rework this after gamestate hooks
+                if (exitCode > 0)
+                {
+                    Debug.WriteLine("Refreshing game state.");
+                    _gameState = GGXXACPR.GGXXACPR.GetGameState();
+                    _frameMeter.Update(_gameState);
+                }
             }
         }
 

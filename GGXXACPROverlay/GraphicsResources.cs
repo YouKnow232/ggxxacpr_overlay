@@ -7,7 +7,7 @@ namespace GGXXACPROverlay
 {
     internal class GraphicsResources : IDisposable
     {
-        private static readonly int _boxAlpha = 50;
+        private const int _boxAlpha = 50;
 
         private static readonly Color _defaultHitboxClr = new Color(255, 0, 0);
         private static readonly Color _defaultHurtboxClr = new Color(0, 255, 0);
@@ -73,7 +73,7 @@ namespace GGXXACPROverlay
 
             _frameTypePalette.Add(FrameMeter.FrameType.None, g.CreateSolidBrush(15, 15, 15));
             _frameTypePalette.Add(FrameMeter.FrameType.Neutral, g.CreateSolidBrush(27, 27, 27));
-            _frameTypePalette.Add(FrameMeter.FrameType.Movement, g.CreateSolidBrush(1, 181, 151));
+            _frameTypePalette.Add(FrameMeter.FrameType.Movement, g.CreateSolidBrush(65, 248, 252));
             _frameTypePalette.Add(FrameMeter.FrameType.CounterHitState, g.CreateSolidBrush(1, 181, 151));
             _frameTypePalette.Add(FrameMeter.FrameType.Startup, g.CreateSolidBrush(1, 181, 151));
             _frameTypePalette.Add(FrameMeter.FrameType.Active, g.CreateSolidBrush(203, 43, 103));
@@ -91,6 +91,7 @@ namespace GGXXACPROverlay
             _framePropertyPalette.Add(FrameMeter.FrameProperty1.GuardPointFull, g.CreateSolidBrush(120, 80, 0));
             _framePropertyPalette.Add(FrameMeter.FrameProperty1.GuardPointHigh, g.CreateSolidBrush(120, 80, 0));
             _framePropertyPalette.Add(FrameMeter.FrameProperty1.GuardPointLow, g.CreateSolidBrush(120, 80, 0));
+            _framePropertyPalette.Add(FrameMeter.FrameProperty1.TEST, g.CreateSolidBrush(255, 255, 0));
 
             _frameProperty2Palette.Add(FrameMeter.FrameProperty2.Default, g.CreateSolidBrush(0, 0, 0));
             _frameProperty2Palette.Add(FrameMeter.FrameProperty2.FRC, g.CreateSolidBrush(255, 255, 0));

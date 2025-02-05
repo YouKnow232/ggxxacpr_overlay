@@ -113,10 +113,13 @@ namespace GGXXACPROverlay
                     // hitboxes are technically disabled in recovery state, but we're going to draw them during hitstop anyway
                     (hitbox.BoxTypeId == BoxId.HIT) && (
                         player.Status.DisableHitboxes &&
-                        player.HitstopCounter == 0 
+                        !(player.HitstopCounter > 0 &&
+                        player.AttackFlags.HasConnected)    // Hitstop counter is also used in super flash, so need to check attack flags as well
                         ) ||
                     !drawList.Contains(hitbox.BoxTypeId))
-                    { continue; }
+                {
+                    continue;
+                }
 
                 Hitbox drawbox = ScaleHitbox(hitbox, player);
 
@@ -187,7 +190,7 @@ namespace GGXXACPROverlay
                 windowDimensions
             ));
 
-            // Player
+            // Players
             for (int j = 0; j < frameMeter.PlayerMeters.Length; j++)
             {
                 frameArr = frameMeter.PlayerMeters[j].FrameArr;
@@ -245,6 +248,18 @@ namespace GGXXACPROverlay
                         FRAME_METER_Y - FRAME_METER_VERTICAL_SPACING
                     );
                     g.FillRectangle(r.GetBrush(frameMeter.EntityMeters[0].FrameArr[i].Type), PixelToWindow(rect, windowDimensions));
+
+
+                    if (frameMeter.EntityMeters[0].FrameArr[i].Property != FrameMeter.FrameProperty1.Default)
+                    {
+                        rect = new Rectangle(
+                        FRAME_METER_X + (i * FRAME_METER_PIP_SPACING),
+                        FRAME_METER_Y - 1 - FRAME_METER_VERTICAL_SPACING,
+                        FRAME_METER_X + FRAME_METER_PIP_WIDTH + (i * FRAME_METER_PIP_SPACING),
+                        FRAME_METER_Y - FRAME_METER_VERTICAL_SPACING
+                        );
+                        g.FillRectangle(r.GetBrush(frameMeter.EntityMeters[0].FrameArr[i].Property), PixelToWindow(rect, windowDimensions));
+                    }
                 }
             }
             if (!frameMeter.EntityMeters[1].Hide)

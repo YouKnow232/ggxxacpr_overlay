@@ -51,17 +51,21 @@ namespace GGXXACPROverlay
             FrameProperty1 prop = FrameProperty1.Default,
             FrameProperty2 prop2 = FrameProperty2.Default,
             int actId = -1,
-            int actTimer = -1)
+            int actTimer = -1,
+            byte hitStop = 0,
+            uint status = 0)
         {
             public readonly FrameType Type = type;
             public readonly FrameProperty1 Property = prop;
             public readonly FrameProperty2 Property2 = prop2;
             public readonly int ActId = actId;
             public readonly int ActTimer = actTimer;
+            public readonly byte HitStop = hitStop;
+            public readonly ActionStateFlags Status = status;
         }
 
-        private static readonly int PAUSE_THRESHOLD = 10;
-        private static readonly int METER_LENGTH = 100;
+        private const int PAUSE_THRESHOLD = 10;
+        private const int METER_LENGTH = 100;
 
         public struct Meter(string name, int length)
         {
@@ -80,6 +84,8 @@ namespace GGXXACPROverlay
         public Meter[] PlayerMeters = new Meter[2];
         public Meter[] EntityMeters = new Meter[2];
 
+        private GameState? prevState = null;
+
         public FrameMeter()
         {
             _index = 0;
@@ -90,30 +96,71 @@ namespace GGXXACPROverlay
             ClearMeters();
         }
 
-        public void Update(GameState state)
+        public int Update(GameState state)
         {
             Frame p1PrevFrame = FrameAtOffset(PlayerMeters[0], -1);
             Frame p2PrevFrame = FrameAtOffset(PlayerMeters[1], -1);
-            // Check if meter should update
-            // Skip update if both character haven't advanced a frame (TODO: Should update this logic after D3D hook update)
-            if (state.Player1.AnimationCounter == p1PrevFrame.ActTimer &&
-                state.Player2.AnimationCounter == p2PrevFrame.ActTimer)
+
+            // !! Very hacky discard update checks below. These are temp solutions to
+            //  mitigate syncing issues while gamestate update hooks are being worked on.
+
+            // BoxIter is a game state evaluation iterable in the game code. It will only ever not be 255 when the game is evaluating hitboxes.
+            //  Although not a perfect safe guard, this should lessen incorrect frames due to mid-update game state reads until hooks are implemented.
+            if (state.Player1.BoxIter != 255 || state.Player2.BoxIter != 255)
             {
-                if (state.Player1.AnimationCounter != p1PrevFrame.ActTimer ||
-                    state.Player2.AnimationCounter != p2PrevFrame.ActTimer)
-                {
-                    Debug.WriteLine($"{state.Player1.AnimationCounter} != {p1PrevFrame.ActTimer} ||");
-                    Debug.WriteLine($"{state.Player2.AnimationCounter} != {p2PrevFrame.ActTimer}");
-                    // Mid update reads usually happen between player animation counter update and entity array fully updating
-                    //Debug.WriteLine($"Mid Update Read!!!!! {state.Player1.BoxIter}/{state.Player2.BoxIter}");
-                }
-                //Debug.WriteLine($"Skipping frame double count. {tempSkipCounter}");
-                return;
+                Debug.WriteLine($"Mid update read detected. P1:{state.Player1.BoxIter}, P2:{state.Player2.BoxIter}");
+                return 1;
             }
-            // Skip update when both players are in hitstop (currently redundant when checking for unchanged animation timers)
-            if (state.Player1.HitstopCounter > 0 && state.Player2.HitstopCounter > 0) { return; }
-            // Skip update if either player is frozen in super flash
-            if (state.Player1.Status.Freeze || state.Player2.Status.Freeze) { return; }
+            // Skip update if both character haven't advanced a frame (TODO: Should update this logic after D3D hook update)
+            // This should handle double frame reads as well as pausing
+            if (state.Player1.AnimationCounter == prevState?.Player1.AnimationCounter &&
+                state.Player2.AnimationCounter == prevState?.Player2.AnimationCounter &&
+                state.Player1.HitstopCounter == prevState?.Player1.HitstopCounter &&
+                state.Player2.HitstopCounter == prevState?.Player2.HitstopCounter)
+            {
+                return 0;
+            }
+            // Skip update if either player is frozen in super flash while the opponent doesn't have an active hitbox.
+            // The hitbox requirement is for moves that become active while in super flash.
+            // Special exception for first freeze frame.
+            if ((state.Player1.Status.Freeze || state.Player2.Status.Freeze) &&
+                (p1PrevFrame.Status.Freeze || p2PrevFrame.Status.Freeze))
+            {
+                // Special case for super's that connect during super flash (e.g. Jam 632146S)
+                // Rewrite the previous frame to an active frame and recalculate startup
+                if (state.Player2.Status.Freeze && state.Player1.HasActiveFrame())
+                {
+                    PlayerMeters[0].FrameArr[AddToLoopingIndex(-1)] = new Frame(
+                        FrameType.Active, p1PrevFrame.Property, p1PrevFrame.Property2, p1PrevFrame.ActId,
+                        p1PrevFrame.ActTimer, p1PrevFrame.HitStop, (uint)p1PrevFrame.Status);
+
+                    _index = AddToLoopingIndex(-1);
+                    UpdateStartupByCountBackWithMoveData(state.Player1, ref PlayerMeters[0], EntityMeters[0]);
+                    _index = AddToLoopingIndex(1);
+                }
+                else if (state.Player1.Status.Freeze && state.Player2.HasActiveFrame())
+                {
+                    PlayerMeters[1].FrameArr[AddToLoopingIndex(-1)] = new Frame(
+                        FrameType.Active, p2PrevFrame.Property, p2PrevFrame.Property2, p2PrevFrame.ActId,
+                        p2PrevFrame.ActTimer, p2PrevFrame.HitStop, (uint)p2PrevFrame.Status);
+
+                    _index = AddToLoopingIndex(-1);
+                    UpdateStartupByCountBackWithMoveData(state.Player2, ref PlayerMeters[1], EntityMeters[1]);
+                    _index = AddToLoopingIndex(1);
+                }
+
+                prevState = state;
+                return 0;
+            }
+            // Skip update when both players are in hitstop (currently somewhat redundant when checking for unchanged animation timers above)
+            // Special exception to also skip the first frame after hitstop counters have ended
+            if (state.Player1.HitstopCounter > 0 && state.Player2.HitstopCounter > 0 ||
+                    prevState?.Player1.HitstopCounter > 0 && prevState?.Player2.HitstopCounter > 0)
+            {
+                prevState = state;
+                return 0;
+            }
+
 
             // Pause logic
             if (_isPaused)
@@ -123,7 +170,8 @@ namespace GGXXACPROverlay
                     (DetermineEntityFrameType(state, 0) == FrameType.None) &&
                     (DetermineEntityFrameType(state, 1) == FrameType.None))
                 {
-                    return;
+                    prevState = state;
+                    return 0;
                 }
                 else
                 {
@@ -166,6 +214,8 @@ namespace GGXXACPROverlay
             UpdateAdvantageByCountBack();
 
             _index = (_index + 1) % METER_LENGTH;
+            prevState = state;
+            return 0;
         }
 
         private void ClearMeters()
@@ -213,11 +263,13 @@ namespace GGXXACPROverlay
             {
                 return FrameType.CounterHitState;
             }
-            else if (player.CommandFlags.IsMove || player.Status.DisableHitboxes)
+            else if (player.CommandFlags.IsMove)
             {
                 return FrameType.Startup;
             }
-            else if (player.CommandFlags.IsTaunt)
+            else if (player.CommandFlags.Prejump ||
+                player.CommandFlags.FreeCancel || player.CommandFlags.RunDash ||
+                player.CommandFlags.StepDash || player.CommandFlags.RunDashSkid)
             {
                 return FrameType.Movement;
             }
@@ -275,7 +327,7 @@ namespace GGXXACPROverlay
                 {
                     // Testing Mark property here. Seems to be necessary for Axl parry.
                     //  For some reason his parry is marked as a parry state for the full animation (despite being active 5F-17F in practice) and
-                    //  uses some extra move properties to actually determine if the move should parry.
+                    //  uses some extra move properties (Player.Mark) to actually determine if the move should parry.
                     if (players[index].Mark == 1)
                     {
                         return FrameProperty1.Parry;
@@ -309,14 +361,12 @@ namespace GGXXACPROverlay
         {
             // LINQ is so nice
             var ownerEntitiesHitboxes =
-                //state.Entities.Where(e => e.ParentIndex == index && !e.Status.DisableHitboxes)
-                state.Entities.Where(e => (e.Status.IsPlayer1 && index == 0 || e.Status.IsPlayer2 && index == 1) && !e.Status.DisableHitboxes)
+                state.Entities.Where(e => IsOwnedBy(e, index) && !e.Status.DisableHitboxes)
                               .SelectMany(e => e.HitboxSet)
                               .Where(h => h.BoxTypeId == BoxId.HIT);
 
             var ownerEntityHurtboxes =
-                //state.Entities.Where(e => e.ParentIndex == index && !e.Status.DisableHurtboxes)
-                state.Entities.Where(e => (e.Status.IsPlayer1 && index == 0 || e.Status.IsPlayer2 && index == 1) && !e.Status.DisableHurtboxes)
+                state.Entities.Where(e => IsOwnedBy(e, index) && !e.Status.DisableHurtboxes)
                               .SelectMany(e => e.HitboxSet)
                               .Where(h => h.BoxTypeId == BoxId.HURT);
 
@@ -333,6 +383,19 @@ namespace GGXXACPROverlay
                 return FrameType.None;
             }
         }
+        private static bool IsOwnedBy(Entity e, int playerIndex)
+        {
+            // Kinda hacky check for the Dizzy bubble exception (see comments on DIZZY_BUBBLE_ENTITY_ID),
+            //  but the alternative is recursively pointer tracing e.ParentPtrRaw to a player pointer just because of this one exception.
+            if (e.Id == GGXXACPR.GGXXACPR.DIZZY_ENTITY_ID && e.Status.IgnoreHitEffectsRecieved)
+            {
+                return e.Status.IsPlayer1 && playerIndex == 1 || e.Status.IsPlayer2 && playerIndex == 0;
+            }
+            else
+            {
+                return e.Status.IsPlayer1 && playerIndex == 0 || e.Status.IsPlayer2 && playerIndex == 1;
+            }
+        }
 
         private void UpdateIndividualMeter(GameState state, int index)
         {
@@ -347,7 +410,8 @@ namespace GGXXACPROverlay
                 prop2 = FrameProperty2.FRC;
             }
 
-            PlayerMeters[index].FrameArr[_index] = new Frame(type, prop, prop2, players[index].ActionId, players[index].AnimationCounter);
+            PlayerMeters[index].FrameArr[_index] = new Frame(type, prop, prop2,
+                players[index].ActionId, players[index].AnimationCounter, players[index].HitstopCounter, (uint)players[index].Status);
             PlayerMeters[index].FrameArr[(_index + 2 + METER_LENGTH) % METER_LENGTH] = new Frame(); // Forward erasure
         }
 
@@ -421,7 +485,14 @@ namespace GGXXACPROverlay
         /// </summary>
         private Frame FrameAtOffset(Meter meter, int offset)
         {
-            return meter.FrameArr[(_index + offset + METER_LENGTH) % METER_LENGTH];
+            return meter.FrameArr[AddToLoopingIndex(offset)];
+        }
+        /// <summary>
+        /// Returns the meter index plus an offset. Handles looping. WARNING: Does not handle inputs < METER_LENGTH * -1.
+        /// </summary>
+        private int AddToLoopingIndex(int offset)
+        { 
+            return (_index + offset + METER_LENGTH) % METER_LENGTH;
         }
     }
 }

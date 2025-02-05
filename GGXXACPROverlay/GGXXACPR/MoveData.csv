@@ -15,8 +15,8 @@ CharId,ActId,sequence,Move Input,English Name,Id
 1,113,1,j623H,Air H Volcanic Viper,3
 1,102,2,j623H,Air H Volcanic Viper,3
 1,103,3,j623H,Air H Volcanic Viper,3
-1,106,0,214S, Ground Viper,4
-1,295,1,214S, Ground Viper,4
+1,106,0,214S,Ground Viper,4
+1,295,1,214S,Ground Viper,4
 1,219,0,236K,Bandit Revolver,5
 1,220,1,236K,Bandit Revolver,5
 1,221,2,236K,Bandit Revolver,5
@@ -405,3 +405,97 @@ CharId,ActId,sequence,Move Input,English Name,Id
 18,132,2,j214D,Air FB Antidepressant Scale,130
 18,126,0,IK~236236H,Last Will and Testament,131
 18,127,1,IK~236236H,Last Will and Testament,131
+19,65,0,6H,6H,132
+19,117,1,6H,6H,132
+19,118,2,6H,6H,132
+19,126,0,IK~236236H,I’m Scared…,133
+19,127,1,IK~236236H,I’m Scared…,133
+20,133,0,236K~K,Shoot,134
+20,134,1,236K~K,Shoot,134
+20,156,0,4123641236S,Maintenance Disaster,135
+20,157,1,4123641236S,Maintenance Disaster,135
+20,158,2,4123641236S,Maintenance Disaster,135
+21,62,0,6P,6P,136
+21,274,1,6P,6P,136
+21,275,2,6P,6P,136
+21,118,0,4/6H,Throw,137
+21,119,1,4/6H,Throw,137
+21,120,2,4/6H,Throw,137
+21,229,0,214S Lv1,Fun-KY Lv1,138
+21,230,1,214S Lv1,Fun-KY Lv1,138
+21,220,2,214S Lv1,Fun-KY Lv1,138
+21,231,3,214S Lv1,Fun-KY Lv1,138
+21,232,0,214S Lv2,Fun-KY Lv2,139
+21,233,1,214S Lv2,Fun-KY Lv2,139
+21,221,2,214S Lv2,Fun-KY Lv2,139
+21,234,3,214S Lv2,Fun-KY Lv2,139
+21,235,0,214S Lv3,Fun-KY Lv3,140
+21,236,1,214S Lv3,Fun-KY Lv3,140
+21,222,2,214S Lv3,Fun-KY Lv3,140
+21,237,3,214S Lv3,Fun-KY Lv3,140
+21,97,0,623H Lv1,Hun-KY Homerun Lv1,141
+21,98,1,623H Lv1,Hun-KY Homerun Lv1,141
+21,101,2,623H Lv1,Hun-KY Homerun Lv1,141
+21,99,0,623H Lv2,Hun-KY Homerun Lv2,142
+21,100,1,623H Lv2,Hun-KY Homerun Lv2,142
+21,101,2,623H Lv2,Hun-KY Homerun Lv2,142
+21,135,0,623H Lv3,Hun-KY Homerun Lv3,143
+21,136,1,623H Lv3,Hun-KY Homerun Lv3,143
+21,108,1,623H Lv3,Hun-KY Homerun Lv3,143
+21,109,2,623H Lv3,Hun-KY Homerun Lv3,143
+21,101,3,623H Lv3,Hun-KY Homerun Lv3,143
+21,349,0,j623H Lv1,Air Hun-KY Homerun Lv1,144
+21,350,1,j623H Lv1,Air Hun-KY Homerun Lv1,144
+21,101,2,j623H Lv1,Air Hun-KY Homerun Lv1,144
+21,351,0,j623H Lv2,Air Hun-KY Homerun Lv2,145
+21,352,1,j623H Lv2,Air Hun-KY Homerun Lv2,145
+21,101,2,j623H Lv2,Air Hun-KY Homerun Lv2,145
+21,353,0,j623H Lv3,Air Hun-KY Homerun Lv3,146
+21,354,1,j623H Lv3,Air Hun-KY Homerun Lv3,146
+21,101,2,j623H Lv3,Air Hun-KY Homerun Lv3,146
+21,223,0,63214K,S-KY-Line,147
+21,224,1,63214K,S-KY-Line,147
+21,225,2,63214K,S-KY-Line,147
+21,170,0,236236S,What’s Useless Will Always Be So,148
+21,251,1,236236S,What’s Useless Will Always Be So,148
+21,252,0,236S,Follow-up Attack,149
+22,309,0,421H,Engorgement,150
+22,310,1,421H,Engorgement,150
+22,311,2,421H,Engorgement,150
+22,103,0,IK~236236H,Darkness of Ignorance,151
+22,104,1,IK~236236H,Darkness of Ignorance,151
+22,105,2,IK~236236H,Darkness of Ignorance,151
+22,106,3,IK~236236H,Darkness of Ignorance,151
+23,334,0,632146S,Dragon Install: Sakkai,152
+23,335,1,632146S,Dragon Install: Sakkai,152
+23,336,2,632146S,Dragon Install: Sakkai,152
+23,337,3,632146S,Dragon Install: Sakkai,152
+23,338,4,632146S,Dragon Install: Sakkai,152
+23,339,5,632146S,Dragon Install: Sakkai,152
+23,341,6,632146S,Dragon Install: Sakkai,152
+23,343,7,632146S,Dragon Install: Sakkai,152
+23,344,8,632146S,Dragon Install: Sakkai,152
+23,345,9,632146S,Dragon Install: Sakkai,152
+23,346,10,632146S,Dragon Install: Sakkai,152
+24,63,0,5D,5D,153
+24,107,1,5D,5D,153
+24,254,2,5D,5D,153
+24,62,0,6[P],6[P],154
+24,255,1,6[P],6[P],154
+24,256,2,6[P],6[P],154
+24,65,0,6[H],6[H],155
+24,249,1,6[H],6[H],155
+24,250,2,6[H],6[H],155
+24,32,0,2[H],2[H],156
+24,251,1,2[H],2[H],156
+24,252,2,2[H],2[H],156
+24,114,0,214S,Skull Crusher,157
+24,115,1,214S,Skull Crusher,157
+24,111,0,214K,Nape Saddle,158
+24,112,1,214K,Nape Saddle,158
+24,113,2,214K,Nape Saddle,158
+24,208,0,j41236S,Limb Severer,159
+24,209,1,j41236S,Limb Severer,159
+24,103,0,IK~236236H,Pulverizing Dragon’s Roar,160
+24,105,1,IK~236236H,Pulverizing Dragon’s Roar,160
+24,106,2,IK~236236H,Pulverizing Dragon’s Roar,160

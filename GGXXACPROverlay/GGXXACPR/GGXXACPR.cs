@@ -4,12 +4,16 @@ namespace GGXXACPROverlay.GGXXACPR
 {
     public static class GGXXACPR
     {
-        public static readonly int SCREEN_HEIGHT_PIXELS = 480;
-        public static readonly int SCREEN_GROUND_PIXEL_OFFSET = 40;
+        public const int SCREEN_HEIGHT_PIXELS = 480;
+        public const int SCREEN_GROUND_PIXEL_OFFSET = 40;
 
-        private static readonly nint CAMERA_ADDR = 0x006D5CD4;
-        private static readonly nint PLAYER_1_PTR_ADDR = 0x006D1378;
-        private static readonly nint PLAYER_2_PTR_ADDR = 0x006D4C84;
+        // Exception to the ActionStatusFlags.IsPlayer1/2 flag. Dizzy bubble is flagged as the opponent's entity while attackable by Dizzy.
+        // Makes that flag more of a "Is attackable by" thing. For some reason, Venom balls aren't implemented this way.
+        public const int DIZZY_ENTITY_ID = 0x43;
+
+        private const nint CAMERA_ADDR = 0x006D5CD4;
+        private const nint PLAYER_1_PTR_ADDR = 0x006D1378;
+        private const nint PLAYER_2_PTR_ADDR = 0x006D4C84;
         private static readonly nint[] PLAYER_PTR_ADDRS = [PLAYER_1_PTR_ADDR, PLAYER_2_PTR_ADDR];
 
         private static readonly nint[] PUSHBOX_ADDRESSES =
@@ -21,66 +25,66 @@ namespace GGXXACPROverlay.GGXXACPR
         ];
 
         // Y offset values for Airborne pushboxes (Almost always equal to abs(YPos)+4000 except for Kliff)
-        private static readonly nint PUSHBOX_P1_JUMP_OFFSET_ADDRESS = 0x006D6378;
-        private static readonly nint PUSHBOX_P2_JUMP_OFFSET_ADDRESS = 0x006D637C;
+        private const nint PUSHBOX_P1_JUMP_OFFSET_ADDRESS = 0x006D6378;
+        private const nint PUSHBOX_P2_JUMP_OFFSET_ADDRESS = 0x006D637C;
 
         // short arr, index with CharId*2
-        private static readonly int GROUND_THROW_RANGE_ARRAY_ADDR = 0x0057005C; // TODO
+        private const int GROUND_THROW_RANGE_ARRAY_ADDR = 0x0057005C; // TODO
 
         // one byte [P1Throwable, P2Throwable, P1ThrowActive P2ThrowActive]
-        private static readonly nint GLOBAL_THROW_FLAGS_ADDR = 0x006D5D7C;
+        private const nint GLOBAL_THROW_FLAGS_ADDR = 0x006D5D7C;
 
         // Player Struct Offsets
-        private static readonly int IS_FACING_RIGHT_OFFSET = 0x02;
-        private static readonly int STATUS_OFFSET = 0x0C;
-        private static readonly int BUFFER_FLAGS_OFFSET = 0x12;
-        private static readonly int ACT_ID_OFFSET = 0x18;
-        private static readonly int ANIMATION_FRAME_OFFSET = 0x1C;
-        private static readonly int GUARD_FLAGS_OFFSET = 0x2A;
-        private static readonly int PLAYER_EXTRA_PTR_OFFSET = 0X2C;
-        private static readonly int ATTACK_FLAGS_OFFSET = 0x34;
-        private static readonly int COMMAND_FLAGS_OFFSET = 0X38;
-        private static readonly int CORE_X_OFFSET = 0x4C;
-        private static readonly int CORE_Y_OFFSET = 0x4E;
-        private static readonly int SCALE_X_OFFSET = 0x50;
-        private static readonly int SCALE_Y_OFFSET= 0x52;
-        private static readonly int HITBOX_LIST_OFFSET = 0x54;
-        private static readonly int HITBOX_LIST_LENGTH_OFFSET = 0x84;
-        private static readonly int HITBOX_ITERATION_VAR_OFFSET = 0x85;
-        private static readonly int XPOS_OFFSET = 0xB0;
-        private static readonly int YPOS_OFFSET = 0xB4;
-        private static readonly int HITSTOP_TIMER_OFFSET = 0xFD;
-        private static readonly int MARK_OFFSET = 0xFF;
+        private const int IS_FACING_RIGHT_OFFSET = 0x02;
+        private const int STATUS_OFFSET = 0x0C;
+        private const int BUFFER_FLAGS_OFFSET = 0x12;
+        private const int ACT_ID_OFFSET = 0x18;
+        private const int ANIMATION_FRAME_OFFSET = 0x1C;
+        private const int GUARD_FLAGS_OFFSET = 0x2A;
+        private const int PLAYER_EXTRA_PTR_OFFSET = 0X2C;
+        private const int ATTACK_FLAGS_OFFSET = 0x34;
+        private const int COMMAND_FLAGS_OFFSET = 0X38;
+        private const int CORE_X_OFFSET = 0x4C;
+        private const int CORE_Y_OFFSET = 0x4E;
+        private const int SCALE_X_OFFSET = 0x50;
+        private const int SCALE_Y_OFFSET= 0x52;
+        private const int HITBOX_LIST_OFFSET = 0x54;
+        private const int HITBOX_LIST_LENGTH_OFFSET = 0x84;
+        private const int HITBOX_ITERATION_VAR_OFFSET = 0x85;
+        private const int XPOS_OFFSET = 0xB0;
+        private const int YPOS_OFFSET = 0xB4;
+        private const int HITSTOP_TIMER_OFFSET = 0xFD;
+        private const int MARK_OFFSET = 0xFF;
         // Projectils Arr (Entity Arr)
-        private static readonly nint ENTITY_ARR_HEAD_TAIL_PTR = 0x006D27A8;
-        private static readonly nint ENTITY_ARR_HEAD_PTR = 0x006D27A8 + 0x04;
-        private static readonly nint ENTITY_ARR_TAIL_PTR = 0x006D27A8 + 0x08;
-        private static readonly nint ENTITY_LIST_PTR = 0x006D137C;
-        private static readonly int ENTITY_ARRAY_SIZE = 32; // Not a game thing, just a lookup limit
+        private const nint ENTITY_ARR_HEAD_TAIL_PTR = 0x006D27A8;
+        private const nint ENTITY_ARR_HEAD_PTR = 0x006D27A8 + 0x04;
+        private const nint ENTITY_ARR_TAIL_PTR = 0x006D27A8 + 0x08;
+        private const nint ENTITY_LIST_PTR = 0x006D137C;
+        private const int ENTITY_ARRAY_SIZE = 32; // Not a game thing, just a lookup limit
         // Projectile Struct Offsets (Similar to Player)
-        private static readonly int PROJECTILE_BACK_PTR_OFFSET = 0x04;
-        private static readonly int PROJECTILE_NEXT_PTR_OFFSET = 0x08;
-        private static readonly int PROJECTILE_PARENT_PTR_OFFSET = 0x20;
-        private static readonly int PROJECTILE_PARENT_FLAG_OFFSET = 0x28;
+        private const int PROJECTILE_BACK_PTR_OFFSET = 0x04;
+        private const int PROJECTILE_NEXT_PTR_OFFSET = 0x08;
+        private const int PROJECTILE_PARENT_PTR_OFFSET = 0x20;
+        private const int PROJECTILE_PARENT_FLAG_OFFSET = 0x28;
         // Player Extra Struct Offsets
-        private static readonly int PLAYER_EXTRA_THROW_PROTECTION_TIMER_OFFSET = 0x18;
-        private static readonly int PLAYER_EXTRA_INVULN_COUNTER_OFFSET = 0x2A;
-        private static readonly int PLAYER_EXTRA_RC_TIME_OFFSET = 0x32;
-        private static readonly int PLAYER_EXTRA_JAM_PARRY_TIME_OFFSET = 0x90;
-        private static readonly int PLAYER_EXTRA_COMBO_TIME_OFFSET = 0xF6;
-        private static readonly int PLAYER_EXTRA_SLASH_BACK_TIME_OFFSET = 0x010B;
+        private const int PLAYER_EXTRA_THROW_PROTECTION_TIMER_OFFSET = 0x18;
+        private const int PLAYER_EXTRA_INVULN_COUNTER_OFFSET = 0x2A;
+        private const int PLAYER_EXTRA_RC_TIME_OFFSET = 0x32;
+        private const int PLAYER_EXTRA_JAM_PARRY_TIME_OFFSET = 0x90;
+        private const int PLAYER_EXTRA_COMBO_TIME_OFFSET = 0xF6;
+        private const int PLAYER_EXTRA_SLASH_BACK_TIME_OFFSET = 0x010B;
         // Camera Struct Offsets
-        private static readonly int CAMERA_X_CENTER_OFFSET = 0x10;
-        private static readonly int CAMERA_BOTTOM_EDGE_OFFSET = 0x14;
-        private static readonly int CAMERA_LEFT_EDGE_OFFSET = 0x20;
-        private static readonly int CAMERA_WIDTH_OFFSET = 0x28;
-        private static readonly int CAMERA_HEIGHT_OFFSET = 0x2C;
-        private static readonly int CAMERA_ZOOM_OFFSET = 0x44;
-        private static readonly int CAMERA_STRUCT_BUFFER = 0x48;
+        private const int CAMERA_X_CENTER_OFFSET = 0x10;
+        private const int CAMERA_BOTTOM_EDGE_OFFSET = 0x14;
+        private const int CAMERA_LEFT_EDGE_OFFSET = 0x20;
+        private const int CAMERA_WIDTH_OFFSET = 0x28;
+        private const int CAMERA_HEIGHT_OFFSET = 0x2C;
+        private const int CAMERA_ZOOM_OFFSET = 0x44;
+        private const int CAMERA_STRUCT_BUFFER = 0x48;
         // Buffer sizes
-        private static readonly int ENTITY_STRUCT_BUFFER = 0x130;
-        private static readonly int PLAYER_EXTRA_STRUCT_BUFFER = 0x148;
-        private static readonly int HITBOX_ARRAY_STEP = 0x0C;
+        private const int ENTITY_STRUCT_BUFFER = 0x130;
+        private const int PLAYER_EXTRA_STRUCT_BUFFER = 0x148;
+        private const int HITBOX_ARRAY_STEP = 0x0C;
 
         private static nint playerPointerCache = nint.Zero;
         private static nint Player1Pointer {

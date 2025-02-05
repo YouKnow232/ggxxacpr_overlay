@@ -48,7 +48,7 @@
 
     public enum CharacterID
     {
-        None        = 0,
+        NONE        = 0,
         SOL         = 1,
         KY          = 2,
         MAY         = 3,
@@ -56,7 +56,7 @@
         AXL         = 5,
         POTEMKIN    = 6,
         CHIPP       = 7,
-        EDDIT       = 8,
+        EDDIE       = 8,
         BAIKEN      = 9,
         FAUST       = 10,
         TESTAMENT   = 11,
@@ -78,28 +78,30 @@
 
     public struct Player()
     {
-        /*0x00*/ public ushort CharId = 0;
-        /*0x02*/ public bool IsFacingRight = false;
-        /*0x0C*/ public ActionStateFlags Status = 0;
-        /*0x12*/ public BufferFlags BufferFlags = 0;
-        /*0x18*/ public ushort ActionId = 0;
-        /*0x1C*/ public ushort AnimationCounter = 0;
-        /*0x2A*/ public GuardStateFlags GuardFlags = 0;
-        /*0x2C*/ public PlayerExtra Extra = new();
-        /*0x34*/ public AttackStateFlags AttackFlags = 0;
-        /*0x38*/ public CommandFlags CommandFlags = 0;
-        /*0x4C*/ public short CoreX = 0;
-        /*0x4E*/ public short CoreY = 0;
-        /*0x50*/ public short ScaleX = -1;
-        /*0x52*/ public short ScaleY = -1;
-        /*0x54*/ public Hitbox[] HitboxSet = [];
-        /*0x84*/ public byte BoxCount = 0;
-        /*0x85*/ public byte BoxIter = 255;
-        /*0xB0*/ public int XPos = 0;
-        /*0xB4*/ public int YPos = 0;
-        /*0xFD*/ public byte HitstopCounter = 0;
-        /*0xFF*/ public byte Mark = 0;  // Multi-use variable used for move-specific behavior (For Axl, holds parry active state)
-        /*none*/ public Hitbox PushBox = new();
+        /*0x000*/ public ushort CharId = 0;
+        /*0x002*/ public bool IsFacingRight = false;
+        /*0x00C*/ public ActionStateFlags Status = 0;
+        /*0x012*/ public BufferFlags BufferFlags = 0;
+        /*0x018*/ public ushort ActionId = 0;
+        /*0x01C*/ public ushort AnimationCounter = 0;
+        /*0x02A*/ public GuardStateFlags GuardFlags = 0;
+        /*0x02C*/ public PlayerExtra Extra = new();
+        /*0x034*/ public AttackStateFlags AttackFlags = 0;
+        /*0x038*/ public CommandFlags CommandFlags = 0;
+        /*0x04C*/ public short CoreX = 0;
+        /*0x04E*/ public short CoreY = 0;
+        /*0x050*/ public short ScaleX = -1;
+        /*0x052*/ public short ScaleY = -1;
+        /*0x054*/ public Hitbox[] HitboxSet = [];
+        /*0x084*/ public byte BoxCount = 0;
+        /*0x085*/ public byte BoxIter = 255;
+        /*0x0B0*/ public int XPos = 0;
+        /*0x0B4*/ public int YPos = 0;
+        /*0x0FD*/ public byte HitstopCounter = 255;
+        /*0x0FF*/ public byte Mark = 0;  // Multi-use variable used for move-specific behavior (For Axl, holds parry active state)
+        /*none */ public Hitbox PushBox = new();
+
+        public readonly bool HasActiveFrame() => HitboxSet.Where(hb => hb.BoxTypeId == BoxId.HIT).Any() && !Status.DisableHitboxes;
     }
     public struct PlayerExtra()
     {
@@ -116,9 +118,11 @@
         private readonly uint _flags = flags;
 
         public readonly bool IsEntity { get { return (_flags & 0x0001) > 0; } }   // Always on?
-        public readonly bool IsPlayer1 { get { return (_flags & 0x0002) > 0; } }   // Is, is owned by, or can be attacked by Player 1
-        public readonly bool IsPlayer2 { get { return (_flags & 0x0004) > 0; } }   // Is, is owned by, or can be attacked by Player 2
-        public readonly bool DrawSprite { get { return (_flags & 0x0008) > 0; } }   // Almost always on. Turns off when player is invis (e.g. Slayer dash)
+        // Is or is owned by Player 1 / can be attacked by Player 2 (Dizzy bubble is marked as other player's!)
+        public readonly bool IsPlayer1 { get { return (_flags & 0x0002) > 0; } }
+        // Is or is owned by Player 2 / can be attacked by Player 1
+        public readonly bool IsPlayer2 { get { return (_flags & 0x0004) > 0; } }
+        public readonly bool DrawSprite { get { return (_flags & 0x0008) > 0; } }   // Almost always on. Turns off when player or entity is invis (e.g. Slayer dash)
         public readonly bool IsAirborne { get { return (_flags & 0x0010) > 0; } }
         public readonly bool IsInHitstun { get { return (_flags & 0x0020) > 0; } }
         public readonly bool DisableHitboxes { get { return (_flags & 0x0040) > 0; } }
@@ -130,25 +134,29 @@
         public readonly bool IsCornered { get { return (_flags & 0x0800) > 0; } }
         // Switches on when landing, but doesn't switch back off until standing or crouching neutral
         public readonly bool LandingFlag { get { return (_flags & 0x1000) > 0; } }
-        // But not cornered
-        public readonly bool IsAtScreenLimit { get { return (_flags & 0x2000) > 0; } }
+        public readonly bool IsAtScreenLimit { get { return (_flags & 0x2000) > 0; } }  // But not cornered
         public readonly bool ProjDisableHitboxes { get { return (_flags & 0x4000) > 0; } } // Needs confirmation
-        public readonly bool IsPushboxType1 { get { return (_flags & 0x8000) > 0; } }
+        public readonly bool IsPushboxType1 { get { return (_flags & 0x8000) > 0; } } // ??
         public readonly bool StayKnockedDown { get { return (_flags & 0x00010000) > 0; } } // Set on KD when health is 0
         public readonly bool StrikeInvuln { get { return (_flags & 0x00020000) > 0; } }
         public readonly bool IsIdle { get { return (_flags & 0x00040000) > 0; } }
         public readonly bool Freeze { get { return (_flags & 0x00080000) > 0; } } // Super flash
-        // Duplicate? HasJumped?
         public readonly bool NoCollision { get { return (_flags & 0x00100000) > 0; } } // Disable push box
-        // AirOptions flag?
         public readonly bool Gravity { get { return (_flags & 0x00200000) > 0; } } // YPos doesn't change when flag is forcefully turned off
         public readonly bool Unknown0x00400000 { get { return (_flags & 0x00400000) > 0; } } // Assocated with player->0xF4 having value of 0x100 (??)
         public readonly bool IsThrowInuvln { get { return (_flags & 0x00800000) > 0; } }
         public readonly bool Unknown0x01000000 { get { return (_flags & 0x01000000) > 0; } }
         public readonly bool Unknown0x02000000 { get { return (_flags & 0x02000000) > 0; } }
-        public readonly bool ContinuousHitbox { get { return (_flags & 0x04000000) > 0; } } // Some type of Hitbox modifier
+        public readonly bool IgnoreHitEffectsRecieved { get { return (_flags & 0x04000000) > 0; } }
 
-        public static implicit operator ActionStateFlags(uint flags) { return new ActionStateFlags(flags); }
+        public static implicit operator ActionStateFlags(uint flags) => new(flags);
+        public static implicit operator ActionStateFlags(int flags) => new((uint)flags);
+        public static explicit operator uint (ActionStateFlags flags) => flags._flags;
+        public static explicit operator int (ActionStateFlags flags) => (int)flags._flags;
+
+        public static readonly ActionStateFlags Default = new(0);
+
+        public override string ToString() => $"{_flags:X}";
     }
 
     public readonly struct BufferFlags(ushort flags)
@@ -201,29 +209,32 @@
         public static implicit operator AttackStateFlags(uint flags) { return new AttackStateFlags(flags); }
     }
 
-    // Relates to player input and commands
+    // Relates to available state transitions. Doesn't handle gatlings, cancels, kara cancels.
     public readonly struct CommandFlags(uint flags)
     {
         public readonly uint _flags = flags;
 
-        public readonly bool IsIdle { get { return (_flags & 0x0101) == 0x0101; } }
+        public readonly bool IsIdle { get { return (_flags & 0xFFFF) == 0x0101; } }
         //public readonly bool TurningAround { get { return (_flags & 0x0000FFFF) == 0x0109; } }
-        public readonly bool IsMove { get { return (_flags & 0xC05F) == 0xC05F; } }   // Has this value when any commital action is performed (?)
-        public readonly bool IsTaunt { get { return (_flags & 0xC01F) == 0xC01F; } }    // Has this value when in cancelable portion of taunt
-
-
-        public readonly bool GroundNeutral { get { return (_flags & 0x0001) > 0; } }
-        public readonly bool Forward { get { return (_flags & 0x0002) > 0; } }
-        public readonly bool Backward { get { return (_flags & 0x0004) > 0; } }
-        public readonly bool Crouching { get { return (_flags & 0x0008) > 0; } }
-        public readonly bool NoFreeAttackCancel { get { return (_flags & 0x0040) > 0; } } // On during most animations, off during cancel period of taunt and in neutral
-        public readonly bool Unknown0x0100 { get { return (_flags & 0x0100) > 0; } } // can't block if 0x0300
-        public readonly bool Unknown0x0200 { get { return (_flags & 0x0200) > 0; } } // backdash thing (??)
-        public readonly bool Unknown0x0400 { get { return (_flags & 0x0400) > 0; } } // Airborne thing?
-        public readonly bool UkemiOkay { get { return (_flags & 0x0800) > 0; } }
-        public readonly bool DisableThrow { get { return (_flags & 0x2000) > 0; } } // Needs confirmation
+        public readonly bool IsMove { get { return (_flags & 0xFFFF) == 0xC05F; } }   // Has this value when any commital action is performed (?)
+        public readonly bool FreeCancel { get { return (_flags & 0xFFFF) == 0xC01F; } }    // Has this value when in free cancelable portion of taunt and airdash animation
+        public readonly bool RunDash { get { return (_flags & 0xFFFF) == 0xE00F; } }
+        public readonly bool StepDash { get { return (_flags & 0xFFFF) == 0xE04F; } }
+        public readonly bool RunDashSkid { get { return (_flags & 0xFFFF) == 0xC00F; } }
         public readonly bool FaustCrawlForward { get { return (_flags & 0xF000) == 0x4000; } }
         public readonly bool FaustCrawlBackward { get { return (_flags & 0xF000) == 0x8000; } }
+
+        public readonly bool NoNeutral { get { return (_flags & 0x0001) > 0; } }
+        public readonly bool NoForward { get { return (_flags & 0x0002) > 0; } }
+        public readonly bool NoBackward { get { return (_flags & 0x0004) > 0; } }
+        public readonly bool NoCrouching { get { return (_flags & 0x0008) > 0; } }
+        public readonly bool NoAttack { get { return (_flags & 0x0040) > 0; } } // On during most animations, off during cancel period of taunt and in neutral
+        public readonly bool Unknown0x0100 { get { return (_flags & 0x0100) > 0; } } // can't block if 0x0300
+        public readonly bool Unknown0x0200 { get { return (_flags & 0x0200) > 0; } } // backdash thing (??)
+        public readonly bool Airdash { get { return (_flags & 0x0400) > 0; } } // Preliminary airdash check flag
+        public readonly bool Ukemi { get { return (_flags & 0x0800) > 0; } }
+        public readonly bool Prejump { get { return (_flags & 0x1000) > 0; } } // Not sure exactly, but on during prejump and I-no hoverdash startup
+        public readonly bool DisableThrow { get { return (_flags & 0x2000) > 0; } } // Needs confirmation
 
         public static implicit operator CommandFlags(uint flags) { return new CommandFlags(flags); }
     }
