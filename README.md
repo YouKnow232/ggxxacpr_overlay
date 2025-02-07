@@ -21,7 +21,6 @@ Displays hitboxes and a frame meter in a seamless overlay for the Steam release 
 ![#785000](https://placehold.co/15x15/785000/785000.png) Armor / Guardpoint / Parry<br>
 
 ## Known Issues
-### General
 - Fullscreen is not currently supported
 - Frame Meter does not fully support Replay mode
     - Rewinding is not recognized by the Frame
@@ -29,6 +28,7 @@ Displays hitboxes and a frame meter in a seamless overlay for the Steam release 
 - Startup is not fully implemented for EX characters
 - Projectile startup is not implemented
 - Throw boxes, active frame, and startup are not implemented
+- Startup/Advantage will not exceed 77
 - When multiple frame properties overlap only one state is reported on the frame meter
     - e.g. Throw invuln will overwrite guard point for Anji's 3K, 6H, Rin, and FB Rin
 - Slidehead unblockable hit has no hitbox/active frames

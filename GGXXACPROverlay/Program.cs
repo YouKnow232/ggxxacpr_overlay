@@ -17,8 +17,18 @@ namespace GGXXACPROverlay
             Console.WriteLine();
             // Known Issues
             Console.WriteLine("Known Issues:");
-            Console.WriteLine("- PLACE HOLDER");
-            Console.WriteLine("- Update this in release branch");
+            Console.WriteLine("- Fullscreen is not supported; Please use borderless instead");
+            Console.WriteLine("- Frame meter does not fully support replay mode");
+            Console.WriteLine("- Startup for projectiles is not implemented");
+            Console.WriteLine("- Startup for EX characters is not fully implemented");
+            Console.WriteLine("- Throw boxes/startup/active frames are not implemented");
+            Console.WriteLine("- Startup/advantage display will not exceed 77");
+            Console.WriteLine("- Frame meter will overwrite guardpoint with throw invuln if both are true e.g. Anji's 3K, 6H, and Rin");
+            Console.WriteLine("- Slidehead missing hitbox for unblockable hit");
+            Console.WriteLine("- Dizzy 421 projectile second stage is missing hitbox");
+            Console.WriteLine("- Dizzy fish laser is missing hitbox");
+            Console.WriteLine("- Justice 632146H has an FRC point during super flash, but is not displayed because of pause behavior");
+            Console.WriteLine("- Startup for supers may be incorrect if Baiken guard cancels out of super freeze");
             Console.WriteLine();
 
             TimerService.EnableHighPrecisionTimers();
