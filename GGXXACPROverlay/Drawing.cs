@@ -327,6 +327,14 @@ namespace GGXXACPROverlay
             Point p2LabelPosition = new Point(xPos + pipWidth, yPos + 2 * (FRAME_METER_VERTICAL_SPACING + pipHeight) +
                 entityPipHeight + borderThickness + -4);
 
+            // Semi-transparent label backgrounds
+            var startupDimensions = g.MeasureString(r.Font, "S: 99  A: -99");
+            g.FillRectangle(r.LabelBgBrush, new Rectangle(p1LabelPosition.X - r.Font.FontSize / 2, p1LabelPosition.Y,
+                p1LabelPosition.X + startupDimensions.X + r.Font.FontSize * 3 / 4, p1LabelPosition.Y + startupDimensions.Y + r.Font.FontSize / 8));
+            g.FillRectangle(r.LabelBgBrush, new Rectangle(p2LabelPosition.X - r.Font.FontSize / 2, p2LabelPosition.Y,
+                p2LabelPosition.X + startupDimensions.X + r.Font.FontSize * 3 / 4, p2LabelPosition.Y + startupDimensions.Y + r.Font.FontSize / 8));
+
+            // Startup
             DrawOutlinedText(g, r.Font, r.FontBrush, r.FontBorderBrush, p1LabelPosition,
                 $"S: {(frameMeter.PlayerMeters[0].Startup >= 0 ? frameMeter.PlayerMeters[0].Startup : "-")}");
 
@@ -348,12 +356,13 @@ namespace GGXXACPROverlay
                 p2AdvantageFontColor = r.FontBrushGreen;
             }
 
-            pos = new Point(p1LabelPosition.X + (r.Font.FontSize * 4), p1LabelPosition.Y);
-            DrawOutlinedText(g, r.Font, p1AdvantageFontColor, r.FontBorderBrush, pos,
-                $"A: {(display ? frameMeter.PlayerMeters[0].Advantage : "-")}");
+            // Advantage
+            Point p1AdvLabelPosition = new Point(p1LabelPosition.X + (r.Font.FontSize * 3), p1LabelPosition.Y);
+            Point p2AdvLabelPosition = new Point(p2LabelPosition.X + (r.Font.FontSize * 3), p2LabelPosition.Y);
 
-            pos = new Point(p2LabelPosition.X + (r.Font.FontSize * 4), p2LabelPosition.Y);
-            DrawOutlinedText(g, r.Font, p2AdvantageFontColor, r.FontBorderBrush, pos,
+            DrawOutlinedText(g, r.Font, p1AdvantageFontColor, r.FontBorderBrush, p1AdvLabelPosition,
+                $"A: {(display ? frameMeter.PlayerMeters[0].Advantage : "-")}");
+            DrawOutlinedText(g, r.Font, p2AdvantageFontColor, r.FontBorderBrush, p2AdvLabelPosition,
                 $"A: {(display ? frameMeter.PlayerMeters[1].Advantage : "-")}");
         }
 
