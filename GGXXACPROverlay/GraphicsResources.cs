@@ -39,6 +39,8 @@ namespace GGXXACPROverlay
         public SolidBrush FontBrushRed { get; private set; }
         [AllowNull]
         public SolidBrush FontBorderBrush { get; private set; }
+        [AllowNull]
+        public SolidBrush LabelBgBrush { get; private set; }
 
         public GraphicsResources()
         {
@@ -61,6 +63,7 @@ namespace GGXXACPROverlay
             FontBrushGreen = g.CreateSolidBrush(150, 255, 150);
             FontBrushRed = g.CreateSolidBrush(255, 150, 150);
             FontBorderBrush = g.CreateSolidBrush(0, 0, 0);
+            LabelBgBrush = g.CreateSolidBrush(0, 0, 0, 150);
 
             _hitboxOutlinePalette.Add(BoxId.DUMMY, g.CreateSolidBrush(10, 10, 10));
             _hitboxOutlinePalette.Add(BoxId.HIT, g.CreateSolidBrush(_defaultHitboxClr));
@@ -143,6 +146,7 @@ namespace GGXXACPROverlay
                 FontBrushGreen.Dispose();
                 FontBrushRed.Dispose();
                 FontBorderBrush.Dispose();
+                LabelBgBrush.Dispose();
                 foreach (SolidBrush brush in _hitboxOutlinePalette.Values) { brush.Dispose(); }
                 _hitboxOutlinePalette.Clear();
                 foreach (SolidBrush brush in _hitboxFillPalette.Values) { brush.Dispose(); }
