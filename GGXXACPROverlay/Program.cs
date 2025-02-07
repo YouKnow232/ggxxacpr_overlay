@@ -17,14 +17,8 @@ namespace GGXXACPROverlay
             Console.WriteLine();
             // Known Issues
             Console.WriteLine("Known Issues:");
-            Console.WriteLine("- Fullscreen is not currently supported");
-            Console.WriteLine("- Generally buggy behavior in replay mode. No rewinding, skipping ahead while paused");
-            Console.WriteLine("- Startup may be wrong even if the meter accurately records it");
-            Console.WriteLine("- Projectile startup is not implemented");
-            Console.WriteLine("- Throw boxes, active frames, and startup are not implemented");
-            Console.WriteLine("- Collision boxes may be wrong. They currently only account for standing and crouching states");
-            Console.WriteLine("- Justice's fullscreen super has incorrect invuln");
-            Console.WriteLine("- Frame meter will overwrite guardpoint with throw invuln if both are true e.g. Anji's 3K, 6H, and Rin");
+            Console.WriteLine("- PLACE HOLDER");
+            Console.WriteLine("- Update this in release branch");
             Console.WriteLine();
 
             TimerService.EnableHighPrecisionTimers();

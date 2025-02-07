@@ -140,6 +140,8 @@ namespace GGXXACPROverlay
                 CollisionFillBrush.Dispose();
                 Font.Dispose();
                 FontBrush.Dispose();
+                FontBrushGreen.Dispose();
+                FontBrushRed.Dispose();
                 FontBorderBrush.Dispose();
                 foreach (SolidBrush brush in _hitboxOutlinePalette.Values) { brush.Dispose(); }
                 _hitboxOutlinePalette.Clear();
