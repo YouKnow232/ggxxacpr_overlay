@@ -1,0 +1,501 @@
+CharId,ActId,sequence,Move Input,English Name,Id
+1,100,0,623S,S Volcanic Viper,0
+1,101,1,623S,S Volcanic Viper,0
+1,102,2,623S,S Volcanic Viper,0
+1,103,3,623S,S Volcanic Viper,0
+1,110,0,j623S,Air S Volcanic Viper,1
+1,111,1,j623S,Air S Volcanic Viper,1
+1,102,2,j623S,Air S Volcanic Viper,1
+1,103,3,j623S,Air S Volcanic Viper,1
+1,104,0,623H,H Volcanic Viper,2
+1,105,1,623H,H Volcanic Viper,2
+1,102,2,623H,H Volcanic Viper,2
+1,103,3,623H,H Volcanic Viper,2
+1,112,0,j623H,Air H Volcanic Viper,3
+1,113,1,j623H,Air H Volcanic Viper,3
+1,102,2,j623H,Air H Volcanic Viper,3
+1,103,3,j623H,Air H Volcanic Viper,3
+1,106,0,214S,Ground Viper,4
+1,295,1,214S,Ground Viper,4
+1,219,0,236K,Bandit Revolver,5
+1,220,1,236K,Bandit Revolver,5
+1,221,2,236K,Bandit Revolver,5
+1,132,0,j236K,Air Bandit Revolver,6
+1,133,1,j236K,Air Bandit Revolver,6
+1,134,2,j236K,Air Bandit Revolver,6
+1,219,0,236[K],Bandit Bringer,7
+1,187,1,236[K],Bandit Bringer,7
+1,188,2,236[K],Bandit Bringer,7
+1,222,0,214K,Riot Stamp,8
+1,211,1,214K,Riot Stamp,8
+1,212,2,214K,Riot Stamp,8
+1,130,3,214K,Riot Stamp,8
+1,131,4,214K,Riot Stamp,8
+1,136,0,623K,Wild Throw,9
+1,135,1,623K,Wild Throw,9
+1,272,0,j236H,Sidewinder,10
+1,273,1,j236H,Sidewinder,10
+1,340,0,j236D,FB Sidewinder,11
+1,273,1,j236D,FB Sidewinder,11
+1,343,0,j.214K,Slam,12
+1,342,1,j.214K,Slam,12
+1,126,0,IK~236236H,Napalm Death,13
+1,127,1,IK~236236H,Napalm Death,13
+1,124,0,623S,DI S Volcanic Viper,14
+1,125,1,623S,DI S Volcanic Viper,14
+1,103,2,623S,DI S Volcanic Viper,14
+1,245,0,j623S,Air DI S Volcanic Viper,15
+1,246,1,j623S,Air DI S Volcanic Viper,15
+1,103,2,j623S,Air DI S Volcanic Viper,15
+1,128,0,623H,DI H Volcanic Viper,16
+1,129,1,623H,DI H Volcanic Viper,16
+1,102,2,623H,DI H Volcanic Viper,16
+1,103,3,623H,DI H Volcanic Viper,16
+1,245,0,j623H,Air DI H Volcanic Viper,17
+1,246,1,j623H,Air DI H Volcanic Viper,17
+1,103,2,j623H,Air DI H Volcanic Viper,17
+1,257,0,236K,DI Bandit Revolver,18
+1,258,1,236K,DI Bandit Revolver,18
+1,259,2,236K,DI Bandit Revolver,18
+2,181,0,j236S,Air S Stun Edge,19
+2,142,1,j236S,Air S Stun Edge,19
+2,190,0,j236H,Air H Stun Edge,20
+2,142,1,j236H,Air H Stun Edge,20
+2,98,0,623S,S Vapor Thrust,21
+2,99,1,623S,S Vapor Thrust,21
+2,100,2,623S,S Vapor Thrust,21
+2,101,3,623S,S Vapor Thrust,21
+2,250,0,623X~6H,Lightning Javelin,22
+2,254,1,623X~6H,Lightning Javelin,22
+2,137,0,j623S,Air S Vapor Thrust,23
+2,138,1,j623S,Air S Vapor Thrust,23
+2,100,2,j623S,Air S Vapor Thrust,23
+2,101,3,j623S,Air S Vapor Thrust,23
+2,135,0,623H,H Vapor Thrust,24
+2,136,1,623H,H Vapor Thrust,24
+2,100,2,623H,H Vapor Thrust,24
+2,101,3,623H,H Vapor Thrust,24
+2,137,0,j623H,Air H Vapor Thrust,25
+2,138,1,j623H,Air H Vapor Thrust,25
+2,100,2,j623H,Air H Vapor Thrust,25
+2,101,3,j623H,Air H Vapor Thrust,25
+2,187,0,236K,Stun Dipper,26
+2,188,1,236K,Stun Dipper,26
+2,103,0,214K,Greed Sever,27
+2,104,1,214K,Greed Sever,27
+2,105,2,214K,Greed Sever,27
+2,229,0,j236D,Air Charged Stun Edge,28
+2,142,1,j236D,Air Charged Stun Edge,28
+2,111,0,j236D~4D,Lightning Sphere,29
+2,251,1,j236D~4D,Lightning Sphere,29
+2,307,0,214D,FB Greed Sever,30
+2,308,1,214D,FB Greed Sever,30
+2,309,2,214D,FB Greed Sever,30
+2,170,0,j632146H,Air Ride the Lightning,31
+2,171,1,j632146H,Air Ride the Lightning,31
+3,65,0,6[H],Charged 6H,32
+3,238,1,6[H],Charged 6H,32
+3,239,2,6[H],Charged 6H,32
+3,63,0,5[D],Just Kidding~,33
+3,257,1,5[D],Just Kidding~,33
+3,131,0,[4]6S,S Mr. Dolphin Horizontal,34
+3,132,1,[4]6S,S Mr. Dolphin Horizontal,34
+3,128,2,[4]6S,S Mr. Dolphin Horizontal,34
+3,115,3,[4]6S,S Mr. Dolphin Horizontal,34
+3,133,0,[4]6H,H Mr. Dolphin Horizontal,35
+3,134,1,[4]6H,H Mr. Dolphin Horizontal,35
+3,128,2,[4]6H,H Mr. Dolphin Horizontal,35
+3,115,3,[4]6H,H Mr. Dolphin Horizontal,35
+3,126,0,[2]8S,S Mr. Dolphin Vertical,36
+3,127,1,[2]8S,S Mr. Dolphin Vertical,36
+3,327,2,[2]8S,S Mr. Dolphin Vertical,36
+3,328,3,[2]8S,S Mr. Dolphin Vertical,36
+3,129,0,[2]8H,H Mr. Dolphin Vertical,37
+3,130,1,[2]8H,H Mr. Dolphin Vertical,37
+3,327,2,[2]8H,H Mr. Dolphin Vertical,37
+3,328,3,[2]8H,H Mr. Dolphin Vertical,37
+3,103,0,623S,S Restive Rolling,38
+3,104,1,623S,S Restive Rolling,38
+3,105,2,623S,S Restive Rolling,38
+3,117,3,623S,S Restive Rolling,38
+3,236,0,623H,H Restive Rolling,39
+3,237,1,623H,H Restive Rolling,39
+3,105,2,623H,H Restive Rolling,39
+3,117,3,623H,H Restive Rolling,39
+3,153,0,j623S,Air S Restive Rolling,40
+3,233,1,j623S,Air S Restive Rolling,40
+3,105,2,j623S,Air S Restive Rolling,40
+3,117,3,j623S,Air S Restive Rolling,40
+3,234,0,j623H,Air H Restive Rolling,41
+3,235,1,j623H,Air H Restive Rolling,41
+3,105,2,j623H,Air H Restive Rolling,41
+3,117,3,j623H,Air H Restive Rolling,41
+3,107,0,63214K,Overhead Kiss,42
+3,123,1,63214K,Overhead Kiss,42
+3,124,2,63214K,Overhead Kiss,42
+3,258,0,214D,Jackhound,43
+3,259,1,214D,Jackhound,43
+3,111,0,63214H,Ultimate Whiner,44
+3,112,1,63214H,Ultimate Whiner,44
+3,162,0,IK~6321463214H,May and the Jolly Crew,45
+3,163,1,IK~6321463214H,May and the Jolly Crew,45
+3,164,2,IK~6321463214H,May and the Jolly Crew,45
+4,186,0,214P,Iron Savior,46
+4,117,1,214P,Iron Savior,46
+4,118,2,214P,Iron Savior,46
+4,119,3,214P,Iron Savior,46
+4,183,0,j236P,Bad Moon,47
+4,184,1,j236P,Bad Moon,47
+4,111,2,j236P,Bad Moon,47
+4,191,0,214S,Lush Shaker,48
+4,98,1,214S,Lush Shaker,48
+4,282,0,214D,FB Secret Garden,49
+4,283,1,214D,FB Secret Garden,49
+4,284,2,214D,FB Secret Garden,49
+4,100,0,2141236H,Winger,50
+4,101,1,2141236H,Winger,50
+4,102,2,2141236H,Winger,50
+4,103,3,2141236H,Winger,50
+4,285,0,j2141236H,Air Winger,51
+4,286,1,j2141236H,Air Winger,51
+5,65,0,6H,6H,52
+5,196,1,6H,6H,52
+5,197,2,6H,6H,52
+5,140,0,[4]6H,Rashou Sen,53
+5,151,1,[4]6H,Rashou Sen,53
+5,152,2,[4]6H,Rashou Sen,53
+5,153,3,[4]6H,Rashou Sen,53
+5,172,4,[4]6H,Rashou Sen,53
+5,173,5,[4]6H,Rashou Sen,53
+5,174,6,[4]6H,Rashou Sen,53
+5,208,0,623P,Hachi Subako,54
+5,209,1,623P,Hachi Subako,54
+5,208,0,623P~421D,Shiranami no Homura,55
+5,210,1,623P~421D,Shiranami no Homura,55
+5,145,0,63214S,S Raiei Sageki,56
+5,146,1,63214S,S Raiei Sageki,56
+5,147,2,63214S,S Raiei Sageki,56
+5,148,0,63214H,H Raiei Sageki,57
+5,149,1,63214H,H Raiei Sageki,57
+5,150,2,63214H,H Raiei Sageki,57
+5,200,3,63214H,H Raiei Sageki,57
+5,201,4,63214H,H Raiei Sageki,57
+6,182,0,236P,Mega Fist (forward),58
+6,183,1,236P,Mega Fist (forward),58
+6,184,2,236P,Mega Fist (forward),58
+6,185,0,214P,Mega Fist (backward),59
+6,186,1,214P,Mega Fist (backward),59
+6,187,2,214P,Mega Fist (backward),59
+6,120,0,[4]6H,Hammerfall,60
+6,121,1,[4]6H,Hammerfall,60
+6,120,0,[4]6H~P,Hammerfall Break,61
+6,174,1,[4]6H~P,Hammerfall Break,61
+6,122,0,632146P,Potemkin Buster,62
+6,123,1,632146P,Potemkin Buster,62
+6,124,2,632146P,Potemkin Buster,62
+6,125,3,632146P,Potemkin Buster,62
+6,114,0,623H,Heat Knuckle,63
+6,115,1,623H,Heat Knuckle,63
+6,116,1,623H,Heat Knuckle,63
+6,117,2,623H,Heat Knuckle,63
+6,114,0,623H~63214H,Heat Extend,64
+6,116,1,623H~63214H,Heat Extend,64
+6,118,2,623H~63214H,Heat Extend,64
+6,119,3,623H~63214H,Heat Extend,64
+6,130,0,236236S,Heavenly Potemkin Buster,65
+6,131,1,236236S,Heavenly Potemkin Buster,65
+6,109,0,632146H~4123641236P,Gigantic Bullet,66
+6,110,1,632146H~4123641236P,Gigantic Bullet,66
+6,111,2,632146H~4123641236P,Gigantic Bullet,66
+6,150,0,IK~236236H,Magnum Opera,67
+6,151,1,IK~236236H,Magnum Opera,67
+7,142,0,41236K~D,Genrou Zan You,68
+7,280,1,41236K~D,Genrou Zan You,68
+7,179,0,236S~236K,Senshuu,69
+7,180,1,236S~236K,Senshuu,69
+7,181,2,236S~236K,Senshuu,69
+7,223,0,632146H,Zansei Rouga,70
+7,96,1,632146H,Zansei Rouga,70
+7,97,2,632146H,Zansei Rouga,70
+7,96,3,632146H,Zansei Rouga,70
+7,97,4,632146H,Zansei Rouga,70
+7,98,5,632146H,Zansei Rouga,70
+7,103,6,632146H,Zansei Rouga,70
+7,99,7,632146H,Zansei Rouga,70
+7,100,8,632146H,Zansei Rouga,70
+7,102,9,632146H,Zansei Rouga,70
+7,138,0,236236K,Banki Messai,71
+7,139,1,236236K,Banki Messai,71
+7,140,2,236236K,Banki Messai,71
+7,215,3,236236K,Banki Messai,71
+7,151,0,IK~236236H,Delta End,72
+7,152,1,IK~236236H,Delta End,72
+7,153,2,IK~236236H,Delta End,72
+7,155,2,IK~236236H,Delta End,72
+7,156,3,IK~236236H,Delta End,72
+8,227,0,214[K]~41236S,Shadow Gallery,73
+8,228,1,214[K]~41236S,Shadow Gallery,73
+8,229,2,214[K]~41236S,Shadow Gallery,73
+8,163,0,j41236S,Air Shadow Gallery,74
+8,164,1,j41236S,Air Shadow Gallery,74
+8,165,2,j41236S,Air Shadow Gallery,74
+8,166,3,j41236S,Air Shadow Gallery,74
+8,184,0,j236236S,Executor-X,75
+8,230,1,j236236S,Executor-X,75
+8,231,2,j236236S,Executor-X,75
+8,214,3,j236236S,Executor-X,75
+9,249,0,412H,Ouren,76
+9,250,1,412H,Ouren,76
+9,251,2,412H,Ouren,76
+9,226,0,412D~X~K,Baku Followup K,77
+9,227,1,412D~X~K,Baku Followup K,77
+9,228,2,412D~X~K,Baku Followup K,77
+10,217,0,236S~H,Going My Way,78
+10,218,1,236S~H,Going My Way,78
+10,219,2,236S~H,Going My Way,78
+10,123,0,214P,From the Front,79
+10,124,1,214P,From the Front,79
+10,168,0,214K,From Behind,80
+10,124,1,214K,From Behind,80
+10,125,0,214S,From Above,81
+10,126,1,214S,From Above,81
+10,127,2,214S,From Above,81
+10,199,3,214S,From Above,81
+10,168,0,214K~D,FB From Behind,82
+10,312,1,214K~D,FB From Behind,82
+10,124,2,214K~D,FB From Behind,82
+10,102,0,IK~236236H,This Week’s Yamaban,83
+10,103,1,IK~236236H,This Week’s Yamaban,83
+10,104,1,IK~236236H,This Week’s Yamaban,83
+10,100,2,IK~236236H,This Week’s Yamaban,83
+10,101,3,IK~236236H,This Week’s Yamaban,83
+10,161,4,IK~236236H,This Week’s Yamaban,83
+11,142,0,214K,Warrant,84
+11,143,1,214K,Warrant,84
+11,144,2,214K,Warrant,84
+11,167,0,214D,Grave Digger,85
+11,172,1,214D,Grave Digger,85
+11,173,2,214D,Grave Digger,85
+11,174,0,IK~236236H,Seventh Sign,86
+11,150,1,IK~236236H,Seventh Sign,86
+12,330,0,3H,3H,87
+12,331,1,3H,3H,87
+12,332,2,3H,3H,87
+12,103,0,236K,Ryujin,88
+12,105,1,236K,Ryujin,88
+12,106,2,236K,Ryujin,88
+12,182,0,214K,Gekirin,89
+12,184,1,214K,Gekirin,89
+12,185,2,214K,Gekirin,89
+12,189,0,623K,Kenroukaku,90
+12,191,1,623K,Kenroukaku,90
+12,192,2,623K,Kenroukaku,90
+12,122,0,236S~H,Senri Shinshou,91
+12,123,1,236S~H,Senri Shinshou,91
+12,179,0,j.2K,Houeikyaku,92
+12,180,1,j.2K,Houeikyaku,92
+12,181,2,j.2K,Houeikyaku,92
+12,133,0,632146S,Choukyaku Hououshou,93
+12,135,1,632146S,Choukyaku Hououshou,93
+12,136,2,632146S,Choukyaku Hououshou,93
+12,169,3,632146S,Choukyaku Hououshou,93
+12,290,0,64641236P+K,Tousai Hyakuretsuken,94
+12,291,1,64641236P+K,Tousai Hyakuretsuken,94
+12,292,1,64641236P+K,Tousai Hyakuretsuken,94
+12,101,0,IK~236236H,Gasenkotsu,95
+12,115,1,IK~236236H,Gasenkotsu,95
+12,102,1,IK~236236H,Gasenkotsu,95
+12,137,2,IK~236236H,Gasenkotsu,95
+13,170,0,623H,On,96
+13,157,1,623H,On,96
+13,159,2,623H,On,96
+13,172,0,214P,P Kai,97
+13,173,1,214P,P Kai,97
+13,174,2,214P,P Kai,97
+13,102,0,214K,K Kai,98
+13,96,1,214K,K Kai,98
+13,143,2,214K,K Kai,98
+13,300,0,623D,FB On,99
+13,301,1,623D,FB On,99
+13,159,2,623D,FB On,99
+13,221,0,[2]8K,Tenjinkyaku,100
+13,222,1,[2]8K,Tenjinkyaku,100
+13,223,2,[2]8K,Tenjinkyaku,100
+13,224,2,[2]8K,Tenjinkyaku,100
+13,101,0,IK~236236H,Zetsu,101
+13,99,1,IK~236236H,Zetsu,101
+13,100,2,IK~236236H,Zetsu,101
+13,110,3,IK~236236H,Zetsu,101
+14,120,0,632146H,“That’s My Name”,102
+14,122,1,632146H,“That’s My Name”,102
+14,176,2,632146H,“That’s My Name”,102
+14,305,0,j236236H,Uncho’s Iai,103
+14,306,1,j236236H,Uncho’s Iai,103
+14,307,1,j236236H,Uncho’s Iai,103
+14,308,2,j236236H,Uncho’s Iai,103
+14,124,0,IK~236236H,Joker Trick,104
+14,127,1,IK~236236H,Joker Trick,104
+14,126,2,IK~236236H,Joker Trick,104
+15,98,0,623H,Double Head Morbid,105
+15,99,1,623H,Double Head Morbid,105
+15,114,0,j236H,H Mad Struggle,106
+15,115,1,j236H,H Mad Struggle,106
+15,108,0,236236H,Dimmu Borgir,107
+15,161,1,236236H,Dimmu Borgir,107
+15,107,2,236236H,Dimmu Borgir,107
+15,165,3,236236H,Dimmu Borgir,107
+16,97,0,632146P,Necro Unleashed,108
+16,98,1,632146P,Necro Unleashed,108
+17,71,0,6K,6K,109
+17,128,1,6K,6K,109
+17,129,2,6K,6K,109
+17,71,0,6[K],6[K],110
+17,128,1,6[K],6[K],110
+17,168,2,6[K],6[K],110
+17,129,3,6[K],6[K],110
+17,63,0,5[D],Dust Feint,111
+17,263,1,5[D],Dust Feint,111
+17,100,0,214X~K,Crosswise Heel,112
+17,101,1,214X~K,Crosswise Heel,112
+17,112,0,236H,Bloodsucking Universe,113
+17,113,1,236H,Bloodsucking Universe,113
+17,299,2,236H,Bloodsucking Universe,113
+17,165,0,632146S,Dead on Time,114
+17,166,1,632146S,Dead on Time,114
+17,167,2,632146S,Dead on Time,114
+17,104,0,236236H,Eternal Wings,115
+17,105,1,236236H,Eternal Wings,115
+17,106,2,236236H,Eternal Wings,115
+17,163,0,j214214S,Up and Close Dandy,116
+17,164,1,j214214S,Up and Close Dandy,116
+17,126,0,IK~236236H,All Dead,117
+17,127,1,IK~236236H,All Dead,117
+18,101,0,j236P,P Sultry Performance,118
+18,102,1,j236P,P Sultry Performance,118
+18,103,2,j236P,P Sultry Performance,118
+18,110,0,j236K,K Sultry Performance,119
+18,111,1,j236K,K Sultry Performance,119
+18,112,2,j236K,K Sultry Performance,119
+18,107,0,j236S,S Sultry Performance,120
+18,108,1,j236S,S Sultry Performance,120
+18,109,2,j236S,S Sultry Performance,120
+18,104,0,j236H,H Sultry Performance,121
+18,105,1,j236H,H Sultry Performance,121
+18,106,2,j236H,H Sultry Performance,121
+18,263,0,j236D,FB Sultry Performance,122
+18,264,1,j236D,FB Sultry Performance,122
+18,134,0,632146K,Chemical Love (Horizontal),123
+18,135,1,632146K,Chemical Love (Horizontal),123
+18,241,0,632146S,Chemical Love (Vertical),124
+18,242,1,632146S,Chemical Love (Vertical),124
+18,117,0,214P,P Antidepressant Scale,125
+18,118,1,214P,P Antidepressant Scale,125
+18,269,0,214H,H Antidepressant Scale,126
+18,118,1,214H,H Antidepressant Scale,126
+18,124,0,j214P,Air P Antidepressant Scale,127
+18,125,1,j214P,Air P Antidepressant Scale,127
+18,132,2,j214P,Air P Antidepressant Scale,127
+18,270,0,j214H,Air H Antidepressant Scale,128
+18,125,1,j214H,Air H Antidepressant Scale,128
+18,132,2,j214H,Air H Antidepressant Scale,128
+18,117,0,214D,FB Antidepressant Scale,129
+18,118,1,214D,FB Antidepressant Scale,129
+18,124,0,j214D,Air FB Antidepressant Scale,130
+18,125,1,j214D,Air FB Antidepressant Scale,130
+18,132,2,j214D,Air FB Antidepressant Scale,130
+18,126,0,IK~236236H,Last Will and Testament,131
+18,127,1,IK~236236H,Last Will and Testament,131
+19,65,0,6H,6H,132
+19,117,1,6H,6H,132
+19,118,2,6H,6H,132
+19,126,0,IK~236236H,I’m Scared…,133
+19,127,1,IK~236236H,I’m Scared…,133
+20,133,0,236K~K,Shoot,134
+20,134,1,236K~K,Shoot,134
+20,156,0,4123641236S,Maintenance Disaster,135
+20,157,1,4123641236S,Maintenance Disaster,135
+20,158,2,4123641236S,Maintenance Disaster,135
+21,62,0,6P,6P,136
+21,274,1,6P,6P,136
+21,275,2,6P,6P,136
+21,118,0,4/6H,Throw,137
+21,119,1,4/6H,Throw,137
+21,120,2,4/6H,Throw,137
+21,229,0,214S Lv1,Fun-KY Lv1,138
+21,230,1,214S Lv1,Fun-KY Lv1,138
+21,220,2,214S Lv1,Fun-KY Lv1,138
+21,231,3,214S Lv1,Fun-KY Lv1,138
+21,232,0,214S Lv2,Fun-KY Lv2,139
+21,233,1,214S Lv2,Fun-KY Lv2,139
+21,221,2,214S Lv2,Fun-KY Lv2,139
+21,234,3,214S Lv2,Fun-KY Lv2,139
+21,235,0,214S Lv3,Fun-KY Lv3,140
+21,236,1,214S Lv3,Fun-KY Lv3,140
+21,222,2,214S Lv3,Fun-KY Lv3,140
+21,237,3,214S Lv3,Fun-KY Lv3,140
+21,97,0,623H Lv1,Hun-KY Homerun Lv1,141
+21,98,1,623H Lv1,Hun-KY Homerun Lv1,141
+21,101,2,623H Lv1,Hun-KY Homerun Lv1,141
+21,99,0,623H Lv2,Hun-KY Homerun Lv2,142
+21,100,1,623H Lv2,Hun-KY Homerun Lv2,142
+21,101,2,623H Lv2,Hun-KY Homerun Lv2,142
+21,135,0,623H Lv3,Hun-KY Homerun Lv3,143
+21,136,1,623H Lv3,Hun-KY Homerun Lv3,143
+21,108,1,623H Lv3,Hun-KY Homerun Lv3,143
+21,109,2,623H Lv3,Hun-KY Homerun Lv3,143
+21,101,3,623H Lv3,Hun-KY Homerun Lv3,143
+21,349,0,j623H Lv1,Air Hun-KY Homerun Lv1,144
+21,350,1,j623H Lv1,Air Hun-KY Homerun Lv1,144
+21,101,2,j623H Lv1,Air Hun-KY Homerun Lv1,144
+21,351,0,j623H Lv2,Air Hun-KY Homerun Lv2,145
+21,352,1,j623H Lv2,Air Hun-KY Homerun Lv2,145
+21,101,2,j623H Lv2,Air Hun-KY Homerun Lv2,145
+21,353,0,j623H Lv3,Air Hun-KY Homerun Lv3,146
+21,354,1,j623H Lv3,Air Hun-KY Homerun Lv3,146
+21,101,2,j623H Lv3,Air Hun-KY Homerun Lv3,146
+21,223,0,63214K,S-KY-Line,147
+21,224,1,63214K,S-KY-Line,147
+21,225,2,63214K,S-KY-Line,147
+21,170,0,236236S,What’s Useless Will Always Be So,148
+21,251,1,236236S,What’s Useless Will Always Be So,148
+21,252,0,236S,Follow-up Attack,149
+22,309,0,421H,Engorgement,150
+22,310,1,421H,Engorgement,150
+22,311,2,421H,Engorgement,150
+22,103,0,IK~236236H,Darkness of Ignorance,151
+22,104,1,IK~236236H,Darkness of Ignorance,151
+22,105,2,IK~236236H,Darkness of Ignorance,151
+22,106,3,IK~236236H,Darkness of Ignorance,151
+23,334,0,632146S,Dragon Install: Sakkai,152
+23,335,1,632146S,Dragon Install: Sakkai,152
+23,336,2,632146S,Dragon Install: Sakkai,152
+23,337,3,632146S,Dragon Install: Sakkai,152
+23,338,4,632146S,Dragon Install: Sakkai,152
+23,339,5,632146S,Dragon Install: Sakkai,152
+23,341,6,632146S,Dragon Install: Sakkai,152
+23,343,7,632146S,Dragon Install: Sakkai,152
+23,344,8,632146S,Dragon Install: Sakkai,152
+23,345,9,632146S,Dragon Install: Sakkai,152
+23,346,10,632146S,Dragon Install: Sakkai,152
+24,63,0,5D,5D,153
+24,107,1,5D,5D,153
+24,254,2,5D,5D,153
+24,62,0,6[P],6[P],154
+24,255,1,6[P],6[P],154
+24,256,2,6[P],6[P],154
+24,65,0,6[H],6[H],155
+24,249,1,6[H],6[H],155
+24,250,2,6[H],6[H],155
+24,32,0,2[H],2[H],156
+24,251,1,2[H],2[H],156
+24,252,2,2[H],2[H],156
+24,114,0,214S,Skull Crusher,157
+24,115,1,214S,Skull Crusher,157
+24,111,0,214K,Nape Saddle,158
+24,112,1,214K,Nape Saddle,158
+24,113,2,214K,Nape Saddle,158
+24,208,0,j41236S,Limb Severer,159
+24,209,1,j41236S,Limb Severer,159
+24,103,0,IK~236236H,Pulverizing Dragon’s Roar,160
+24,105,1,IK~236236H,Pulverizing Dragon’s Roar,160
+24,106,2,IK~236236H,Pulverizing Dragon’s Roar,160

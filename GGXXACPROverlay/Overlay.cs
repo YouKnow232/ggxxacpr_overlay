@@ -23,6 +23,10 @@ namespace GGXXACPROverlay
 
         private readonly FrameMeter _frameMeter = new();
 
+        private bool shouldRender = false;
+        private bool drawHitboxes = true;
+        private bool drawFrameMeter = true;
+
         public Overlay()
         {
             _drawList[0] = BoxId.HIT;
@@ -57,6 +61,42 @@ namespace GGXXACPROverlay
             return _overlayWindow.IsRunning;
         }
 
+        public void ToggleHitboxOverlay() { drawHitboxes = !drawHitboxes; }
+        public void ToggleFrameMeter() { drawFrameMeter = !drawFrameMeter; }
+
+        //private void UpdateToggles(object? state, KeyboardEventArgs e)
+        //{
+        //    Debug.WriteLine($"CALLBACK!! e: {e}");
+        //}
+
+        //private void TempSetHook()
+        //{
+        //    _inputListenerCallback = new EventHandler<KeyboardEventArgs>(UpdateToggles);
+
+        //    var modHandle = PInvoke.GetModuleHandle(typeof(Hooks).Assembly.GetName().Name);
+        //    Debug.WriteLine($"Hooks module is invalid: {modHandle.IsInvalid}");
+        //    hookHandle = PInvoke.SetWindowsHookEx(WINDOWS_HOOK_ID.WH_KEYBOARD, Hooks.KeyboardHookCallback, modHandle, Memory.GetGameThreadID());
+        //    if (hookHandle == null)
+        //    {
+        //        Memory.HandleSystemError("Set Windows Hook returned null");
+        //    }
+        //    Hooks.HHook = hookHandle;
+        //    Debug.WriteLine("Hooks set.");
+
+        //    Hooks.OnKeyUp += _inputListenerCallback;
+        //    Hooks.DebugMessage += (object? sender, DebugEventArgs e) =>
+        //    {
+        //        this.Debug1(e.Message);
+        //        Debug.WriteLine(e.Message);
+        //    };
+        //    Debug.WriteLine("Callbacks defined.");
+        //}
+
+        //private void TempInitPipe()
+        //{
+        //    // NamedPipeServerStream() communicate with ggxxacpr?
+        //}
+
         private void UpdateGameState(object? state)
         {
             if (!Memory.ProcessIsOpen())
@@ -65,12 +105,22 @@ namespace GGXXACPROverlay
                 return;
             }
 
+            shouldRender = GGXXACPR.GGXXACPR.ShouldRender();
+
             lock (_gameStateUpdater)
             {
                 WindowHelper.GetWindowClientBounds(_gameHandle, out WindowBounds gameWinDim);
                 _windowDimensions = new Drawing.Dimensions(gameWinDim.Right - gameWinDim.Left, gameWinDim.Bottom - gameWinDim.Top);
                 _gameState = GGXXACPR.GGXXACPR.GetGameState();
-                _frameMeter.Update(_gameState);
+                int exitCode = _frameMeter.Update(_gameState);
+                // Update refresh if bad gamestate read is detected
+                // TODO: rework this after gamestate hooks
+                if (exitCode > 0)
+                {
+                    Debug.WriteLine("Refreshing game state.");
+                    _gameState = GGXXACPR.GGXXACPR.GetGameState();
+                    _frameMeter.Update(_gameState);
+                }
             }
         }
 
@@ -90,24 +140,32 @@ namespace GGXXACPROverlay
         private void RenderFrame(object? sender, DrawGraphicsEventArgs e)
         {
             var g = e.Graphics;
+            g.ClearScene();
+
+            if (!shouldRender) { return; }
 
             lock (_gameStateLock)
             {
-                g.ClearScene();
                 g.BeginScene();
 
-                Drawing.DrawPlayerPushBox(g, _resources, _gameState, _gameState.Player1, _windowDimensions);
-                Drawing.DrawPlayerBoxes(g, _resources, _drawList, _gameState, _gameState.Player1, _windowDimensions);
+                if (drawHitboxes)
+                {
+                    Drawing.DrawPlayerPushBox(g, _resources, _gameState, _gameState.Player1, _windowDimensions);
+                    Drawing.DrawPlayerBoxes(g, _resources, _drawList, _gameState, _gameState.Player1, _windowDimensions);
 
-                Drawing.DrawPlayerPushBox(g, _resources, _gameState, _gameState.Player2, _windowDimensions);
-                Drawing.DrawPlayerBoxes(g, _resources, _drawList, _gameState, _gameState.Player2, _windowDimensions);
+                    Drawing.DrawPlayerPushBox(g, _resources, _gameState, _gameState.Player2, _windowDimensions);
+                    Drawing.DrawPlayerBoxes(g, _resources, _drawList, _gameState, _gameState.Player2, _windowDimensions);
 
-                Drawing.DrawProjectileBoxes(g, _resources, _drawList, _gameState, _windowDimensions);
+                    Drawing.DrawProjectileBoxes(g, _resources, _drawList, _gameState, _windowDimensions);
 
-                Drawing.DrawPlayerPivot(g, _resources, _gameState, _gameState.Player1, _windowDimensions);
-                Drawing.DrawPlayerPivot(g, _resources, _gameState, _gameState.Player2, _windowDimensions);
+                    Drawing.DrawPlayerPivot(g, _resources, _gameState, _gameState.Player1, _windowDimensions);
+                    Drawing.DrawPlayerPivot(g, _resources, _gameState, _gameState.Player2, _windowDimensions);
+                }
 
-                Drawing.DrawFrameMeter(g, _resources, _frameMeter, _windowDimensions);
+                if (drawFrameMeter)
+                {
+                    Drawing.DrawFrameMeter(g, _resources, _frameMeter, _windowDimensions);
+                }
 
                 g.EndScene();
             }

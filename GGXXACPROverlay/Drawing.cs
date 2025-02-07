@@ -1,4 +1,5 @@
 ﻿
+using System.Data.Common;
 using GameOverlay.Drawing;
 using GGXXACPROverlay.GGXXACPR;
 
@@ -6,19 +7,19 @@ namespace GGXXACPROverlay
 {
     internal class Drawing
     {
-        private static readonly float LINE_THICKNESS = 1f;
+        private const float LINE_THICKNESS = 1f;
         // Values in game pixels
-        private static readonly int PIVOT_CROSS_SIZE = 6;
-        private static readonly int FRAME_METER_X = 19;
-        private static readonly int FRAME_METER_Y = 390;
-        private static readonly int FRAME_METER_PIP_WIDTH = 5;
-        private static readonly int FRAME_METER_PIP_HEIGHT = 7;
-        private static readonly int FRAME_METER_ENTITY_PIP_HEIGHT = 4;
-        private static readonly int FRAME_METER_PIP_SPACING = 1 + FRAME_METER_PIP_WIDTH;
-        private static readonly int FRAME_METER_PROPERTY_HIGHLIGHT_HEIGHT = 2;
-        private static readonly int FRAME_METER_PROPERTY_HIGHLIGHT_TOP = FRAME_METER_PIP_HEIGHT - FRAME_METER_PROPERTY_HIGHLIGHT_HEIGHT;
-        private static readonly int FRAME_METER_VERTICAL_SPACING = 1;
-        private static readonly int FRAME_METER_FONT_SPACING = 5;
+        private const int PIVOT_CROSS_SIZE = 6;
+        private const int FRAME_METER_X = 19;
+        private const int FRAME_METER_Y = 400;
+        private const int FRAME_METER_PIP_WIDTH = 5;
+        private const int FRAME_METER_PIP_HEIGHT = 7;
+        private const int FRAME_METER_ENTITY_PIP_HEIGHT = 4;
+        private const int FRAME_METER_PIP_SPACING = 1 + FRAME_METER_PIP_WIDTH;
+        private const int FRAME_METER_PROPERTY_HIGHLIGHT_HEIGHT = 2;
+        private const int FRAME_METER_PROPERTY_HIGHLIGHT_TOP = FRAME_METER_PIP_HEIGHT - FRAME_METER_PROPERTY_HIGHLIGHT_HEIGHT;
+        private const int FRAME_METER_VERTICAL_SPACING = 1;
+        private const int FRAME_METER_FONT_SPACING = 2;
 
         public readonly struct Dimensions(int width, int height)
         {
@@ -31,34 +32,50 @@ namespace GGXXACPROverlay
             public readonly int Y = y;
         }
 
+
         internal static void DrawPlayerPivot(Graphics g, GraphicsResources r, GameState state, Player p, Dimensions windowDimensions)
         {
-            PointInt coor = PixelToWindow(WorldToPixel(new PointInt(p.XPos, p.YPos), state.Camera), windowDimensions);
-            // GameOverlay.Net Lines seem to not include the starting point pixel. The line defintions are extended to compensate.
-            var line1 = new Line(coor.X - PIVOT_CROSS_SIZE - 1, coor.Y, coor.X + PIVOT_CROSS_SIZE, coor.Y);
-            var line2 = new Line(coor.X, coor.Y - PIVOT_CROSS_SIZE - 1, coor.X, coor.Y + PIVOT_CROSS_SIZE);
-            g.DrawLine(r.PivotBrush, line1, LINE_THICKNESS);
-            g.DrawLine(r.PivotBrush, line2, LINE_THICKNESS);
+            DrawPivot(g, r, state, p.XPos, p.YPos, windowDimensions);
         }
         internal static void DrawEntityPivot(Graphics g, GraphicsResources r, GameState state, Entity e, Dimensions windowDimensions)
         {
-            PointInt coor = PixelToWindow(WorldToPixel(new PointInt(e.XPos, e.YPos), state.Camera), windowDimensions);
+            DrawPivot(g, r, state, e.XPos, e.YPos, windowDimensions);
+        }
+        private static void DrawPivot(Graphics g, GraphicsResources r, GameState state, int x, int y, Dimensions windowDimensions)
+        {
+            g.ClipRegionStart(PixelToWindow(new Rectangle(0, 0, GGXXACPR.GGXXACPR.SCREEN_WIDTH_PIXELS,
+                GGXXACPR.GGXXACPR.SCREEN_HEIGHT_PIXELS), windowDimensions));
+            PointInt coor = PixelToWindow(WorldToPixel(new PointInt(x, y), state.Camera), windowDimensions);
             // GameOverlay.Net Lines seem to not include the starting point pixel. The line defintions are extended to compensate.
+            var outline1 = new Line(coor.X - PIVOT_CROSS_SIZE - 2, coor.Y, coor.X + PIVOT_CROSS_SIZE + 1, coor.Y);
+            var outline2 = new Line(coor.X, coor.Y - PIVOT_CROSS_SIZE - 2, coor.X, coor.Y + PIVOT_CROSS_SIZE + 1);
             var line1 = new Line(coor.X - PIVOT_CROSS_SIZE - 1, coor.Y, coor.X + PIVOT_CROSS_SIZE, coor.Y);
             var line2 = new Line(coor.X, coor.Y - PIVOT_CROSS_SIZE - 1, coor.X, coor.Y + PIVOT_CROSS_SIZE);
+            g.DrawLine(r.FontBorderBrush, outline1, LINE_THICKNESS * 3);
+            g.DrawLine(r.FontBorderBrush, outline2, LINE_THICKNESS * 3);
             g.DrawLine(r.PivotBrush, line1, LINE_THICKNESS);
             g.DrawLine(r.PivotBrush, line2, LINE_THICKNESS);
+            g.ClipRegionEnd();
         }
         internal static void DrawEntityCore(Graphics g, GraphicsResources r, GameState state, Entity e, Dimensions windowDimensions)
         {
+            g.ClipRegionStart(PixelToWindow(new Rectangle(0, 0, GGXXACPR.GGXXACPR.SCREEN_WIDTH_PIXELS,
+                GGXXACPR.GGXXACPR.SCREEN_HEIGHT_PIXELS), windowDimensions));
+
             PointInt coor = PixelToWindow(WorldToPixel(new PointInt(e.XPos + (e.CoreX * 100), e.YPos + (e.CoreY * 100)), state.Camera), windowDimensions);
             var line1 = new Line(coor.X - PIVOT_CROSS_SIZE - 1, coor.Y, coor.X + PIVOT_CROSS_SIZE, coor.Y);
             var line2 = new Line(coor.X, coor.Y - PIVOT_CROSS_SIZE - 1, coor.X, coor.Y + PIVOT_CROSS_SIZE);
             g.DrawLine(r.EntityCoreBrush, line1, LINE_THICKNESS);
             g.DrawLine(r.EntityCoreBrush, line2, LINE_THICKNESS);
+            g.ClipRegionEnd();
         }
         internal static void DrawPlayerPushBox(Graphics g, GraphicsResources r, GameState state, Player player, Dimensions windowDimensions)
         {
+            if (player.Status.NoCollision) { return; }
+
+            g.ClipRegionStart(PixelToWindow(new Rectangle(0, 0, GGXXACPR.GGXXACPR.SCREEN_WIDTH_PIXELS,
+                GGXXACPR.GGXXACPR.SCREEN_HEIGHT_PIXELS), windowDimensions));
+
             var pos = new PointInt(player.XPos + player.PushBox.XOffset * 100, player.YPos + player.PushBox.YOffset * 100);
 
             PointInt coor = PixelToWindow(WorldToPixel(pos, state.Camera), windowDimensions);
@@ -70,6 +87,7 @@ namespace GGXXACPROverlay
                 Shrink(CreateRectangle(coor, boxDim), (int)LINE_THICKNESS),
                 LINE_THICKNESS
             );
+            g.ClipRegionEnd();
         }
         private static Rectangle CreateRectangle(PointInt p, Dimensions dim)
         {
@@ -98,6 +116,9 @@ namespace GGXXACPROverlay
         {
             if (player.HitboxSet == null) return;
 
+            g.ClipRegionStart(PixelToWindow(new Rectangle(0, 0, GGXXACPR.GGXXACPR.SCREEN_WIDTH_PIXELS,
+                GGXXACPR.GGXXACPR.SCREEN_HEIGHT_PIXELS), windowDimensions));
+
             foreach (Hitbox hitbox in player.HitboxSet)
             {
                 if (hitbox.BoxTypeId == BoxId.HURT && (
@@ -108,10 +129,13 @@ namespace GGXXACPROverlay
                     // hitboxes are technically disabled in recovery state, but we're going to draw them during hitstop anyway
                     (hitbox.BoxTypeId == BoxId.HIT) && (
                         player.Status.DisableHitboxes &&
-                        player.HitstopCounter == 0 
+                        !(player.HitstopCounter > 0 &&
+                        player.AttackFlags.HasConnected)    // Hitstop counter is also used in super flash, so need to check attack flags as well
                         ) ||
                     !drawList.Contains(hitbox.BoxTypeId))
-                    { continue; }
+                {
+                    continue;
+                }
 
                 Hitbox drawbox = ScaleHitbox(hitbox, player);
 
@@ -132,16 +156,21 @@ namespace GGXXACPROverlay
                     LINE_THICKNESS
                 );
             }
+            g.ClipRegionEnd();
         }
 
         internal static void DrawProjectileBoxes(Graphics g, GraphicsResources r, BoxId[] drawList, GameState state, Dimensions windowDimensions)
         {
-            foreach(Entity e in state.Entities)
+            g.ClipRegionStart(PixelToWindow(new Rectangle(0, 0, GGXXACPR.GGXXACPR.SCREEN_WIDTH_PIXELS,
+                GGXXACPR.GGXXACPR.SCREEN_HEIGHT_PIXELS), windowDimensions));
+
+            foreach (Entity e in state.Entities)
             {
-                DrawEntityPivot(g, r, state, e, windowDimensions);
                 foreach(Hitbox hitbox in e.HitboxSet)
                 {
-                    if (e.Status.DisableHitboxes && hitbox.BoxTypeId == BoxId.HIT || !drawList.Contains(hitbox.BoxTypeId))
+                    if (e.Status.DisableHitboxes && hitbox.BoxTypeId == BoxId.HIT ||
+                        e.Status.DisableHurtboxes && hitbox.BoxTypeId == BoxId.HURT ||
+                        !drawList.Contains(hitbox.BoxTypeId))
                     { continue; }
 
                     Hitbox drawbox = ScaleHitbox(hitbox, e);
@@ -163,129 +192,178 @@ namespace GGXXACPROverlay
                         LINE_THICKNESS
                     );
                 }
+                DrawEntityPivot(g, r, state, e, windowDimensions);
             }
+            g.ClipRegionEnd();
         }
 
+        private const int FRAME_METER_Y_ALT = 90;
+        private const int FRAME_METER_BASE_LINE_X = 5;
+        private const int FRAME_METER_BORDER_THICKNESS = 3;
         internal static void DrawFrameMeter(Graphics g, GraphicsResources r, FrameMeter frameMeter, Dimensions windowDimensions)
         {
             FrameMeter.Frame[] frameArr;
             Rectangle rect;
+            int frameMeterLength = frameMeter.PlayerMeters[0].FrameArr.Length;
+
+            int screenHeight = windowDimensions.Height;
+            int screenWidth = windowDimensions.Height * 4 / 3;
+
+            int pipSpacing = (screenWidth - FRAME_METER_BASE_LINE_X * 2) / frameMeterLength;
+            int pipWidth = pipSpacing - 1;
+            int totalWidth = (pipSpacing * frameMeterLength) - 1;
+            int pipHeight = pipWidth * 5 / 3;
+            int entityPipHeight = pipWidth;
+            int coreYPos = windowDimensions.Height * FRAME_METER_Y / GGXXACPR.GGXXACPR.SCREEN_HEIGHT_PIXELS;
+            int yPos = coreYPos - pipHeight - 1;
+            int xPos = (windowDimensions.Width - totalWidth) / 2;
+            int propertyHighlightHeight = pipHeight * 2 / 7;
+            propertyHighlightHeight += propertyHighlightHeight == 0 ? 1 : 0;
+            int propertyHighlightTop = pipHeight - propertyHighlightHeight;
+            int borderThickness = 2 * windowDimensions.Height / GGXXACPR.GGXXACPR.SCREEN_HEIGHT_PIXELS;
 
             // Border
-            g.FillRectangle(r.FontBorderBrush, PixelToWindow(new Rectangle(
-                FRAME_METER_X - 1,
-                FRAME_METER_Y - 1,
-                FRAME_METER_X + FRAME_METER_PIP_SPACING * frameMeter.PlayerMeters[0].FrameArr.Length,
-                FRAME_METER_Y + 2 + FRAME_METER_PIP_HEIGHT * 2),
-                windowDimensions
+            g.FillRectangle(r.FontBorderBrush, new Rectangle(
+                xPos - borderThickness,
+                yPos - borderThickness,
+                xPos + totalWidth + borderThickness,
+                yPos + 2 * pipHeight + FRAME_METER_VERTICAL_SPACING + borderThickness
             ));
 
-            // Player
+            // Players
             for (int j = 0; j < frameMeter.PlayerMeters.Length; j++)
             {
                 frameArr = frameMeter.PlayerMeters[j].FrameArr;
                 for (int i = 0; i < frameArr.Length; i++)
                 {
                     rect = new Rectangle(
-                        FRAME_METER_X + (i * FRAME_METER_PIP_SPACING),
-                        FRAME_METER_Y + (j * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT)),
-                        FRAME_METER_X + FRAME_METER_PIP_WIDTH + (i * FRAME_METER_PIP_SPACING),
-                        FRAME_METER_Y + FRAME_METER_PIP_HEIGHT + (j * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT))
+                        xPos + (i * pipSpacing),
+                        yPos + (j * (FRAME_METER_VERTICAL_SPACING + pipHeight)),
+                        xPos + pipWidth + (i * pipSpacing),
+                        yPos + pipHeight + (j * (FRAME_METER_VERTICAL_SPACING + pipHeight))
                     );
-                    g.FillRectangle(r.GetBrush(frameArr[i].Type), PixelToWindow(rect, windowDimensions));
+                    g.FillRectangle(r.GetBrush(frameArr[i].Type), rect);
                     if (frameArr[i].Property2 != FrameMeter.FrameProperty2.Default)
                     {
                         rect = new Rectangle(
-                            FRAME_METER_X + (i * FRAME_METER_PIP_SPACING),
-                            FRAME_METER_Y + (j * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT)),
-                            FRAME_METER_X + FRAME_METER_PIP_WIDTH + (i * FRAME_METER_PIP_SPACING),
-                            FRAME_METER_Y + (j * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT)) + FRAME_METER_PROPERTY_HIGHLIGHT_HEIGHT
+                            xPos + (i * pipSpacing),
+                            yPos + (j * (FRAME_METER_VERTICAL_SPACING + pipHeight)),
+                            xPos + pipWidth + (i * pipSpacing),
+                            yPos + (j * (FRAME_METER_VERTICAL_SPACING + pipHeight)) + propertyHighlightHeight
                         );
-                        g.FillRectangle(r.GetBrush(frameArr[i].Property2), PixelToWindow(rect, windowDimensions));
+                        g.FillRectangle(r.GetBrush(frameArr[i].Property2), rect);
                     }
                     if (frameArr[i].Property != FrameMeter.FrameProperty1.Default)
                     {
                         rect = new Rectangle(
-                            FRAME_METER_X + (i * FRAME_METER_PIP_SPACING),
-                            FRAME_METER_Y + FRAME_METER_PROPERTY_HIGHLIGHT_TOP + (j * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT)),
-                            FRAME_METER_X + FRAME_METER_PIP_WIDTH + (i * FRAME_METER_PIP_SPACING),
-                            FRAME_METER_Y + FRAME_METER_PIP_HEIGHT + (j * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT))
+                            xPos + (i * pipSpacing),
+                            yPos + propertyHighlightTop + (j * (FRAME_METER_VERTICAL_SPACING + pipHeight)),
+                            xPos + pipWidth + (i * pipSpacing),
+                            yPos + pipHeight + (j * (FRAME_METER_VERTICAL_SPACING + pipHeight))
                         );
-                        g.FillRectangle(r.GetBrush(frameArr[i].Property), PixelToWindow(rect, windowDimensions));
+                        g.FillRectangle(r.GetBrush(frameArr[i].Property), rect);
                     }
                 }
             }
-
-            
 
             // Entity
             if (!frameMeter.EntityMeters[0].Hide)
             {
                 // Border
-                g.FillRectangle(r.FontBorderBrush, PixelToWindow(new Rectangle(
-                    FRAME_METER_X - 1,
-                    FRAME_METER_Y - 1 - FRAME_METER_VERTICAL_SPACING - FRAME_METER_ENTITY_PIP_HEIGHT,
-                    FRAME_METER_X + FRAME_METER_PIP_SPACING * frameMeter.PlayerMeters[0].FrameArr.Length,
-                    FRAME_METER_Y - 1),
-                    windowDimensions
+                g.FillRectangle(r.FontBorderBrush, new Rectangle(
+                    xPos - borderThickness,
+                    yPos - borderThickness - FRAME_METER_VERTICAL_SPACING - entityPipHeight,
+                    xPos + totalWidth + borderThickness,
+                    yPos - FRAME_METER_VERTICAL_SPACING
                 ));
                 for (int i=0; i < frameMeter.EntityMeters[0].FrameArr.Length; i++)
                 {
                     rect = new Rectangle(
-                        FRAME_METER_X + (i * FRAME_METER_PIP_SPACING),
-                        FRAME_METER_Y - FRAME_METER_VERTICAL_SPACING - FRAME_METER_ENTITY_PIP_HEIGHT,
-                        FRAME_METER_X + FRAME_METER_PIP_WIDTH + (i * FRAME_METER_PIP_SPACING),
-                        FRAME_METER_Y - FRAME_METER_VERTICAL_SPACING
+                        xPos + (i * pipSpacing),
+                        yPos - FRAME_METER_VERTICAL_SPACING - entityPipHeight,
+                        xPos + pipWidth + (i * pipSpacing),
+                        yPos - FRAME_METER_VERTICAL_SPACING
                     );
-                    g.FillRectangle(r.GetBrush(frameMeter.EntityMeters[0].FrameArr[i].Type), PixelToWindow(rect, windowDimensions));
+                    g.FillRectangle(r.GetBrush(frameMeter.EntityMeters[0].FrameArr[i].Type), rect);
+
+
+                    if (frameMeter.EntityMeters[0].FrameArr[i].Property != FrameMeter.FrameProperty1.Default)
+                    {
+                        rect = new Rectangle(
+                            xPos + (i * pipSpacing),
+                            yPos - 1 - FRAME_METER_VERTICAL_SPACING,
+                            xPos + pipWidth + (i * pipSpacing),
+                            yPos - FRAME_METER_VERTICAL_SPACING
+                        );
+                        g.FillRectangle(r.GetBrush(frameMeter.EntityMeters[0].FrameArr[i].Property), rect);
+                    }
                 }
             }
             if (!frameMeter.EntityMeters[1].Hide)
             {
                 // Border
-                g.FillRectangle(r.FontBorderBrush, PixelToWindow(new Rectangle(
-                    FRAME_METER_X - 1,
-                    FRAME_METER_Y + 2 * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT),
-                    FRAME_METER_X + FRAME_METER_PIP_SPACING * frameMeter.PlayerMeters[1].FrameArr.Length,
-                    FRAME_METER_Y + 1 + FRAME_METER_ENTITY_PIP_HEIGHT + 2 * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT)),
-                    windowDimensions
+                g.FillRectangle(r.FontBorderBrush, new Rectangle(
+                    xPos - borderThickness,
+                    yPos + 2 * (pipHeight + FRAME_METER_VERTICAL_SPACING),
+                    xPos + totalWidth + borderThickness,
+                    yPos + borderThickness + entityPipHeight + 2 * (FRAME_METER_VERTICAL_SPACING + pipHeight)
                 ));
                 for (int i = 0; i < frameMeter.EntityMeters[1].FrameArr.Length; i++)
                     {
                     rect = new Rectangle(
-                        FRAME_METER_X + (i * FRAME_METER_PIP_SPACING),
-                        FRAME_METER_Y + 2 * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT),
-                        FRAME_METER_X + FRAME_METER_PIP_WIDTH + (i * FRAME_METER_PIP_SPACING),
-                        FRAME_METER_Y + FRAME_METER_ENTITY_PIP_HEIGHT + 2 * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT)
+                        xPos + (i * pipSpacing),
+                        yPos + 2 * (FRAME_METER_VERTICAL_SPACING + pipHeight),
+                        xPos + pipWidth + (i * pipSpacing),
+                        yPos + entityPipHeight + 2 * (FRAME_METER_VERTICAL_SPACING + pipHeight)
                     );
-                    g.FillRectangle(r.GetBrush(frameMeter.EntityMeters[1].FrameArr[i].Type), PixelToWindow(rect, windowDimensions));
+                    g.FillRectangle(r.GetBrush(frameMeter.EntityMeters[1].FrameArr[i].Type), rect);
                 }
             }
 
             // Labels
             Point pos;
-            Point p1LabelPosition = new Point(FRAME_METER_X, FRAME_METER_Y - FRAME_METER_VERTICAL_SPACING - FRAME_METER_ENTITY_PIP_HEIGHT - FRAME_METER_FONT_SPACING);
-            Point p2LabelPosition = new Point(FRAME_METER_X, FRAME_METER_Y + FRAME_METER_FONT_SPACING + (2 * (FRAME_METER_VERTICAL_SPACING + FRAME_METER_PIP_HEIGHT)) + FRAME_METER_ENTITY_PIP_HEIGHT);
-            if (frameMeter.PlayerMeters[0].Startup >= 0)
-            {
-                pos = PixelToWindow(p1LabelPosition, windowDimensions);
-                pos = new Point(pos.X, pos.Y - r.Font.FontSize);
-                g.DrawTextWithBackground(r.Font, r.FontBrush, r.FontBorderBrush, pos, $"S:{frameMeter.PlayerMeters[0].Startup}");
-            }
-            if (frameMeter.PlayerMeters[1].Startup >= 0)
-            {
-                g.DrawTextWithBackground(r.Font, r.FontBrush, r.FontBorderBrush, PixelToWindow(p2LabelPosition, windowDimensions), $"S:{frameMeter.PlayerMeters[1].Startup}");
-            }
-            if (frameMeter.PlayerMeters[0].DisplayAdvantage)
-            {
-                pos = PixelToWindow(p1LabelPosition, windowDimensions);
-                pos = new Point(pos.X + (r.Font.FontSize * 4), pos.Y - r.Font.FontSize);
-                g.DrawTextWithBackground(r.Font, r.FontBrush, r.FontBorderBrush, pos, $"Adv:{frameMeter.PlayerMeters[0].Advantage}");
+            Point p1LabelPosition = new Point(xPos + pipWidth, yPos - FRAME_METER_VERTICAL_SPACING -
+                entityPipHeight - borderThickness + 4 - (r.Font.FontSize * 3 / 2));
+            Point p2LabelPosition = new Point(xPos + pipWidth, yPos + 2 * (FRAME_METER_VERTICAL_SPACING + pipHeight) +
+                entityPipHeight + borderThickness + -4);
 
-                pos = PixelToWindow(p2LabelPosition, windowDimensions);
-                pos = new Point(pos.X + (r.Font.FontSize * 4), pos.Y);
-                g.DrawTextWithBackground(r.Font, r.FontBrush, r.FontBorderBrush, pos, $"Adv:{frameMeter.PlayerMeters[1].Advantage}");
+            // Semi-transparent label backgrounds
+            var startupDimensions = g.MeasureString(r.Font, "S: 99  A: -99");
+            g.FillRectangle(r.LabelBgBrush, new Rectangle(p1LabelPosition.X - r.Font.FontSize / 2, p1LabelPosition.Y,
+                p1LabelPosition.X + startupDimensions.X + r.Font.FontSize * 3 / 4, p1LabelPosition.Y + startupDimensions.Y + r.Font.FontSize / 8));
+            g.FillRectangle(r.LabelBgBrush, new Rectangle(p2LabelPosition.X - r.Font.FontSize / 2, p2LabelPosition.Y,
+                p2LabelPosition.X + startupDimensions.X + r.Font.FontSize * 3 / 4, p2LabelPosition.Y + startupDimensions.Y + r.Font.FontSize / 8));
+
+            // Startup
+            DrawOutlinedText(g, r.Font, r.FontBrush, r.FontBorderBrush, p1LabelPosition,
+                $"S: {(frameMeter.PlayerMeters[0].Startup >= 0 ? frameMeter.PlayerMeters[0].Startup : "-")}");
+
+            DrawOutlinedText(g, r.Font, r.FontBrush, r.FontBorderBrush, p2LabelPosition,
+                $"S: {(frameMeter.PlayerMeters[1].Startup >=0 ? frameMeter.PlayerMeters[1].Startup : "-")}");
+
+
+            var display = frameMeter.PlayerMeters[0].DisplayAdvantage;
+            IBrush p1AdvantageFontColor = r.FontBrush;
+            IBrush p2AdvantageFontColor = r.FontBrush;
+            if (display && frameMeter.PlayerMeters[0].Advantage > 0)
+            {
+                p1AdvantageFontColor = r.FontBrushGreen;
+                p2AdvantageFontColor = r.FontBrushRed;
             }
+            else if (display && frameMeter.PlayerMeters[0].Advantage < 0)
+            {
+                p1AdvantageFontColor = r.FontBrushRed;
+                p2AdvantageFontColor = r.FontBrushGreen;
+            }
+
+            // Advantage
+            Point p1AdvLabelPosition = new Point(p1LabelPosition.X + (r.Font.FontSize * 3), p1LabelPosition.Y);
+            Point p2AdvLabelPosition = new Point(p2LabelPosition.X + (r.Font.FontSize * 3), p2LabelPosition.Y);
+
+            DrawOutlinedText(g, r.Font, p1AdvantageFontColor, r.FontBorderBrush, p1AdvLabelPosition,
+                $"A: {(display ? frameMeter.PlayerMeters[0].Advantage : "-")}");
+            DrawOutlinedText(g, r.Font, p2AdvantageFontColor, r.FontBorderBrush, p2AdvLabelPosition,
+                $"A: {(display ? frameMeter.PlayerMeters[1].Advantage : "-")}");
         }
 
         private static void HatchRegion(Graphics g, SolidBrush b, Rectangle rect, Dimensions windowDimensions)
@@ -305,6 +383,25 @@ namespace GGXXACPROverlay
                 g.DrawLine(b, PixelToWindow(line, windowDimensions), LINE_THICKNESS);
             }
             g.ClipRegionEnd();
+        }
+
+        // Kinda hacky text outline. Might make a proper text renderer later.
+        private static void DrawOutlinedText(Graphics g, Font font, IBrush fillBrush, IBrush outlineBrush, Point location, string text)
+        {
+            Point[] outlineOffsets =
+            [
+                new Point(location.X, location.Y-1),
+                new Point(location.X-1, location.Y),
+                new Point(location.X+1, location.Y),
+                new Point(location.X, location.Y+1),
+            ];
+
+            foreach(Point p in outlineOffsets)
+            {
+                g.DrawText(font, outlineBrush, p, text);
+            }
+
+            g.DrawText(font, fillBrush, location, text);
         }
 
         internal static int FlipVector(Player p) { return p.IsFacingRight ? -1 : 1; }

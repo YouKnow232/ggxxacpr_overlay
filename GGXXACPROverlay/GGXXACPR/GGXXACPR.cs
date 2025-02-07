@@ -4,76 +4,90 @@ namespace GGXXACPROverlay.GGXXACPR
 {
     public static class GGXXACPR
     {
-        public static readonly int SCREEN_HEIGHT_PIXELS = 480;
-        public static readonly int SCREEN_GROUND_PIXEL_OFFSET = 40;
+        public const int SCREEN_HEIGHT_PIXELS = 480;
+        public const int SCREEN_WIDTH_PIXELS = 640;
+        public const int SCREEN_GROUND_PIXEL_OFFSET = 40;
 
-        private static readonly nint CAMERA_ADDR = 0x006D5CD4;
-        private static readonly nint PLAYER_1_PTR_ADDR = 0x006D1378;
-        private static readonly nint PLAYER_2_PTR_ADDR = 0x006D4C84;
+        public const nint IN_GAME_FLAG = 0x007101F4;
+
+        // Exception to the ActionStatusFlags.IsPlayer1/2 flag. Dizzy bubble is flagged as the opponent's entity while attackable by Dizzy.
+        // Makes that flag more of a "Is attackable by" thing. For some reason, Venom balls aren't implemented this way.
+        public const int DIZZY_ENTITY_ID = 0x43;
+
+        private const nint CAMERA_ADDR = 0x006D5CD4;
+        private const nint PLAYER_1_PTR_ADDR = 0x006D1378;
+        private const nint PLAYER_2_PTR_ADDR = 0x006D4C84;
+        private static readonly nint[] PLAYER_PTR_ADDRS = [PLAYER_1_PTR_ADDR, PLAYER_2_PTR_ADDR];
 
         private static readonly nint[] PUSHBOX_ADDRESSES =
         [
-            0x00573154, 0x00573B38, // Standing x,y
-            0x00573B6C, 0x00571E6C, // Crouching x,y
-            0x00571564, 0x00571E6C  // ?? x,y
+            0x00573154, 0x00573B38, // Standing width/height
+            0x00573B6C, 0x00571E6C, // Crouching width/height
+            0x00571564, 0x00571E6C, // (??) width/height
+            0x00573B6C, 0x00573BA0, // Airborne width/height
         ];
 
-        // short, index with CharId*2
-        private static readonly int GROUND_THROW_RANGE_ARRAY_ADDR = 0x0057005C; // TODO
+        // Y offset values for Airborne pushboxes (Almost always equal to abs(YPos)+4000 except for Kliff)
+        private const nint PUSHBOX_P1_JUMP_OFFSET_ADDRESS = 0x006D6378;
+        private const nint PUSHBOX_P2_JUMP_OFFSET_ADDRESS = 0x006D637C;
+
+        // short arr, index with CharId*2
+        private const int GROUND_THROW_RANGE_ARRAY_ADDR = 0x0057005C; // TODO
 
         // one byte [P1Throwable, P2Throwable, P1ThrowActive P2ThrowActive]
-        private static readonly nint GLOBAL_THROW_FLAGS_ADDR = 0x006D5D7C;
+        private const nint GLOBAL_THROW_FLAGS_ADDR = 0x006D5D7C;
 
         // Player Struct Offsets
-        private static readonly int IS_FACING_RIGHT_OFFSET = 0x02;
-        private static readonly int STATUS_OFFSET = 0x0C;
-        private static readonly int BUFFER_FLAGS_OFFSET = 0x12;
-        private static readonly int ANIMATION_FRAME_OFFSET = 0x1C;
-        private static readonly int GUARD_FLAGS_OFFSET = 0x2A;
-        private static readonly int PLAYER_EXTRA_PTR_OFFSET = 0X2C;
-        private static readonly int ATTACK_FLAGS_OFFSET = 0x34;
-        private static readonly int COMMAND_FLAGS_OFFSET = 0X38;
-        private static readonly int CORE_X_OFFSET = 0x4C;
-        private static readonly int CORE_Y_OFFSET = 0x4E;
-        private static readonly int SCALE_X_OFFSET = 0x50;
-        private static readonly int SCALE_Y_OFFSET= 0x52;
-        private static readonly int HITBOX_LIST_OFFSET = 0x54;
-        private static readonly int HITBOX_LIST_LENGTH_OFFSET = 0x84;
-        private static readonly int HITBOX_ITERATION_VAR_OFFSET = 0x85;
-        private static readonly int XPOS_OFFSET = 0xB0;
-        private static readonly int YPOS_OFFSET = 0xB4;
-        private static readonly int HITSTOP_TIMER_OFFSET = 0xFD;
-        private static readonly int MARK_OFFSET = 0xFF;
+        private const int IS_FACING_RIGHT_OFFSET = 0x02;
+        private const int STATUS_OFFSET = 0x0C;
+        private const int BUFFER_FLAGS_OFFSET = 0x12;
+        private const int ACT_ID_OFFSET = 0x18;
+        private const int ANIMATION_FRAME_OFFSET = 0x1C;
+        private const int GUARD_FLAGS_OFFSET = 0x2A;
+        private const int PLAYER_EXTRA_PTR_OFFSET = 0X2C;
+        private const int ATTACK_FLAGS_OFFSET = 0x34;
+        private const int COMMAND_FLAGS_OFFSET = 0X38;
+        private const int CORE_X_OFFSET = 0x4C;
+        private const int CORE_Y_OFFSET = 0x4E;
+        private const int SCALE_X_OFFSET = 0x50;
+        private const int SCALE_Y_OFFSET= 0x52;
+        private const int HITBOX_LIST_OFFSET = 0x54;
+        private const int HITBOX_LIST_LENGTH_OFFSET = 0x84;
+        private const int HITBOX_ITERATION_VAR_OFFSET = 0x85;
+        private const int XPOS_OFFSET = 0xB0;
+        private const int YPOS_OFFSET = 0xB4;
+        private const int HITSTOP_TIMER_OFFSET = 0xFD;
+        private const int MARK_OFFSET = 0xFF;
         // Projectils Arr (Entity Arr)
-        private static readonly nint ENTITY_ARR_HEAD_TAIL_PTR = 0x006D27A8;
-        private static readonly nint ENTITY_ARR_HEAD_PTR = 0x006D27A8 + 0x04;
-        private static readonly nint ENTITY_ARR_TAIL_PTR = 0x006D27A8 + 0x08;
-        private static readonly nint ENTITY_LIST_PTR = 0x006D137C;
-        private static readonly int ENTITY_ARRAY_SIZE = 32;
+        private const nint ENTITY_ARR_HEAD_TAIL_PTR = 0x006D27A8;
+        private const nint ENTITY_ARR_HEAD_PTR = 0x006D27A8 + 0x04;
+        private const nint ENTITY_ARR_TAIL_PTR = 0x006D27A8 + 0x08;
+        private const nint ENTITY_LIST_PTR = 0x006D137C;
+        private const int ENTITY_ARRAY_SIZE = 32; // Not a game thing, just a lookup limit
         // Projectile Struct Offsets (Similar to Player)
-        private static readonly int PROJECTILE_BACK_PTR_OFFSET = 0x04;
-        private static readonly int PROJECTILE_NEXT_PTR_OFFSET = 0x08;
-        private static readonly int PROJECTILE_PARENT_PTR_OFFSET = 0x20;
-        private static readonly int PROJECTILE_PARENT_FLAG_OFFSET = 0x28;
+        private const int PROJECTILE_BACK_PTR_OFFSET = 0x04;
+        private const int PROJECTILE_NEXT_PTR_OFFSET = 0x08;
+        private const int PROJECTILE_PARENT_PTR_OFFSET = 0x20;
+        private const int PROJECTILE_PARENT_FLAG_OFFSET = 0x28;
         // Player Extra Struct Offsets
-        private static readonly int PLAYER_EXTRA_THROW_PROTECTION_TIMER_OFFSET = 0x18;
-        private static readonly int PLAYER_EXTRA_INVULN_COUNTER_OFFSET = 0x2A;
-        private static readonly int PLAYER_EXTRA_RC_TIME_OFFSET = 0x32;
-        private static readonly int PLAYER_EXTRA_JAM_PARRY_TIME_OFFSET = 0x90;
-        private static readonly int PLAYER_EXTRA_COMBO_TIME_OFFSET = 0xF6;
-        private static readonly int PLAYER_EXTRA_SLASH_BACK_TIME_OFFSET = 0x010B;
+        private const int PLAYER_EXTRA_THROW_PROTECTION_TIMER_OFFSET = 0x18;
+        private const int PLAYER_EXTRA_INVULN_COUNTER_OFFSET = 0x2A;
+        private const int PLAYER_EXTRA_RC_TIME_OFFSET = 0x32;
+        private const int PLAYER_EXTRA_JAM_PARRY_TIME_OFFSET = 0x90;
+        private const int PLAYER_EXTRA_COMBO_TIME_OFFSET = 0xF6;
+        private const int PLAYER_EXTRA_SLASH_BACK_TIME_OFFSET = 0x010B;
         // Camera Struct Offsets
-        private static readonly int CAMERA_X_CENTER_OFFSET = 0x10;
-        private static readonly int CAMERA_BOTTOM_EDGE_OFFSET = 0x14;
-        private static readonly int CAMERA_LEFT_EDGE_OFFSET = 0x20;
-        private static readonly int CAMERA_WIDTH_OFFSET = 0x28;
-        private static readonly int CAMERA_HEIGHT_OFFSET = 0x2C;
-        private static readonly int CAMERA_ZOOM_OFFSET = 0x44;
-        private static readonly int CAMERA_STRUCT_BUFFER = 0x48;
+        private const int CAMERA_X_CENTER_OFFSET = 0x10;
+        private const int CAMERA_BOTTOM_EDGE_OFFSET = 0x14;
+        private const int CAMERA_LEFT_EDGE_OFFSET = 0x20;
+        private const int CAMERA_WIDTH_OFFSET = 0x28;
+        private const int CAMERA_HEIGHT_OFFSET = 0x2C;
+        private const int CAMERA_ZOOM_OFFSET = 0x44;
+        private const int CAMERA_STRUCT_BUFFER = 0x48;
         // Buffer sizes
-        private static readonly int ENTITY_STRUCT_BUFFER = 0x130;
-        private static readonly int PLAYER_EXTRA_STRUCT_BUFFER = 0x148;
-        private static readonly int HITBOX_ARRAY_STEP = 0x0C;
+        private const int ENTITY_STRUCT_BUFFER = 0x130;
+        private const int PLAYER_EXTRA_STRUCT_BUFFER = 0x148;
+        private const int HITBOX_ARRAY_STEP = 0x0C;
 
         private static nint playerPointerCache = nint.Zero;
         private static nint Player1Pointer {
@@ -92,6 +106,14 @@ namespace GGXXACPROverlay.GGXXACPR
             {
                 return Player1Pointer + 0x130;
             }
+        }
+
+        public static bool ShouldRender()
+        {
+            byte[] data = Memory.ReadMemoryPlusBaseOffset(IN_GAME_FLAG, sizeof(byte));
+            if (data.Length == 0) { Memory.HandleSystemError("In-game flag read error"); }
+
+            return data[0] == 1;
         }
 
         private static nint DereferencePointer(nint pointer)
@@ -142,6 +164,7 @@ namespace GGXXACPROverlay.GGXXACPR
             };
         }
 
+        // TODO: cache player struct ptrs, they shouldn't change
         private static Player GetPlayerStruct(nint playerPtr)
         {
             if (playerPtr == nint.Zero) { return new(); }
@@ -155,7 +178,8 @@ namespace GGXXACPROverlay.GGXXACPR
             var charId = BitConverter.ToUInt16(data);
             var status = BitConverter.ToUInt32(data, STATUS_OFFSET);
             var boxCount = data[HITBOX_LIST_LENGTH_OFFSET];
-            var pushBox = GetPushBox(charId, status);
+            var yPos = BitConverter.ToInt32(data, YPOS_OFFSET);
+            var pushBox = GetPushBox(charId, status, yPos);
 
             nint playerExtraPtr = (nint)BitConverter.ToUInt32(data, PLAYER_EXTRA_PTR_OFFSET);
             nint hitboxArrayPtr = (nint)BitConverter.ToUInt32(data, HITBOX_LIST_OFFSET);
@@ -171,6 +195,7 @@ namespace GGXXACPROverlay.GGXXACPR
                 IsFacingRight    = data[IS_FACING_RIGHT_OFFSET] == 1,
                 Status           = status,
                 BufferFlags      = BitConverter.ToUInt16(data, BUFFER_FLAGS_OFFSET),
+                ActionId         = BitConverter.ToUInt16(data, ACT_ID_OFFSET),
                 AnimationCounter = BitConverter.ToUInt16(data, ANIMATION_FRAME_OFFSET),
                 GuardFlags       = BitConverter.ToUInt16(data, GUARD_FLAGS_OFFSET),
                 Extra            = extra,
@@ -184,7 +209,7 @@ namespace GGXXACPROverlay.GGXXACPR
                 BoxCount         = boxCount,
                 BoxIter          = data[HITBOX_ITERATION_VAR_OFFSET],
                 XPos             = BitConverter.ToInt32(data, XPOS_OFFSET),
-                YPos             = BitConverter.ToInt32(data, YPOS_OFFSET),
+                YPos             = yPos,
                 HitstopCounter   = data[HITSTOP_TIMER_OFFSET],
                 Mark             = data[MARK_OFFSET],
                 PushBox          = pushBox
@@ -208,11 +233,25 @@ namespace GGXXACPROverlay.GGXXACPR
         }
 
         // TODO: Cache the data at the pushbox addresses. They shouldn't change.
-        private static Hitbox GetPushBox(ushort charId, ActionStateFlags status)
+        private static Hitbox GetPushBox(ushort charId, ActionStateFlags status, int yPos)
         {
+            int yOffset = 0;
             byte index = 4;
             if (status.IsCrouching) index = 0;
             else if (status.IsPushboxType1) index = 2;
+            else if (status.IsAirborne)
+            {
+                index = 6;
+                // Special offsets for pushbox collision checks
+                if (status.IsPlayer1)
+                {
+                    yOffset = BitConverter.ToInt32(Memory.ReadMemoryPlusBaseOffset(PUSHBOX_P1_JUMP_OFFSET_ADDRESS, sizeof(int))) + yPos;
+                }
+                else if (status.IsPlayer2)
+                {
+                    yOffset = BitConverter.ToInt32(Memory.ReadMemoryPlusBaseOffset(PUSHBOX_P2_JUMP_OFFSET_ADDRESS, sizeof(int))) + yPos;
+                }
+            }
 
             nint xPtr = Memory.GetBaseAddress() + PUSHBOX_ADDRESSES[index] + charId * 2;
             nint yPtr = Memory.GetBaseAddress() + PUSHBOX_ADDRESSES[index + 1] + charId * 2;
@@ -223,7 +262,7 @@ namespace GGXXACPROverlay.GGXXACPR
             return new Hitbox()
             {
                 XOffset = (short)(w / -100),
-                YOffset = (short)(h / -100),
+                YOffset = (short)((h + yOffset) / -100),
                 Width   = (short)(w / 100 * 2),
                 Height  = (short)(h / 100)
             };
@@ -293,22 +332,22 @@ namespace GGXXACPROverlay.GGXXACPR
 
             return new()
             {
-                Id            = BitConverter.ToUInt16(data, offset),
-                IsFacingRight = data[offset + IS_FACING_RIGHT_OFFSET] == 1,
-                BackPtr       = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_BACK_PTR_OFFSET),
-                NextPtr       = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_NEXT_PTR_OFFSET),
-                Status        = BitConverter.ToUInt32(data, offset + STATUS_OFFSET),
-                ParentPtrRaw  = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_PARENT_PTR_OFFSET),
-                ParentFlag    = BitConverter.ToUInt16(data, offset + PROJECTILE_PARENT_FLAG_OFFSET),
-                CoreX         = BitConverter.ToInt16(data, CORE_X_OFFSET + offset),
-                CoreY         = BitConverter.ToInt16(data, CORE_Y_OFFSET + offset),
-                ScaleX        = BitConverter.ToInt16(data, SCALE_X_OFFSET + offset),
-                ScaleY        = BitConverter.ToInt16(data, SCALE_Y_OFFSET + offset),
-                HitboxSetPtr  = (nint)BitConverter.ToUInt32(data, offset + HITBOX_LIST_OFFSET),
-                HitboxSet     = hitboxes,
-                BoxCount      = numBoxes,
-                XPos          = BitConverter.ToInt32(data, offset + XPOS_OFFSET),
-                YPos          = BitConverter.ToInt32(data, offset + YPOS_OFFSET)
+                Id              = BitConverter.ToUInt16(data, offset),
+                IsFacingRight   = data[offset + IS_FACING_RIGHT_OFFSET] == 1,
+                BackPtr         = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_BACK_PTR_OFFSET),
+                NextPtr         = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_NEXT_PTR_OFFSET),
+                Status          = BitConverter.ToUInt32(data, offset + STATUS_OFFSET),
+                ParentPtrRaw    = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_PARENT_PTR_OFFSET),
+                ParentFlag      = BitConverter.ToUInt16(data, offset + PROJECTILE_PARENT_FLAG_OFFSET),
+                CoreX           = BitConverter.ToInt16(data, CORE_X_OFFSET + offset),
+                CoreY           = BitConverter.ToInt16(data, CORE_Y_OFFSET + offset),
+                ScaleX          = BitConverter.ToInt16(data, SCALE_X_OFFSET + offset),
+                ScaleY          = BitConverter.ToInt16(data, SCALE_Y_OFFSET + offset),
+                HitboxSetPtr    = (nint)BitConverter.ToUInt32(data, offset + HITBOX_LIST_OFFSET),
+                HitboxSet       = hitboxes,
+                BoxCount        = numBoxes,
+                XPos            = BitConverter.ToInt32(data, offset + XPOS_OFFSET),
+                YPos            = BitConverter.ToInt32(data, offset + YPOS_OFFSET)
             };
         }
     }

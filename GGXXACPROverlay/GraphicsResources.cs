@@ -7,7 +7,7 @@ namespace GGXXACPROverlay
 {
     internal class GraphicsResources : IDisposable
     {
-        private static readonly int _boxAlpha = 50;
+        private const int _boxAlpha = 50;
 
         private static readonly Color _defaultHitboxClr = new Color(255, 0, 0);
         private static readonly Color _defaultHurtboxClr = new Color(0, 255, 0);
@@ -30,12 +30,17 @@ namespace GGXXACPROverlay
         [AllowNull]
         public SolidBrush CollisionFillBrush { get; private set; }
         [AllowNull]
-
         public Font Font { get; private set; }
         [AllowNull]
         public SolidBrush FontBrush { get; private set; }
         [AllowNull]
+        public SolidBrush FontBrushGreen { get; private set; }
+        [AllowNull]
+        public SolidBrush FontBrushRed { get; private set; }
+        [AllowNull]
         public SolidBrush FontBorderBrush { get; private set; }
+        [AllowNull]
+        public SolidBrush LabelBgBrush { get; private set; }
 
         public GraphicsResources()
         {
@@ -53,9 +58,12 @@ namespace GGXXACPROverlay
             CollisionOutlineBrush = g.CreateSolidBrush(_defaultCollisionboxClr);
             CollisionFillBrush = g.CreateSolidBrush(new Color(_defaultCollisionboxClr, _boxAlpha));
 
-            Font = g.CreateFont("Arial Bold", 14);
-            FontBrush= g.CreateSolidBrush(255, 255, 255);
+            Font = g.CreateFont("Arial Bold", 24);
+            FontBrush = g.CreateSolidBrush(255, 255, 255);
+            FontBrushGreen = g.CreateSolidBrush(150, 255, 150);
+            FontBrushRed = g.CreateSolidBrush(255, 150, 150);
             FontBorderBrush = g.CreateSolidBrush(0, 0, 0);
+            LabelBgBrush = g.CreateSolidBrush(0, 0, 0, 150);
 
             _hitboxOutlinePalette.Add(BoxId.DUMMY, g.CreateSolidBrush(10, 10, 10));
             _hitboxOutlinePalette.Add(BoxId.HIT, g.CreateSolidBrush(_defaultHitboxClr));
@@ -73,6 +81,7 @@ namespace GGXXACPROverlay
 
             _frameTypePalette.Add(FrameMeter.FrameType.None, g.CreateSolidBrush(15, 15, 15));
             _frameTypePalette.Add(FrameMeter.FrameType.Neutral, g.CreateSolidBrush(27, 27, 27));
+            _frameTypePalette.Add(FrameMeter.FrameType.Movement, g.CreateSolidBrush(65, 248, 252));
             _frameTypePalette.Add(FrameMeter.FrameType.CounterHitState, g.CreateSolidBrush(1, 181, 151));
             _frameTypePalette.Add(FrameMeter.FrameType.Startup, g.CreateSolidBrush(1, 181, 151));
             _frameTypePalette.Add(FrameMeter.FrameType.Active, g.CreateSolidBrush(203, 43, 103));
@@ -90,6 +99,7 @@ namespace GGXXACPROverlay
             _framePropertyPalette.Add(FrameMeter.FrameProperty1.GuardPointFull, g.CreateSolidBrush(120, 80, 0));
             _framePropertyPalette.Add(FrameMeter.FrameProperty1.GuardPointHigh, g.CreateSolidBrush(120, 80, 0));
             _framePropertyPalette.Add(FrameMeter.FrameProperty1.GuardPointLow, g.CreateSolidBrush(120, 80, 0));
+            _framePropertyPalette.Add(FrameMeter.FrameProperty1.TEST, g.CreateSolidBrush(255, 255, 0));
 
             _frameProperty2Palette.Add(FrameMeter.FrameProperty2.Default, g.CreateSolidBrush(0, 0, 0));
             _frameProperty2Palette.Add(FrameMeter.FrameProperty2.FRC, g.CreateSolidBrush(255, 255, 0));
@@ -133,7 +143,10 @@ namespace GGXXACPROverlay
                 CollisionFillBrush.Dispose();
                 Font.Dispose();
                 FontBrush.Dispose();
+                FontBrushGreen.Dispose();
+                FontBrushRed.Dispose();
                 FontBorderBrush.Dispose();
+                LabelBgBrush.Dispose();
                 foreach (SolidBrush brush in _hitboxOutlinePalette.Values) { brush.Dispose(); }
                 _hitboxOutlinePalette.Clear();
                 foreach (SolidBrush brush in _hitboxFillPalette.Values) { brush.Dispose(); }

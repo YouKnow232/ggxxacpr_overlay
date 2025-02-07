@@ -17,14 +17,18 @@ namespace GGXXACPROverlay
             Console.WriteLine();
             // Known Issues
             Console.WriteLine("Known Issues:");
-            Console.WriteLine("- Fullscreen is not currently supported");
-            Console.WriteLine("- Generally buggy behavior in replay mode. No rewinding, skipping ahead while paused");
-            Console.WriteLine("- Startup may be wrong even if the meter accurately records it");
-            Console.WriteLine("- Projectile startup is not implemented");
-            Console.WriteLine("- Throw boxes, active frames, and startup are not implemented");
-            Console.WriteLine("- Collision boxes may be wrong. They currently only account for standing and crouching states");
-            Console.WriteLine("- Justice's fullscreen super has incorrect invuln");
+            Console.WriteLine("- Fullscreen is not supported; Please use borderless instead");
+            Console.WriteLine("- Frame meter does not fully support replay mode");
+            Console.WriteLine("- Startup for projectiles is not implemented");
+            Console.WriteLine("- Startup for EX characters is not fully implemented");
+            Console.WriteLine("- Throw boxes/startup/active frames are not implemented");
+            Console.WriteLine("- Startup/advantage display will not exceed 77");
             Console.WriteLine("- Frame meter will overwrite guardpoint with throw invuln if both are true e.g. Anji's 3K, 6H, and Rin");
+            Console.WriteLine("- Slidehead missing hitbox for unblockable hit");
+            Console.WriteLine("- Dizzy 421 projectile second stage is missing hitbox");
+            Console.WriteLine("- Dizzy fish laser is missing hitbox");
+            Console.WriteLine("- Justice 632146H has an FRC point during super flash, but is not displayed because of pause behavior");
+            Console.WriteLine("- Startup for supers may be incorrect if Baiken guard cancels out of super freeze");
             Console.WriteLine();
 
             TimerService.EnableHighPrecisionTimers();
@@ -34,18 +38,39 @@ namespace GGXXACPROverlay
                 using var overlay = new Overlay();
                 overlay.Run();
 
-                Console.WriteLine("Press any key to exit");
-                while (!Console.KeyAvailable && overlay.IsRunning())
+                // Contorls
+                Console.WriteLine("In this console window:");
+                Console.WriteLine("Press '1' to toggle hitbox display");
+                Console.WriteLine("Press '2' to toggle frame meter display");
+                Console.WriteLine("Press 'q' to exit\n");
+
+                ConsoleKey? key = null;
+                Stream inputStream = Console.OpenStandardInput();
+                while (overlay.IsRunning())
                 {
+                    if (Console.KeyAvailable) key = Console.ReadKey(true).Key;
+                    switch (key)
+                    {
+                        case ConsoleKey.D1:
+                            overlay.ToggleHitboxOverlay();
+                            break;
+                        case ConsoleKey.D2:
+                            overlay.ToggleFrameMeter();
+                            break;
+                        case ConsoleKey.Q:
+                            overlay.Dispose();
+                            break;
+                    }
+                    key = null;
+
                     Thread.Sleep(30);
                 }
-                overlay.Dispose();
             }
             catch (InvalidOperationException e)
             {
                 Console.WriteLine(e.Message + "\n");
-                Console.WriteLine("Press any key to exit");
-                Console.ReadKey();
+                Console.WriteLine("Press any key to exit\n");
+                Console.ReadKey(true);
             }
         }
     }
