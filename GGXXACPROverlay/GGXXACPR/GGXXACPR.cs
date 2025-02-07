@@ -8,6 +8,8 @@ namespace GGXXACPROverlay.GGXXACPR
         public const int SCREEN_WIDTH_PIXELS = 640;
         public const int SCREEN_GROUND_PIXEL_OFFSET = 40;
 
+        public const nint IN_GAME_FLAG = 0x007101F4;
+
         // Exception to the ActionStatusFlags.IsPlayer1/2 flag. Dizzy bubble is flagged as the opponent's entity while attackable by Dizzy.
         // Makes that flag more of a "Is attackable by" thing. For some reason, Venom balls aren't implemented this way.
         public const int DIZZY_ENTITY_ID = 0x43;
@@ -104,6 +106,14 @@ namespace GGXXACPROverlay.GGXXACPR
             {
                 return Player1Pointer + 0x130;
             }
+        }
+
+        public static bool ShouldRender()
+        {
+            byte[] data = Memory.ReadMemoryPlusBaseOffset(IN_GAME_FLAG, sizeof(byte));
+            if (data.Length == 0) { Memory.HandleSystemError("In-game flag read error"); }
+
+            return data[0] == 1;
         }
 
         private static nint DereferencePointer(nint pointer)

@@ -34,18 +34,39 @@ namespace GGXXACPROverlay
                 using var overlay = new Overlay();
                 overlay.Run();
 
-                Console.WriteLine("Press any key to exit\n");
-                while (!Console.KeyAvailable && overlay.IsRunning())
+                // Contorls
+                Console.WriteLine("In this console window:");
+                Console.WriteLine("Press '1' to toggle hitbox display");
+                Console.WriteLine("Press '2' to toggle frame meter display");
+                Console.WriteLine("Press 'q' to exit\n");
+
+                ConsoleKey? key = null;
+                Stream inputStream = Console.OpenStandardInput();
+                while (overlay.IsRunning())
                 {
+                    if (Console.KeyAvailable) key = Console.ReadKey(true).Key;
+                    switch (key)
+                    {
+                        case ConsoleKey.D1:
+                            overlay.ToggleHitboxOverlay();
+                            break;
+                        case ConsoleKey.D2:
+                            overlay.ToggleFrameMeter();
+                            break;
+                        case ConsoleKey.Q:
+                            overlay.Dispose();
+                            break;
+                    }
+                    key = null;
+
                     Thread.Sleep(30);
                 }
-                overlay.Dispose();
             }
             catch (InvalidOperationException e)
             {
                 Console.WriteLine(e.Message + "\n");
                 Console.WriteLine("Press any key to exit\n");
-                Console.ReadKey();
+                Console.ReadKey(true);
             }
         }
     }
