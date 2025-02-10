@@ -2,6 +2,7 @@
 using System.Data.Common;
 using GameOverlay.Drawing;
 using GGXXACPROverlay.GGXXACPR;
+using SharpDX.Mathematics.Interop;
 
 namespace GGXXACPROverlay
 {
@@ -76,10 +77,15 @@ namespace GGXXACPROverlay
             g.ClipRegionStart(PixelToWindow(new Rectangle(0, 0, GGXXACPR.GGXXACPR.SCREEN_WIDTH_PIXELS,
                 GGXXACPR.GGXXACPR.SCREEN_HEIGHT_PIXELS), windowDimensions));
 
-            var pos = new PointInt(player.XPos + player.PushBox.XOffset * 100, player.YPos + player.PushBox.YOffset * 100);
+            var pos = new PointInt(player.XPos + player.PushBox.XOffset * 100 * FlipVector(player), player.YPos + player.PushBox.YOffset * 100);
 
             PointInt coor = PixelToWindow(WorldToPixel(pos, state.Camera), windowDimensions);
             Dimensions boxDim = ScaleBoxDimensions(player.PushBox.Width, player.PushBox.Height, state.Camera, windowDimensions);
+
+            if (player.IsFacingRight)
+            {
+                coor = new PointInt(coor.X - (boxDim.Width), coor.Y);
+            }
 
             g.OutlineFillRectangle(
                 r.CollisionOutlineBrush,
@@ -321,7 +327,6 @@ namespace GGXXACPROverlay
             }
 
             // Labels
-            Point pos;
             Point p1LabelPosition = new Point(xPos + pipWidth, yPos - FRAME_METER_VERTICAL_SPACING -
                 entityPipHeight - borderThickness + 4 - (r.Font.FontSize * 3 / 2));
             Point p2LabelPosition = new Point(xPos + pipWidth, yPos + 2 * (FRAME_METER_VERTICAL_SPACING + pipHeight) +

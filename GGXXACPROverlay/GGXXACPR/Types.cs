@@ -42,6 +42,7 @@
         HIT = 1,
         HURT = 2,
         UNKNOWN_3 = 3,
+        PUSH = 4,
         UNKNOWN_5 = 5,
         UNKNOWN_6 = 6,
     }
@@ -147,7 +148,7 @@
         public readonly bool IsThrowInuvln { get { return (_flags & 0x00800000) > 0; } }
         public readonly bool Unknown0x01000000 { get { return (_flags & 0x01000000) > 0; } }
         public readonly bool Unknown0x02000000 { get { return (_flags & 0x02000000) > 0; } }
-        public readonly bool IgnoreHitEffectsRecieved { get { return (_flags & 0x04000000) > 0; } }
+        public readonly bool IgnoreHitEffectsRecieved { get { return (_flags & 0x04000000) > 0; } } // Used for Dizzy bubble hurtbox to ignore hitstop
 
         public static implicit operator ActionStateFlags(uint flags) => new(flags);
         public static implicit operator ActionStateFlags(int flags) => new((uint)flags);

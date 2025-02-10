@@ -69,6 +69,7 @@ namespace GGXXACPROverlay
             _hitboxOutlinePalette.Add(BoxId.HIT, g.CreateSolidBrush(_defaultHitboxClr));
             _hitboxOutlinePalette.Add(BoxId.HURT, g.CreateSolidBrush(_defaultHurtboxClr));
             _hitboxOutlinePalette.Add(BoxId.UNKNOWN_3, g.CreateSolidBrush(10, 10, 10));
+            _hitboxOutlinePalette.Add(BoxId.PUSH, g.CreateSolidBrush(_defaultCollisionboxClr));
             _hitboxOutlinePalette.Add(BoxId.UNKNOWN_5, g.CreateSolidBrush(10, 10, 10));
             _hitboxOutlinePalette.Add(BoxId.UNKNOWN_6, g.CreateSolidBrush(10, 10, 10));
 
@@ -76,6 +77,7 @@ namespace GGXXACPROverlay
             _hitboxFillPalette.Add(BoxId.HIT, g.CreateSolidBrush(new Color(_defaultHitboxClr, _boxAlpha)));
             _hitboxFillPalette.Add(BoxId.HURT, g.CreateSolidBrush(new Color(_defaultHurtboxClr, _boxAlpha)));
             _hitboxFillPalette.Add(BoxId.UNKNOWN_3, g.CreateSolidBrush(10, 10, 10, _boxAlpha));
+            _hitboxFillPalette.Add(BoxId.PUSH, g.CreateSolidBrush(new Color(_defaultCollisionboxClr, _boxAlpha)));
             _hitboxFillPalette.Add(BoxId.UNKNOWN_5, g.CreateSolidBrush(10, 10, 10, _boxAlpha));
             _hitboxFillPalette.Add(BoxId.UNKNOWN_6, g.CreateSolidBrush(10, 10, 10, _boxAlpha));
 

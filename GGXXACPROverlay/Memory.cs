@@ -8,10 +8,6 @@ namespace GGXXACPROverlay
 {
     internal static partial class Memory
     {
-        private static readonly int _PROCESS_VM_READ = 0x0010;
-        private static readonly uint WS_POPUP = 0x80000000;
-        private static readonly uint WS_EX_TOPMOST = 0x00000008;
-
         private static Process? _process;
         private static HANDLE _procHandle;
         private static nint _baseAddress;

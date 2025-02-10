@@ -10,9 +10,18 @@ namespace GGXXACPROverlay.GGXXACPR
 
         public const nint IN_GAME_FLAG = 0x007101F4;
 
+        #region Special case constants
         // Exception to the ActionStatusFlags.IsPlayer1/2 flag. Dizzy bubble is flagged as the opponent's entity while attackable by Dizzy.
         // Makes that flag more of a "Is attackable by" thing. For some reason, Venom balls aren't implemented this way.
         public const int DIZZY_ENTITY_ID = 0x43;
+        // The following moves use Player.Mark to denote parry active frames instead of the parry flag
+        public const int AXL_TENHOU_SEKI_UPPER_ACT_ID = 188;
+        public const int AXL_TENHOU_SEKI_LOWER_ACT_ID = 189;
+        public const int DIZZY_EX_NECRO_UNLEASHED_ACT_ID = 247;
+        // This move has a special pushbox adjustment
+        public const int BRIDGET_SHOOT_ACT_ID = 134;
+        public const int BRIDGET_SHOOT_PUSHBOX_ADJUST = 7000;
+        #endregion
 
         private const nint CAMERA_ADDR = 0x006D5CD4;
         private const nint PLAYER_1_PTR_ADDR = 0x006D1378;
@@ -37,6 +46,7 @@ namespace GGXXACPROverlay.GGXXACPR
         // one byte [P1Throwable, P2Throwable, P1ThrowActive P2ThrowActive]
         private const nint GLOBAL_THROW_FLAGS_ADDR = 0x006D5D7C;
 
+        #region Struct Field Offsets
         // Player Struct Offsets
         private const int IS_FACING_RIGHT_OFFSET = 0x02;
         private const int STATUS_OFFSET = 0x0C;
@@ -84,6 +94,8 @@ namespace GGXXACPROverlay.GGXXACPR
         private const int CAMERA_HEIGHT_OFFSET = 0x2C;
         private const int CAMERA_ZOOM_OFFSET = 0x44;
         private const int CAMERA_STRUCT_BUFFER = 0x48;
+        #endregion
+
         // Buffer sizes
         private const int ENTITY_STRUCT_BUFFER = 0x130;
         private const int PLAYER_EXTRA_STRUCT_BUFFER = 0x148;
@@ -174,12 +186,7 @@ namespace GGXXACPROverlay.GGXXACPR
                 playerPointerCache = nint.Zero;
                 return new();
             }
-
-            var charId = BitConverter.ToUInt16(data);
-            var status = BitConverter.ToUInt32(data, STATUS_OFFSET);
             var boxCount = data[HITBOX_LIST_LENGTH_OFFSET];
-            var yPos = BitConverter.ToInt32(data, YPOS_OFFSET);
-            var pushBox = GetPushBox(charId, status, yPos);
 
             nint playerExtraPtr = (nint)BitConverter.ToUInt32(data, PLAYER_EXTRA_PTR_OFFSET);
             nint hitboxArrayPtr = (nint)BitConverter.ToUInt32(data, HITBOX_LIST_OFFSET);
@@ -188,6 +195,12 @@ namespace GGXXACPROverlay.GGXXACPR
             if (playerExtraPtr != 0) { extra = GetPlayerExtra(playerExtraPtr); }
             Hitbox[] boxSet = [];
             if (hitboxArrayPtr != 0) { boxSet = GetHitboxes(hitboxArrayPtr, boxCount); }
+            var charId = BitConverter.ToUInt16(data);
+            var status = BitConverter.ToUInt32(data, STATUS_OFFSET);
+            var actId = BitConverter.ToUInt16(data, ACT_ID_OFFSET);
+            var yPos = BitConverter.ToInt32(data, YPOS_OFFSET);
+
+            var pushBox = GetPushBox(charId, status, actId, yPos, boxSet);
 
             return new()
             {
@@ -195,7 +208,7 @@ namespace GGXXACPROverlay.GGXXACPR
                 IsFacingRight    = data[IS_FACING_RIGHT_OFFSET] == 1,
                 Status           = status,
                 BufferFlags      = BitConverter.ToUInt16(data, BUFFER_FLAGS_OFFSET),
-                ActionId         = BitConverter.ToUInt16(data, ACT_ID_OFFSET),
+                ActionId         = actId,
                 AnimationCounter = BitConverter.ToUInt16(data, ANIMATION_FRAME_OFFSET),
                 GuardFlags       = BitConverter.ToUInt16(data, GUARD_FLAGS_OFFSET),
                 Extra            = extra,
@@ -232,8 +245,8 @@ namespace GGXXACPROverlay.GGXXACPR
             };
         }
 
-        // TODO: Cache the data at the pushbox addresses. They shouldn't change.
-        private static Hitbox GetPushBox(ushort charId, ActionStateFlags status, int yPos)
+        // TODO: Cache the data at the static pushbox addresses. They shouldn't change.
+        private static Hitbox GetPushBox(ushort charId, ActionStateFlags status, ushort actId, int yPos, Hitbox[] boxSet)
         {
             int yOffset = 0;
             byte index = 4;
@@ -259,13 +272,37 @@ namespace GGXXACPROverlay.GGXXACPR
             short w = BitConverter.ToInt16(Memory.ReadMemory(xPtr, sizeof(short)));
             short h = BitConverter.ToInt16(Memory.ReadMemory(yPtr, sizeof(short)));
 
-            return new Hitbox()
+            var pushBoxOverrides = boxSet.Where(b => b.BoxTypeId == BoxId.PUSH);
+            if (pushBoxOverrides.Any())
             {
-                XOffset = (short)(w / -100),
-                YOffset = (short)((h + yOffset) / -100),
-                Width   = (short)(w / 100 * 2),
-                Height  = (short)(h / 100)
-            };
+                return new Hitbox()
+                {
+                    XOffset = pushBoxOverrides.First().XOffset,
+                    YOffset = (short)((h + yOffset) / -100),
+                    Width   = pushBoxOverrides.First().Width,
+                    Height  = (short)(h / 100)
+                };
+            }
+            else if (charId == (int)CharacterID.BRIDGET && actId == BRIDGET_SHOOT_ACT_ID)
+            {
+                return new Hitbox()
+                {
+                    XOffset = (short)(w / -100),
+                    YOffset = (short)((h + yOffset + BRIDGET_SHOOT_PUSHBOX_ADJUST) / -100),
+                    Width = (short)(w / 100 * 2),
+                    Height = (short)((h + BRIDGET_SHOOT_PUSHBOX_ADJUST) / 100)
+                };
+            }
+            else
+            {
+                return new Hitbox()
+                {
+                    XOffset = (short)(w / -100),
+                    YOffset = (short)((h + yOffset) / -100),
+                    Width   = (short)(w / 100 * 2),
+                    Height  = (short)(h / 100)
+                };
+            }
         }
 
         private static Hitbox[] GetHitboxes(nint hitboxArrPtr, int numBoxes)

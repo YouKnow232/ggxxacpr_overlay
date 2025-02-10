@@ -281,54 +281,59 @@ namespace GGXXACPROverlay
 
         private static FrameProperty1 DetermineFrameProperty1(GameState state, int index)
         {
-            Player[] players = [state.Player1, state.Player2];
+            Player p = state.Player1;
+            if (index > 0) p = state.Player2;
 
-            if (players[index].Extra.SBTime > 0)
+            if (p.Extra.SBTime > 0)
             {
                 return FrameProperty1.SlashBack;
             }
-            else if ((players[index].Status.DisableHurtboxes ||
-                    players[index].Status.StrikeInvuln ||
-                    players[index].Extra.InvulnCounter > 0 ||
-                    !players[index].HitboxSet.Any((Hitbox h) => h.BoxTypeId == BoxId.HURT)
-                ) && (players[index].Status.IsThrowInuvln ||
-                    players[index].Extra.ThrowProtectionTimer > 0))
+            else if ((p.Status.DisableHurtboxes ||
+                    p.Status.StrikeInvuln ||
+                    p.Extra.InvulnCounter > 0 ||
+                    !p.HitboxSet.Any((Hitbox h) => h.BoxTypeId == BoxId.HURT ||
+                    p.Status.ProjDisableHitboxes)
+                ) && (p.Status.IsThrowInuvln ||
+                    p.Extra.ThrowProtectionTimer > 0))
             {
                 return FrameProperty1.InvulnFull;
             }
-            else if (players[index].Status.IsThrowInuvln ||
-                (players[index].Extra.ThrowProtectionTimer > 0 &&
-                    !(players[index].Status.IsInHitstun || players[index].Status.IsInBlockstun)))
+            else if (p.Status.IsThrowInuvln ||
+                (p.Extra.ThrowProtectionTimer > 0 &&
+                    !(p.Status.IsInHitstun || p.Status.IsInBlockstun)))
             {
                 return FrameProperty1.InvulnThrow;
             }
-            else if (players[index].Status.DisableHurtboxes ||
-                    players[index].Status.StrikeInvuln ||
-                    players[index].Extra.InvulnCounter > 0 ||
-                    !players[index].HitboxSet.Any((Hitbox h) => h.BoxTypeId == BoxId.HURT))
+            else if (p.Status.DisableHurtboxes ||
+                    p.Status.StrikeInvuln ||
+                    p.Extra.InvulnCounter > 0 ||
+                    !p.HitboxSet.Any((Hitbox h) => h.BoxTypeId == BoxId.HURT) ||
+                    p.Status.ProjDisableHitboxes)
             {
                 return FrameProperty1.InvulnStrike;
             }
-            else if (players[index].GuardFlags.Armor)
+            else if (p.GuardFlags.Armor)
             {
                 return FrameProperty1.Armor;
             }
-            else if (players[index].GuardFlags.Parry1 || players[index].GuardFlags.Parry2)
+            else if (p.GuardFlags.Parry1 || p.GuardFlags.Parry2)
             {
-                if (players[index].CharId == (int)CharacterID.JAM && players[index].GuardFlags.Parry2)
+                if (p.CharId == (int)CharacterID.JAM && p.GuardFlags.Parry2)
                 {
                     // Jam parry flips her Parry2 flag for the rest of her current animation and uses a character specific counter for the active window
-                    if (players[index].Extra.JamParryTime == 0xFF)
+                    if (p.Extra.JamParryTime == 0xFF)
                     {
                         return FrameProperty1.Parry;
                     }
                 }
-                else if (players[index].CharId == (int)CharacterID.AXL && players[index].GuardFlags.Parry1)
+                // Special case for Axl parry and Dizzy EX parry super
+                else if ((p.CharId == (int)CharacterID.AXL && p.ActionId == GGXXACPR.GGXXACPR.AXL_TENHOU_SEKI_UPPER_ACT_ID) ||
+                         (p.CharId == (int)CharacterID.AXL && p.ActionId == GGXXACPR.GGXXACPR.AXL_TENHOU_SEKI_LOWER_ACT_ID) ||
+                         (p.CharId == (int)CharacterID.DIZZY && p.ActionId == GGXXACPR.GGXXACPR.DIZZY_EX_NECRO_UNLEASHED_ACT_ID))
                 {
-                    // Testing Mark property here. Seems to be necessary for Axl parry.
-                    //  For some reason his parry is marked as a parry state for the full animation (despite being active 5F-17F in practice) and
-                    //  uses some extra move properties (Player.Mark) to actually determine if the move should parry.
-                    if (players[index].Mark == 1)
+                    // These moves are marked as in parry state for their full animation and use a special move specific
+                    //  variable (Player.Mark) to actually determine if the move should parry.
+                    if (p.Mark == 1)
                     {
                         return FrameProperty1.Parry;
                     }
@@ -338,17 +343,17 @@ namespace GGXXACPROverlay
                     return FrameProperty1.Parry;
                 }
             }
-            else if (players[index].GuardFlags.GuardPoint)
+            else if (p.GuardFlags.GuardPoint)
             {
-                if (players[index].GuardFlags.IsStandBlocking && players[index].GuardFlags.IsCrouchBlocking)
+                if (p.GuardFlags.IsStandBlocking && p.GuardFlags.IsCrouchBlocking)
                 {
                     return FrameProperty1.GuardPointFull;
                 }
-                else if (players[index].GuardFlags.IsStandBlocking)
+                else if (p.GuardFlags.IsStandBlocking)
                 {
                     return FrameProperty1.GuardPointHigh;
                 }
-                else if (players[index].GuardFlags.IsCrouchBlocking)
+                else if (p.GuardFlags.IsCrouchBlocking)
                 {
                     return FrameProperty1.GuardPointLow;
                 }
