@@ -11,16 +11,8 @@ namespace GGXXACPROverlay
         private const float LINE_THICKNESS = 1f;
         // Values in game pixels
         private const int PIVOT_CROSS_SIZE = 6;
-        private const int FRAME_METER_X = 19;
         private const int FRAME_METER_Y = 400;
-        private const int FRAME_METER_PIP_WIDTH = 5;
-        private const int FRAME_METER_PIP_HEIGHT = 7;
-        private const int FRAME_METER_ENTITY_PIP_HEIGHT = 4;
-        private const int FRAME_METER_PIP_SPACING = 1 + FRAME_METER_PIP_WIDTH;
-        private const int FRAME_METER_PROPERTY_HIGHLIGHT_HEIGHT = 2;
-        private const int FRAME_METER_PROPERTY_HIGHLIGHT_TOP = FRAME_METER_PIP_HEIGHT - FRAME_METER_PROPERTY_HIGHLIGHT_HEIGHT;
         private const int FRAME_METER_VERTICAL_SPACING = 1;
-        private const int FRAME_METER_FONT_SPACING = 2;
 
         public readonly struct Dimensions(int width, int height)
         {
@@ -131,13 +123,13 @@ namespace GGXXACPROverlay
                         player.Extra.InvulnCounter > 0 ||
                         player.Status.DisableHurtboxes ||
                         player.Status.StrikeInvuln
-                        ) ||
+                    ) ||
                     // hitboxes are technically disabled in recovery state, but we're going to draw them during hitstop anyway
                     (hitbox.BoxTypeId == BoxId.HIT) && (
                         player.Status.DisableHitboxes &&
                         !(player.HitstopCounter > 0 &&
                         player.AttackFlags.HasConnected)    // Hitstop counter is also used in super flash, so need to check attack flags as well
-                        ) ||
+                    ) ||
                     !drawList.Contains(hitbox.BoxTypeId))
                 {
                     continue;
@@ -205,14 +197,12 @@ namespace GGXXACPROverlay
 
         private const int FRAME_METER_Y_ALT = 90;
         private const int FRAME_METER_BASE_LINE_X = 5;
-        private const int FRAME_METER_BORDER_THICKNESS = 3;
         internal static void DrawFrameMeter(Graphics g, GraphicsResources r, FrameMeter frameMeter, Dimensions windowDimensions)
         {
             FrameMeter.Frame[] frameArr;
             Rectangle rect;
             int frameMeterLength = frameMeter.PlayerMeters[0].FrameArr.Length;
 
-            int screenHeight = windowDimensions.Height;
             int screenWidth = windowDimensions.Height * 4 / 3;
 
             int pipSpacing = (screenWidth - FRAME_METER_BASE_LINE_X * 2) / frameMeterLength;
@@ -292,17 +282,17 @@ namespace GGXXACPROverlay
                     );
                     g.FillRectangle(r.GetBrush(frameMeter.EntityMeters[0].FrameArr[i].Type), rect);
 
-
-                    if (frameMeter.EntityMeters[0].FrameArr[i].Property != FrameMeter.FrameProperty1.Default)
-                    {
-                        rect = new Rectangle(
-                            xPos + (i * pipSpacing),
-                            yPos - 1 - FRAME_METER_VERTICAL_SPACING,
-                            xPos + pipWidth + (i * pipSpacing),
-                            yPos - FRAME_METER_VERTICAL_SPACING
-                        );
-                        g.FillRectangle(r.GetBrush(frameMeter.EntityMeters[0].FrameArr[i].Property), rect);
-                    }
+                    //// Property1
+                    //if (frameMeter.EntityMeters[0].FrameArr[i].Property != FrameMeter.FrameProperty1.Default)
+                    //{
+                    //    rect = new Rectangle(
+                    //        xPos + (i * pipSpacing),
+                    //        yPos - 1 - FRAME_METER_VERTICAL_SPACING,
+                    //        xPos + pipWidth + (i * pipSpacing),
+                    //        yPos - FRAME_METER_VERTICAL_SPACING
+                    //    );
+                    //    g.FillRectangle(r.GetBrush(frameMeter.EntityMeters[0].FrameArr[i].Property), rect);
+                    //}
                 }
             }
             if (!frameMeter.EntityMeters[1].Hide)
@@ -347,6 +337,7 @@ namespace GGXXACPROverlay
                 $"S: {(frameMeter.PlayerMeters[1].Startup >=0 ? frameMeter.PlayerMeters[1].Startup : "-")}");
 
 
+            // Advantage
             var display = frameMeter.PlayerMeters[0].DisplayAdvantage;
             IBrush p1AdvantageFontColor = r.FontBrush;
             IBrush p2AdvantageFontColor = r.FontBrush;
@@ -361,7 +352,6 @@ namespace GGXXACPROverlay
                 p2AdvantageFontColor = r.FontBrushGreen;
             }
 
-            // Advantage
             Point p1AdvLabelPosition = new Point(p1LabelPosition.X + (r.Font.FontSize * 3), p1LabelPosition.Y);
             Point p2AdvLabelPosition = new Point(p2LabelPosition.X + (r.Font.FontSize * 3), p2LabelPosition.Y);
 

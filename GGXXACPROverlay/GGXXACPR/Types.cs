@@ -38,13 +38,13 @@
     }
     public enum BoxId
     {
-        DUMMY = 0,
-        HIT = 1,
-        HURT = 2,
-        UNKNOWN_3 = 3,
-        PUSH = 4,
+        DUMMY     = 0,
+        HIT       = 1,
+        HURT      = 2,
+        UNKNOWN_3 = 3,  // Something with particle effects. Sprite sheet selector?
+        PUSH      = 4,
         UNKNOWN_5 = 5,
-        UNKNOWN_6 = 6,
+        UNKNOWN_6 = 6,  // Also something to do with drawing particle effects
     }
 
     public enum CharacterID
