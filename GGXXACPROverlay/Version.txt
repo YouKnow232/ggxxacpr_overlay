@@ -6,7 +6,8 @@
 - Added visual legend for frame meter
 - Added console window settings for frame meter pausing behavior (hitstop / super flash)
 	- Labels for each frame meter setting are displayed in the top left
-- Moves that adjust pushbox shape are now accounted for (Sols' 6H / Bridget 236K~K)
+- Moves that adjust pushbox shape are now accounted for (e.g. Sols' 6H / Bridget 236K~K)
+- Frame meter can now display up to two primary frame properties in one frame (the bottom highlight)
 - Small adjustments to hitbox rendering accuracy
 - Fixed a bug with Jam's parry frames that caused it to carry over into any move
 
