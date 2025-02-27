@@ -28,6 +28,7 @@ Displays hitboxes and a frame meter in a seamless overlay for the Steam release 
     - Frame Meter may skip ahead while paused in a replay
 - Startup is not fully implemented for EX characters
 - Projectile startup is not implemented
+- Startup/Advantage will not exceed 77
 - Slidehead unblockable hit has no hitbox/active frames
 - Dizzy 421S second stage has no hitbox/active frames
 - Dizzy fish laser has no hitbox/active frames

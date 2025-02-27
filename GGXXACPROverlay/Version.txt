@@ -8,6 +8,7 @@
 	- Labels for each frame meter setting are displayed in the top left
 - Moves that adjust pushbox shape are now accounted for (Sols' 6H / Bridget 236K~K)
 - Small adjustments to hitbox rendering accuracy
+- Fixed a bug with Jam's parry frames that caused it to carry over into any move
 
 # 1.2-beta
 - Added new 'Movement' frame type
