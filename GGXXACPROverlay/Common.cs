@@ -23,8 +23,13 @@
             "Please close the overlay during netplay.\n";
         public const string CONSOLE_KNOWN_ISSUES =
             "Known Issues:\n" +
-            "- PLACE HOLDER\n"+
-            "- Update this in release branch\n";
+            "- Fullscreen is not supported\n" +
+            "- Frame Meter does not fully support Replay mode\n" +
+            "- Startup is not fully implemented for EX characters\n" +
+            "- Projectile startup is not implemented\n" +
+            "- Some moves are missing hitboxes (e.g. Slidehead unblockable, Dizzy 421S, Dizzy fish laser)\n" +
+            "- Startup for supers may be incorrect if Baiken guardcancels out of superflash\n" +
+            "- When using \"super flash pausing\" setting, startup will count freeze frames\n";
         public const string CONSOLE_CONTROLS =
             "In this console window:\n" +
             "Press '1' to toggle hitbox display\n" +
@@ -32,7 +37,7 @@
             " *Air throw boxes only check for the pushbox's bottom edge highlighted in yellow\n\n" +
             "Press '3' to toggle frame meter display\n" +
             "Press '4' to display frame meter legend\n" +
-            "Press '5' to toggle frame meter hitstop pausing\n" +
+            "Press '5' to toggle frame meter hitstop pausing (good for Slashback practice)\n" +
             "Press '6' to toggle frame meter super flash pausing\n" +
             "\nPress 'q' to exit\n";
         public const string CONSOLE_EXIT_PROMPT =

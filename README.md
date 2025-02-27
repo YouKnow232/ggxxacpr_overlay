@@ -28,14 +28,11 @@ Displays hitboxes and a frame meter in a seamless overlay for the Steam release 
     - Frame Meter may skip ahead while paused in a replay
 - Startup is not fully implemented for EX characters
 - Projectile startup is not implemented
-- Throw boxes, active frame, and startup are not implemented
-- When multiple frame properties overlap only one state is reported on the frame meter
-    - e.g. Throw invuln will overwrite guard point for Anji's 3K, 6H, Rin, and FB Rin
 - Slidehead unblockable hit has no hitbox/active frames
 - Dizzy 421S second stage has no hitbox/active frames
 - Dizzy fish laser has no hitbox/active frames
-- Justice has an FRC point during super flash on 632146H, since the frame meter pauses during super flash it's not displayed
-- Startup for supers will may be incorrect if the opponent removes super freeze from themselves (i.e. Baiken)
+- Startup for supers may be incorrect if the opponent removes super freeze from themselves (i.e. Baiken)
+    - When using the "toggle superflash pausing" settings, startup will count superflash frames
 
 ## Special Thanks / References
 - michel-pi and contributors of [GameOverlay.Net](https://github.com/michel-pi/GameOverlay.Net)

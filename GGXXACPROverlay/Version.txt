@@ -1,3 +1,36 @@
+#1.3-beta
+- Added support for throws
+	- Throw ranges are displayed as purple boxes
+	- Active frames and startup are shown on frame meter
+	- Note that range-based unblockable hitgrabs such as Faust's 214H are not implemented
+- Added visual legend for frame meter
+- Added console window settings for frame meter pausing behavior (hitstop / super flash)
+	- Labels for each frame meter setting are displayed in the top left
+- Moves that adjust pushbox shape are now accounted for (Sols' 6H / Bridget 236K~K)
+- Small adjustments to hitbox rendering accuracy
+
+# 1.2-beta
+- Added new 'Movement' frame type
+	- Denotes running, prejump, cancelable step dashes, and the cancelable parts of airdash/taunt/respect
+- New startup implementation added
+	- Should be correct as long as Frame Meter is correct
+	- Doesn't fully support EX characters
+- Added correct airborne collision boxes
+- Frame meter is now 80 frames long from 100
+- Overhauled frame meter visuals
+- Improved frame meter resolution scaling
+- Added display toggles in console window
+- Overlay no longer displays in menus
+- Overlay no longer draws on top of side bars
+- Updated visuals for entity pivot
+- Added some 'bad gamestate' checks that should make the frame meter more stable
+- Fixed Axl parry frames being inverted
+- Fixed a frame meter bug that would record the last frame of hitstop
+- Fixed entity hurtboxes being displayed despite being disabled
+- Fixed a bug that made it so projectiles hurtboxes weren't being recorded on the entity frame meter
+- Fixed a bug that displayed disabled hitboxes during super flash
+- Fixed Jam 632146S super not displaying the first active frame because it started during super flash
+
 # 1.1-beta
 - Fixed a crash that would occur when the overlay is launched before the game has loaded any characters
 - Fixed Hitboxes drawing 1 screen px too thick
