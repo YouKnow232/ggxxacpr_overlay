@@ -30,7 +30,7 @@
             "- Startup / advantage will not exceed 77\n" +
             "- Some moves are missing hitboxes (e.g. Slidehead unblockable, Dizzy 421S, Dizzy fish laser)\n" +
             "- Startup for supers may be incorrect if Baiken guard cancels out of super flash\n" +
-            "- When using \"toggle hitstop pausing\" hitstop will be counted in startup for multihit moves\n " +
+            "- When using \"toggle hitstop pausing\" hitstop will be counted in startup for multihit moves\n" +
             "- When using \"toggle super flash pausing\" setting, startup will count freeze frames\n";
         public const string CONSOLE_CONTROLS =
             "In this console window:\n" +
