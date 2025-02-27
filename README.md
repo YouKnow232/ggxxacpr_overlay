@@ -21,7 +21,6 @@ Displays hitboxes and a frame meter in a seamless overlay for the Steam release 
 ![#785000](https://placehold.co/15x15/785000/785000.png) Armor / Guardpoint / Parry<br>
 
 ## Known Issues
-### General
 - Fullscreen is not currently supported
 - Frame Meter does not fully support Replay mode
     - Rewinding is not recognized by the Frame
