@@ -3,16 +3,25 @@
     public struct GlobalFlags()
     {
         public ThrowFlags ThrowFlags = 0;
+        public int P1ActiveCommandGrabId = 0;
+        public int P2ActiveCommandGrabId = 0;
+        public int P1CommandGrabRange = 0;
+        public int P2CommandGrabRange = 0;
+        public GameVersion GameVersionFlag = GameVersion.PLUS_R;
+        public int PauseState1 = 0;
+        public int ReplaySimState = 0;
     }
 
     public readonly struct ThrowFlags(byte flags)
     {
         private readonly byte _flags = flags;
 
-        public readonly bool Player2ThrowActive { get { return (_flags & 0x1) > 0; } } // Needs confirmation
-        public readonly bool Player1ThrowActive { get { return (_flags & 0x2) > 0; } } // Needs confirmation
+        public readonly bool Player1ThrowSuccess { get { return (_flags & 0x1) > 0; } } // Needs confirmation
+        public readonly bool Player2ThrowSuccess { get { return (_flags & 0x2) > 0; } } // Needs confirmation
         public readonly bool Player2Throwable { get { return (_flags & 0x4) > 0;} } // Used if a throw check should be made when 4H/6H input.
         public readonly bool Player1Throwable { get { return (_flags & 0x8) > 0; } } // These Flags are off if both players don't share a grounded/airborne state
+        public readonly bool Player1CommandThrowSuccess { get { return (_flags & 0x10) > 0; } } // Needs confirmation
+        public readonly bool Player2CommandThrowSuccess { get { return (_flags & 0x20) > 0; } } // Needs confirmation
 
         public static implicit operator ThrowFlags(int flags) { return new ThrowFlags((byte)flags); }
     }
@@ -47,7 +56,7 @@
         UNKNOWN_6 = 6,  // Also something to do with drawing particle effects
     }
 
-    public enum CharacterID
+    public enum CharacterID : short
     {
         NONE        = 0,
         SOL         = 1,
@@ -77,14 +86,21 @@
         JUSTICE     = 25
     }
 
+    public enum GameVersion
+    {
+        AC     = 0,
+        PLUS_R = 1,
+    }
+
     public struct Player()
     {
-        /*0x000*/ public ushort CharId = 0;
+        /*0x000*/ public CharacterID CharId = 0;
         /*0x002*/ public bool IsFacingRight = false;
         /*0x00C*/ public ActionStateFlags Status = 0;
         /*0x012*/ public BufferFlags BufferFlags = 0;
         /*0x018*/ public ushort ActionId = 0;
         /*0x01C*/ public ushort AnimationCounter = 0;
+        /*0x027*/ public byte PlayerIndex = 0;
         /*0x02A*/ public GuardStateFlags GuardFlags = 0;
         /*0x02C*/ public PlayerExtra Extra = new();
         /*0x034*/ public AttackStateFlags AttackFlags = 0;
@@ -102,7 +118,9 @@
         /*0x0FF*/ public byte Mark = 0;  // Multi-use variable used for move-specific behavior (For Axl, holds parry active state)
         /*none */ public Hitbox PushBox = new();
 
-        public readonly bool HasActiveFrame() => HitboxSet.Where(hb => hb.BoxTypeId == BoxId.HIT).Any() && !Status.DisableHitboxes;
+        public readonly bool HasActiveFrame() =>
+            HitboxSet.Where(hb => hb.BoxTypeId == BoxId.HIT).Any() && !Status.DisableHitboxes ||
+            Mark == 1 && MoveData.IsActiveByMark(CharId, ActionId);
     }
     public struct PlayerExtra()
     {
@@ -131,7 +149,6 @@
         public readonly bool KnockedDown { get { return (_flags & 0x0100) > 0; } }
         public readonly bool IsInBlockstun { get { return (_flags & 0x0200) > 0; } }
         public readonly bool IsCrouching { get { return (_flags & 0x0400) > 0; } }
-        //public readonly bool Unknown0x0800 { get { return (_flags & 0x0800) > 0; } } // Unknown
         public readonly bool IsCornered { get { return (_flags & 0x0800) > 0; } }
         // Switches on when landing, but doesn't switch back off until standing or crouching neutral
         public readonly bool LandingFlag { get { return (_flags & 0x1000) > 0; } }
@@ -268,6 +285,7 @@
         /*0x08*/ public nint NextPtr = nint.Zero;   // points to next item in the entity array
         /*0x0C*/ public ActionStateFlags Status = 0;
         /*0x20*/ public nint ParentPtrRaw = nint.Zero;
+        /*0x27*/ public byte PlayerIndex = 0;
         /*0x28*/ public ushort ParentFlag = 0;
         /*0x4C*/ public short CoreX = 0;
         /*0x4E*/ public short CoreY = 0;

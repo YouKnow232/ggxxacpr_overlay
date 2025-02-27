@@ -13,6 +13,7 @@ namespace GGXXACPROverlay
             CounterHitState,
             Startup,
             Active,
+            ActiveThrow,
             Recovery,
             BlockStun,
             HitStun
@@ -21,7 +22,7 @@ namespace GGXXACPROverlay
         /// <summary>
         /// Drawn on bottom of frame meter pip
         /// </summary>
-        public enum FrameProperty1
+        public enum PrimaryFrameProperty
         {
             Default,
             InvulnFull,
@@ -40,7 +41,7 @@ namespace GGXXACPROverlay
         /// <summary>
         /// Drawn on top of frame meter pip
         /// </summary>
-        public enum FrameProperty2
+        public enum SecondaryFrameProperty
         {
             Default,
             FRC
@@ -48,16 +49,18 @@ namespace GGXXACPROverlay
 
         public readonly struct Frame(
             FrameType type = FrameType.None,
-            FrameProperty1 prop = FrameProperty1.Default,
-            FrameProperty2 prop2 = FrameProperty2.Default,
+            PrimaryFrameProperty pprop1 = PrimaryFrameProperty.Default,
+            PrimaryFrameProperty pprop2 = PrimaryFrameProperty.Default,
+            SecondaryFrameProperty sprop = SecondaryFrameProperty.Default,
             int actId = -1,
             int actTimer = -1,
             byte hitStop = 0,
             uint status = 0)
         {
             public readonly FrameType Type = type;
-            public readonly FrameProperty1 Property = prop;
-            public readonly FrameProperty2 Property2 = prop2;
+            public readonly PrimaryFrameProperty PrimaryProperty1 = pprop1;
+            public readonly PrimaryFrameProperty PrimaryProperty2 = pprop2;
+            public readonly SecondaryFrameProperty SecondaryProperty = sprop;
             public readonly int ActId = actId;
             public readonly int ActTimer = actTimer;
             public readonly byte HitStop = hitStop;
@@ -96,7 +99,7 @@ namespace GGXXACPROverlay
             ClearMeters();
         }
 
-        public int Update(GameState state)
+        public int Update(GameState state, in OverlaySettings settings)
         {
             Frame p1PrevFrame = FrameAtOffset(PlayerMeters[0], -1);
             Frame p2PrevFrame = FrameAtOffset(PlayerMeters[1], -1);
@@ -124,14 +127,17 @@ namespace GGXXACPROverlay
             // The hitbox requirement is for moves that become active while in super flash.
             // Special exception for first freeze frame.
             if ((state.Player1.Status.Freeze || state.Player2.Status.Freeze) &&
-                (p1PrevFrame.Status.Freeze || p2PrevFrame.Status.Freeze))
+                (p1PrevFrame.Status.Freeze || p2PrevFrame.Status.Freeze) &&
+                !settings.RecordDuringSuperFlash)
             {
+                // TODO: account for projectile supers that hit during flash
+
                 // Special case for super's that connect during super flash (e.g. Jam 632146S)
                 // Rewrite the previous frame to an active frame and recalculate startup
                 if (state.Player2.Status.Freeze && state.Player1.HasActiveFrame())
                 {
                     PlayerMeters[0].FrameArr[AddToLoopingIndex(-1)] = new Frame(
-                        FrameType.Active, p1PrevFrame.Property, p1PrevFrame.Property2, p1PrevFrame.ActId,
+                        FrameType.Active, p1PrevFrame.PrimaryProperty1, p1PrevFrame.PrimaryProperty2, p1PrevFrame.SecondaryProperty, p1PrevFrame.ActId,
                         p1PrevFrame.ActTimer, p1PrevFrame.HitStop, (uint)p1PrevFrame.Status);
 
                     _index = AddToLoopingIndex(-1);
@@ -141,7 +147,7 @@ namespace GGXXACPROverlay
                 else if (state.Player1.Status.Freeze && state.Player2.HasActiveFrame())
                 {
                     PlayerMeters[1].FrameArr[AddToLoopingIndex(-1)] = new Frame(
-                        FrameType.Active, p2PrevFrame.Property, p2PrevFrame.Property2, p2PrevFrame.ActId,
+                        FrameType.Active, p2PrevFrame.PrimaryProperty1, p1PrevFrame.PrimaryProperty2, p2PrevFrame.SecondaryProperty, p2PrevFrame.ActId,
                         p2PrevFrame.ActTimer, p2PrevFrame.HitStop, (uint)p2PrevFrame.Status);
 
                     _index = AddToLoopingIndex(-1);
@@ -154,8 +160,11 @@ namespace GGXXACPROverlay
             }
             // Skip update when both players are in hitstop (currently somewhat redundant when checking for unchanged animation timers above)
             // Special exception to also skip the first frame after hitstop counters have ended
-            if (state.Player1.HitstopCounter > 0 && state.Player2.HitstopCounter > 0 ||
-                    prevState?.Player1.HitstopCounter > 0 && prevState?.Player2.HitstopCounter > 0)
+            // Super freeze often uses the histop counter as well so need to except that situation
+            if ((state.Player1.HitstopCounter > 0 && state.Player2.HitstopCounter > 0 ||
+                    prevState?.Player1.HitstopCounter > 0 && prevState?.Player2.HitstopCounter > 0) &&
+                    !(state.Player1.Status.Freeze || state.Player2.Status.Freeze) &&
+                    !settings.RecordDuringHitstop)
             {
                 prevState = state;
                 return 0;
@@ -207,8 +216,6 @@ namespace GGXXACPROverlay
             }
 
             // Labels
-            //UpdateStartupByAnimCounter(state.Player1, ref PlayerMeters[0], EntityMeters[0]);
-            //UpdateStartupByAnimCounter(state.Player2, ref PlayerMeters[1], EntityMeters[1]);
             UpdateStartupByCountBackWithMoveData(state.Player1, ref PlayerMeters[0], EntityMeters[0]);
             UpdateStartupByCountBackWithMoveData(state.Player2, ref PlayerMeters[1], EntityMeters[1]);
             UpdateAdvantageByCountBack();
@@ -242,8 +249,21 @@ namespace GGXXACPROverlay
         private static FrameType DetermineFrameType(GameState state, int index)
         {
             var player = index == 0 ? state.Player1 : state.Player2;
+            var cmdGrabId = index == 0 ? state.GlobalFlags.P1CommandGrabRange : state.GlobalFlags.P2CommandGrabRange;
 
-            if (player.HitboxSet.Any(h => h.BoxTypeId == BoxId.HIT) && !player.Status.DisableHitboxes)
+            if (player.Mark == 1 && MoveData.IsActiveByMark(player.CharId, player.ActionId))
+            {
+                return FrameType.ActiveThrow;    // Command Grab
+            }
+            else if ((state.GlobalFlags.ThrowFlags.Player1ThrowSuccess && index == 0 &&
+                state.Player2.Status.IsInHitstun ||
+                state.GlobalFlags.ThrowFlags.Player2ThrowSuccess && index == 1 &&
+                state.Player1.Status.IsInHitstun) &&
+                !player.CommandFlags.DisableThrow)
+            {
+                return FrameType.ActiveThrow;
+            }
+            else if (player.HitboxSet.Any(h => h.BoxTypeId == BoxId.HIT) && !player.Status.DisableHitboxes)
             {
                 return FrameType.Active;
             }
@@ -279,16 +299,21 @@ namespace GGXXACPROverlay
             }
         }
 
-        private static FrameProperty1 DetermineFrameProperty1(GameState state, int index)
+        private static PrimaryFrameProperty[] DeterminePrimaryFrameProperties(GameState state, int index)
         {
+            var output = new Stack<PrimaryFrameProperty>(2);
+            output.Push(PrimaryFrameProperty.Default);
+            output.Push(PrimaryFrameProperty.Default);
+
             Player p = state.Player1;
             if (index > 0) p = state.Player2;
 
             if (p.Extra.SBTime > 0)
             {
-                return FrameProperty1.SlashBack;
+                output.Push(PrimaryFrameProperty.SlashBack);
             }
-            else if ((p.Status.DisableHurtboxes ||
+
+            if ((p.Status.DisableHurtboxes ||
                     p.Status.StrikeInvuln ||
                     p.Extra.InvulnCounter > 0 ||
                     !p.HitboxSet.Any((Hitbox h) => h.BoxTypeId == BoxId.HURT ||
@@ -296,13 +321,13 @@ namespace GGXXACPROverlay
                 ) && (p.Status.IsThrowInuvln ||
                     p.Extra.ThrowProtectionTimer > 0))
             {
-                return FrameProperty1.InvulnFull;
+                output.Push(PrimaryFrameProperty.InvulnFull);
             }
             else if (p.Status.IsThrowInuvln ||
                 (p.Extra.ThrowProtectionTimer > 0 &&
                     !(p.Status.IsInHitstun || p.Status.IsInBlockstun)))
             {
-                return FrameProperty1.InvulnThrow;
+                output.Push(PrimaryFrameProperty.InvulnThrow);
             }
             else if (p.Status.DisableHurtboxes ||
                     p.Status.StrikeInvuln ||
@@ -310,68 +335,76 @@ namespace GGXXACPROverlay
                     !p.HitboxSet.Any((Hitbox h) => h.BoxTypeId == BoxId.HURT) ||
                     p.Status.ProjDisableHitboxes)
             {
-                return FrameProperty1.InvulnStrike;
+                output.Push(PrimaryFrameProperty.InvulnStrike);
             }
-            else if (p.GuardFlags.Armor)
+
+            if (p.GuardFlags.Armor)
             {
-                return FrameProperty1.Armor;
+                output.Push(PrimaryFrameProperty.Armor);
             }
             else if (p.GuardFlags.Parry1 || p.GuardFlags.Parry2)
             {
-                if (p.CharId == (int)CharacterID.JAM && p.GuardFlags.Parry2)
+                if (p.CharId == CharacterID.JAM)
                 {
                     // Jam parry flips her Parry2 flag for the rest of her current animation and uses a character specific counter for the active window
-                    if (p.Extra.JamParryTime == 0xFF)
+                    // Jam parry works by swapping out "on guard" interrupt functions (stored at player->0x2C->0xC8). Since this is only called while
+                    //  She has a guard flag set, we'll need to check them here too.
+                    if (p.Extra.JamParryTime == 0xFF && (p.GuardFlags.IsStandBlocking || p.GuardFlags.IsCrouchBlocking))
                     {
-                        return FrameProperty1.Parry;
+                        output.Push(PrimaryFrameProperty.Parry);
                     }
                 }
                 // Special case for Axl parry and Dizzy EX parry super
-                else if ((p.CharId == (int)CharacterID.AXL && p.ActionId == GGXXACPR.GGXXACPR.AXL_TENHOU_SEKI_UPPER_ACT_ID) ||
-                         (p.CharId == (int)CharacterID.AXL && p.ActionId == GGXXACPR.GGXXACPR.AXL_TENHOU_SEKI_LOWER_ACT_ID) ||
-                         (p.CharId == (int)CharacterID.DIZZY && p.ActionId == GGXXACPR.GGXXACPR.DIZZY_EX_NECRO_UNLEASHED_ACT_ID))
+                else if ((p.CharId == CharacterID.AXL && p.ActionId == GGXXACPR.GGXXACPR.AXL_TENHOU_SEKI_UPPER_ACT_ID) ||
+                         (p.CharId == CharacterID.AXL && p.ActionId == GGXXACPR.GGXXACPR.AXL_TENHOU_SEKI_LOWER_ACT_ID) ||
+                         (p.CharId == CharacterID.DIZZY && p.ActionId == GGXXACPR.GGXXACPR.DIZZY_EX_NECRO_UNLEASHED_ACT_ID))
                 {
                     // These moves are marked as in parry state for their full animation and use a special move specific
                     //  variable (Player.Mark) to actually determine if the move should parry.
                     if (p.Mark == 1)
                     {
-                        return FrameProperty1.Parry;
+                        output.Push(PrimaryFrameProperty.Parry);
                     }
                 }
                 else
                 {
-                    return FrameProperty1.Parry;
+                    output.Push(PrimaryFrameProperty.Parry);
                 }
             }
             else if (p.GuardFlags.GuardPoint)
             {
                 if (p.GuardFlags.IsStandBlocking && p.GuardFlags.IsCrouchBlocking)
                 {
-                    return FrameProperty1.GuardPointFull;
+                    output.Push(PrimaryFrameProperty.GuardPointFull);
                 }
                 else if (p.GuardFlags.IsStandBlocking)
                 {
-                    return FrameProperty1.GuardPointHigh;
+                    output.Push(PrimaryFrameProperty.GuardPointHigh);
                 }
                 else if (p.GuardFlags.IsCrouchBlocking)
                 {
-                    return FrameProperty1.GuardPointLow;
+                    output.Push(PrimaryFrameProperty.GuardPointLow);
                 }
             }
 
-            return FrameProperty1.Default;
+            if (output.Count == 0)
+            {
+                output.Push(PrimaryFrameProperty.Default);
+            }
+
+            return output.ToArray();
         }
 
         private static FrameType DetermineEntityFrameType(GameState state, int index)
         {
             // LINQ is so nice
             var ownerEntitiesHitboxes =
-                state.Entities.Where(e => IsOwnedBy(e, index) && !e.Status.DisableHitboxes)
+                state.Entities.Where(e => e.PlayerIndex == index && !e.Status.DisableHitboxes)
                               .SelectMany(e => e.HitboxSet)
                               .Where(h => h.BoxTypeId == BoxId.HIT);
 
             var ownerEntityHurtboxes =
-                state.Entities.Where(e => IsOwnedBy(e, index) && !e.Status.DisableHurtboxes)
+                state.Entities.Where(e => e.PlayerIndex == index && !e.Status.DisableHurtboxes)
                               .SelectMany(e => e.HitboxSet)
                               .Where(h => h.BoxTypeId == BoxId.HURT);
 
@@ -388,34 +421,21 @@ namespace GGXXACPROverlay
                 return FrameType.None;
             }
         }
-        private static bool IsOwnedBy(Entity e, int playerIndex)
-        {
-            // Kinda hacky check for the Dizzy bubble exception (see comments on DIZZY_BUBBLE_ENTITY_ID),
-            //  but the alternative is recursively pointer tracing e.ParentPtrRaw to a player pointer just because of this one exception.
-            if (e.Id == GGXXACPR.GGXXACPR.DIZZY_ENTITY_ID && e.Status.IgnoreHitEffectsRecieved)
-            {
-                return e.Status.IsPlayer1 && playerIndex == 1 || e.Status.IsPlayer2 && playerIndex == 0;
-            }
-            else
-            {
-                return e.Status.IsPlayer1 && playerIndex == 0 || e.Status.IsPlayer2 && playerIndex == 1;
-            }
-        }
 
         private void UpdateIndividualMeter(GameState state, int index)
         {
             Player[] players = [state.Player1, state.Player2];
 
             FrameType type = DetermineFrameType(state, index);
-            FrameProperty1 prop = DetermineFrameProperty1(state, index);
-            FrameProperty2 prop2 = FrameProperty2.Default;
+            PrimaryFrameProperty[] pprops = DeterminePrimaryFrameProperties(state, index);
+            SecondaryFrameProperty prop2 = SecondaryFrameProperty.Default;
 
             if (players[index].Extra.RCTime > 0)
             {
-                prop2 = FrameProperty2.FRC;
+                prop2 = SecondaryFrameProperty.FRC;
             }
 
-            PlayerMeters[index].FrameArr[_index] = new Frame(type, prop, prop2,
+            PlayerMeters[index].FrameArr[_index] = new Frame(type, pprops[0], pprops[1], prop2,
                 players[index].ActionId, players[index].AnimationCounter, players[index].HitstopCounter, (uint)players[index].Status);
             PlayerMeters[index].FrameArr[(_index + 2 + METER_LENGTH) % METER_LENGTH] = new Frame(); // Forward erasure
         }
@@ -466,10 +486,13 @@ namespace GGXXACPROverlay
         }
         private void UpdateStartupByCountBackWithMoveData(Player p, ref Meter pMeter, Meter eMeter)
         {
+            FrameType[] activeTypes = [FrameType.Active, FrameType.ActiveThrow];
+            FrameType[] prevFrameTypesAllowed = [FrameType.CounterHitState, FrameType.Startup, FrameType.None];
             Frame currFrame = FrameAtOffset(pMeter, 0);
             FrameType prevFrameType = FrameAtOffset(pMeter, -1).Type;
-            if (currFrame.Type == FrameType.Active &&
-                (prevFrameType == FrameType.CounterHitState || prevFrameType == FrameType.Startup))
+
+            //if (activeTypes.Contains(currFrame.Type) && prevFrameTypesAllowed.Contains(prevFrameType))
+            if (activeTypes.Contains(currFrame.Type) && !activeTypes.Contains(prevFrameType))
             {
                 pMeter.LastAttackActId = currFrame.ActId;
                 Frame frame;

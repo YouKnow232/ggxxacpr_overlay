@@ -9,17 +9,10 @@ namespace GGXXACPROverlay
         {
             // Version
             Console.WriteLine($"GGXXACPR Overlay v{Assembly.GetEntryAssembly()?.GetName().Version}\n");
-            // Disclaimer
-            Console.WriteLine("This is a beta build. It has known issues and may even have some unknown ones.");
-            Console.WriteLine("You can help report issues here https://github.com/YouKnow232/ggxxacpr_overlay/issues");
-            Console.WriteLine();
-            Console.WriteLine("Please close the overlay during netplay.");
-            Console.WriteLine();
-            // Known Issues
-            Console.WriteLine("Known Issues:");
-            Console.WriteLine("- PLACE HOLDER");
-            Console.WriteLine("- Update this in release branch");
-            Console.WriteLine();
+
+            Console.WriteLine(Constants.CONSOLE_BETA_WARNING);
+            Console.WriteLine(Constants.CONSOLE_NETPLAY_NOTICE);
+            Console.WriteLine(Constants.CONSOLE_KNOWN_ISSUES);
 
             TimerService.EnableHighPrecisionTimers();
 
@@ -27,12 +20,7 @@ namespace GGXXACPROverlay
             {
                 using var overlay = new Overlay();
                 overlay.Run();
-
-                // Contorls
-                Console.WriteLine("In this console window:");
-                Console.WriteLine("Press '1' to toggle hitbox display");
-                Console.WriteLine("Press '2' to toggle frame meter display");
-                Console.WriteLine("Press 'q' to exit\n");
+                Console.WriteLine(Constants.CONSOLE_CONTROLS);
 
                 ConsoleKey? key = null;
                 Stream inputStream = Console.OpenStandardInput();
@@ -41,11 +29,29 @@ namespace GGXXACPROverlay
                     if (Console.KeyAvailable) key = Console.ReadKey(true).Key;
                     switch (key)
                     {
+                        case ConsoleKey.NumPad1:
                         case ConsoleKey.D1:
                             overlay.ToggleHitboxOverlay();
                             break;
+                        case ConsoleKey.NumPad2:
                         case ConsoleKey.D2:
+                            overlay.ToggleThrowRangeDisplay();
+                            break;
+                        case ConsoleKey.NumPad3:
+                        case ConsoleKey.D3:
                             overlay.ToggleFrameMeter();
+                            break;
+                        case ConsoleKey.NumPad4:
+                        case ConsoleKey.D4:
+                            overlay.ToggleDisplayLegend();
+                            break;
+                        case ConsoleKey.NumPad5:
+                        case ConsoleKey.D5:
+                            overlay.ToggleRecordHitstop();
+                            break;
+                        case ConsoleKey.NumPad6:
+                        case ConsoleKey.D6:
+                            overlay.ToggleRecordSuperFlash();
                             break;
                         case ConsoleKey.Q:
                             overlay.Dispose();
@@ -59,7 +65,7 @@ namespace GGXXACPROverlay
             catch (InvalidOperationException e)
             {
                 Console.WriteLine(e.Message + "\n");
-                Console.WriteLine("Press any key to exit\n");
+                Console.WriteLine(Constants.CONSOLE_EXIT_PROMPT);
                 Console.ReadKey(true);
             }
         }

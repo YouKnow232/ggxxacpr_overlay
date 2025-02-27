@@ -23,9 +23,7 @@ namespace GGXXACPROverlay
 
         private readonly FrameMeter _frameMeter = new();
 
-        private bool shouldRender = false;
-        private bool drawHitboxes = true;
-        private bool drawFrameMeter = true;
+        private OverlaySettings _overlaySettings = new();
 
         public Overlay()
         {
@@ -61,41 +59,12 @@ namespace GGXXACPROverlay
             return _overlayWindow.IsRunning;
         }
 
-        public void ToggleHitboxOverlay() { drawHitboxes = !drawHitboxes; }
-        public void ToggleFrameMeter() { drawFrameMeter = !drawFrameMeter; }
-
-        //private void UpdateToggles(object? state, KeyboardEventArgs e)
-        //{
-        //    Debug.WriteLine($"CALLBACK!! e: {e}");
-        //}
-
-        //private void TempSetHook()
-        //{
-        //    _inputListenerCallback = new EventHandler<KeyboardEventArgs>(UpdateToggles);
-
-        //    var modHandle = PInvoke.GetModuleHandle(typeof(Hooks).Assembly.GetName().Name);
-        //    Debug.WriteLine($"Hooks module is invalid: {modHandle.IsInvalid}");
-        //    hookHandle = PInvoke.SetWindowsHookEx(WINDOWS_HOOK_ID.WH_KEYBOARD, Hooks.KeyboardHookCallback, modHandle, Memory.GetGameThreadID());
-        //    if (hookHandle == null)
-        //    {
-        //        Memory.HandleSystemError("Set Windows Hook returned null");
-        //    }
-        //    Hooks.HHook = hookHandle;
-        //    Debug.WriteLine("Hooks set.");
-
-        //    Hooks.OnKeyUp += _inputListenerCallback;
-        //    Hooks.DebugMessage += (object? sender, DebugEventArgs e) =>
-        //    {
-        //        this.Debug1(e.Message);
-        //        Debug.WriteLine(e.Message);
-        //    };
-        //    Debug.WriteLine("Callbacks defined.");
-        //}
-
-        //private void TempInitPipe()
-        //{
-        //    // NamedPipeServerStream() communicate with ggxxacpr?
-        //}
+        public void ToggleHitboxOverlay() => _overlaySettings.DisplayHitBoxes = !_overlaySettings.DisplayHitBoxes;
+        public void ToggleFrameMeter() => _overlaySettings.DisplayFrameMeter = !_overlaySettings.DisplayFrameMeter;
+        public void ToggleThrowRangeDisplay() => _overlaySettings.AlwaysDrawThrowRange = !_overlaySettings.AlwaysDrawThrowRange;
+        public void ToggleDisplayLegend() => _overlaySettings.DisplayFrameMeterLegend = !_overlaySettings.DisplayFrameMeterLegend;
+        public void ToggleRecordHitstop() => _overlaySettings.RecordDuringHitstop = !_overlaySettings.RecordDuringHitstop;
+        public void ToggleRecordSuperFlash() => _overlaySettings.RecordDuringSuperFlash = !_overlaySettings.RecordDuringSuperFlash;
 
         private void UpdateGameState(object? state)
         {
@@ -105,21 +74,21 @@ namespace GGXXACPROverlay
                 return;
             }
 
-            shouldRender = GGXXACPR.GGXXACPR.ShouldRender();
+            _overlaySettings.ShouldRender = GGXXACPR.GGXXACPR.ShouldRender();
 
             lock (_gameStateUpdater)
             {
                 WindowHelper.GetWindowClientBounds(_gameHandle, out WindowBounds gameWinDim);
                 _windowDimensions = new Drawing.Dimensions(gameWinDim.Right - gameWinDim.Left, gameWinDim.Bottom - gameWinDim.Top);
                 _gameState = GGXXACPR.GGXXACPR.GetGameState();
-                int exitCode = _frameMeter.Update(_gameState);
+                int exitCode = _frameMeter.Update(_gameState, _overlaySettings);
                 // Update refresh if bad gamestate read is detected
                 // TODO: rework this after gamestate hooks
                 if (exitCode > 0)
                 {
                     Debug.WriteLine("Refreshing game state.");
                     _gameState = GGXXACPR.GGXXACPR.GetGameState();
-                    _frameMeter.Update(_gameState);
+                    _frameMeter.Update(_gameState, _overlaySettings);
                 }
             }
         }
@@ -142,30 +111,42 @@ namespace GGXXACPROverlay
             var g = e.Graphics;
             g.ClearScene();
 
-            if (!shouldRender) { return; }
+            if (!_overlaySettings.ShouldRender) { return; }
 
             lock (_gameStateLock)
             {
                 g.BeginScene();
 
-                if (drawHitboxes)
+                if (_overlaySettings.DisplayHitBoxes)
                 {
+                    Drawing.BeginClipGameRegion(g, _windowDimensions);
+
                     Drawing.DrawPlayerPushBox(g, _resources, _gameState, _gameState.Player1, _windowDimensions);
                     Drawing.DrawPlayerBoxes(g, _resources, _drawList, _gameState, _gameState.Player1, _windowDimensions);
+                    Drawing.DrawPlayerGrabBox(g, _resources, _gameState, _gameState.Player1, _windowDimensions, _overlaySettings.AlwaysDrawThrowRange);
 
                     Drawing.DrawPlayerPushBox(g, _resources, _gameState, _gameState.Player2, _windowDimensions);
                     Drawing.DrawPlayerBoxes(g, _resources, _drawList, _gameState, _gameState.Player2, _windowDimensions);
+                    Drawing.DrawPlayerGrabBox(g, _resources, _gameState, _gameState.Player2, _windowDimensions, _overlaySettings.AlwaysDrawThrowRange);
 
                     Drawing.DrawProjectileBoxes(g, _resources, _drawList, _gameState, _windowDimensions);
 
                     Drawing.DrawPlayerPivot(g, _resources, _gameState, _gameState.Player1, _windowDimensions);
                     Drawing.DrawPlayerPivot(g, _resources, _gameState, _gameState.Player2, _windowDimensions);
+
+                    Drawing.EndClipGameRegion(g);
                 }
 
-                if (drawFrameMeter)
+                if (_overlaySettings.DisplayFrameMeter)
                 {
                     Drawing.DrawFrameMeter(g, _resources, _frameMeter, _windowDimensions);
                 }
+                if (_overlaySettings.DisplayFrameMeterLegend)
+                {
+                    Drawing.DrawFrameMeterLegend(g, _resources, _windowDimensions);
+                }
+
+                Drawing.DrawSettingsLabels(g, _resources, _overlaySettings);
 
                 g.EndScene();
             }
