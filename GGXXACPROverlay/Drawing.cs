@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using GameOverlay.Drawing;
 using GGXXACPROverlay.GGXXACPR;
 using SharpDX.Direct2D1;
@@ -123,11 +124,12 @@ namespace GGXXACPROverlay
                 var cmdThrowRange = MoveData.GetCommandGrabRange(player.CharId, player.ActionId);
                 Hitbox cmdThrowHitboxRep = new()
                 {
-                    XOffset = (short)(-cmdThrowRange / 100),
-                    YOffset = (short)-player.PushBox.Height,
-                    Width   = (short)(cmdThrowRange * 2 / 100),
+                    XOffset = (short)(player.PushBox.XOffset - cmdThrowRange / 100),
+                    YOffset = player.PushBox.YOffset,
+                    Width   = (short)(player.PushBox.Width + cmdThrowRange * 2 / 100),
                     Height  = player.PushBox.Height
                 };
+
                 Rectangle mappedRect = MapHitboxToPlayerOrigin(cmdThrowHitboxRep, player);
                 Rectangle drawRect = PixelToWindow(WorldToPixel(mappedRect, state.Camera), windowDimensions);
 

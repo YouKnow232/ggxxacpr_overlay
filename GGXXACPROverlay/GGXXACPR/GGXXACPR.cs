@@ -435,18 +435,7 @@
             int yOffset = 0;
             short[] widthArr;
             short[] heightArr;
-            if (status.IsCrouching)
-            {
-                widthArr = PushBoxCrouchingWidths;
-                heightArr = PushBoxCrouchingHeights;
-            }
-            else if (status.IsPushboxType1)
-            {
-                // Not really sure what state this is. Adapting the draw logic from another project.
-                widthArr = PushBoxAirWidths;
-                heightArr = PushBoxStandingHeights;
-            }
-            else if (status.IsAirborne)
+            if (status.IsAirborne)
             {
                 widthArr = PushBoxAirWidths;
                 heightArr = PushBoxAirHeights;
@@ -459,6 +448,17 @@
                 {
                     yOffset = BitConverter.ToInt32(Memory.ReadMemoryPlusBaseOffset(PUSHBOX_P2_JUMP_OFFSET_ADDRESS, sizeof(int))) + yPos;
                 }
+            }
+            else if (status.IsCrouching)
+            {
+                widthArr = PushBoxCrouchingWidths;
+                heightArr = PushBoxCrouchingHeights;
+            }
+            else if (status.IsPushboxType1)
+            {
+                // Not really sure what state this is. Adapting the draw logic from another project.
+                widthArr = PushBoxAirWidths;
+                heightArr = PushBoxStandingHeights;
             }
             else    // IsStanding
             {
