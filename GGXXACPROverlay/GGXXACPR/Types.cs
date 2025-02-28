@@ -166,6 +166,7 @@
         public readonly bool Unknown0x01000000 { get { return (_flags & 0x01000000) > 0; } }
         public readonly bool Unknown0x02000000 { get { return (_flags & 0x02000000) > 0; } }
         public readonly bool IgnoreHitEffectsRecieved { get { return (_flags & 0x04000000) > 0; } } // Used for Dizzy bubble hurtbox to ignore hitstop
+        public readonly bool Cull { get { return (_flags & 0x80000000) > 0; } } // Entities that are marked for despawn
 
         public static implicit operator ActionStateFlags(uint flags) => new(flags);
         public static implicit operator ActionStateFlags(int flags) => new((uint)flags);

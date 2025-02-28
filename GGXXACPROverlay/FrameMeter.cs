@@ -399,12 +399,12 @@ namespace GGXXACPROverlay
         {
             // LINQ is so nice
             var ownerEntitiesHitboxes =
-                state.Entities.Where(e => e.PlayerIndex == index && !e.Status.DisableHitboxes)
+                state.Entities.Where(e => IsEntityInBounds(e) && e.PlayerIndex == index && !e.Status.DisableHitboxes)
                               .SelectMany(e => e.HitboxSet)
                               .Where(h => h.BoxTypeId == BoxId.HIT);
 
             var ownerEntityHurtboxes =
-                state.Entities.Where(e => e.PlayerIndex == index && !e.Status.DisableHurtboxes)
+                state.Entities.Where(e => IsEntityInBounds(e) && e.PlayerIndex == index && !e.Status.DisableHurtboxes)
                               .SelectMany(e => e.HitboxSet)
                               .Where(h => h.BoxTypeId == BoxId.HURT);
 
@@ -420,6 +420,21 @@ namespace GGXXACPROverlay
             {
                 return FrameType.None;
             }
+        }
+
+        private const int X_IGNORE_BOUNDARY = 86000;
+        private const int Y_IGNORE_TOP_BOUNDARY = -120000;
+        private const int Y_IGNORE_BOTTOM_BOUNDARY = 48000;
+        private static bool IsEntityInBounds(Entity e)
+        {
+            if (Math.Abs(e.XPos) > X_IGNORE_BOUNDARY ||
+                e.YPos < Y_IGNORE_TOP_BOUNDARY ||
+                e.YPos > Y_IGNORE_BOTTOM_BOUNDARY)
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private void UpdateIndividualMeter(GameState state, int index)
