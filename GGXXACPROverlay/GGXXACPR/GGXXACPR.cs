@@ -88,6 +88,7 @@
         private const int SCALE_X_OFFSET = 0x50;
         private const int SCALE_Y_OFFSET= 0x52;
         private const int HITBOX_LIST_OFFSET = 0x54;
+        private const int HITBOX_EXTRA_LIST_OFFSET = 0x58;
         private const int HITBOX_LIST_LENGTH_OFFSET = 0x84;
         private const int HITBOX_ITERATION_VAR_OFFSET = 0x85;
         private const int XPOS_OFFSET = 0xB0;
@@ -374,11 +375,12 @@
 
             nint playerExtraPtr = (nint)BitConverter.ToUInt32(data, PLAYER_EXTRA_PTR_OFFSET);
             nint hitboxArrayPtr = (nint)BitConverter.ToUInt32(data, HITBOX_LIST_OFFSET);
+            nint hitboxExtraArrayPtr = (nint)BitConverter.ToUInt32(data, HITBOX_EXTRA_LIST_OFFSET);
 
             PlayerExtra extra = new();
             if (playerExtraPtr != 0) { extra = GetPlayerExtra(playerExtraPtr); }
             Hitbox[] boxSet = [];
-            if (hitboxArrayPtr != 0) { boxSet = GetHitboxes(hitboxArrayPtr, boxCount); }
+            if (hitboxArrayPtr != 0) { boxSet = GetHitboxes(hitboxArrayPtr, hitboxExtraArrayPtr, boxCount); }
             var charId = (CharacterID)BitConverter.ToUInt16(data);
             var status = BitConverter.ToUInt32(data, STATUS_OFFSET);
             var actId = BitConverter.ToUInt16(data, ACT_ID_OFFSET);
@@ -503,15 +505,20 @@
             }
         }
 
-        private static Hitbox[] GetHitboxes(nint hitboxArrPtr, int numBoxes)
+        private static Hitbox[] GetHitboxes(nint hitboxArrPtr, nint hitboxExtraArrayPtr, int numBoxes)
         {
             byte[] data = Memory.ReadMemory(hitboxArrPtr, numBoxes * HITBOX_ARRAY_STEP);
+            byte[] extraData = Memory.ReadMemory(hitboxExtraArrayPtr, numBoxes * HITBOX_ARRAY_STEP);
             if (data.Length == 0) { return []; }
             Hitbox[] output = new Hitbox[numBoxes];
 
             for (int i = 0; i < numBoxes; i++)
             {
                 Hitbox b = ByteArrToHitbox(data, i * HITBOX_ARRAY_STEP);
+                if (extraData.Length > 0 && b.BoxTypeId == BoxId.UNKNOWN_3)
+                {
+                    b = ByteArrToHitbox(extraData, i * HITBOX_ARRAY_STEP);
+                }
                 output[i] = b;
             }
 
@@ -555,10 +562,11 @@
             if (data.Length == 0) { return new(); }
             byte numBoxes = data[offset + HITBOX_LIST_LENGTH_OFFSET];
             nint boxSetArr = (nint)BitConverter.ToUInt32(data, offset + HITBOX_LIST_OFFSET);
+            nint boxSetExtraArr = (nint)BitConverter.ToUInt32(data, offset + HITBOX_EXTRA_LIST_OFFSET);
             Hitbox[] hitboxes = [];
             if (boxSetArr != nint.Zero)
             {
-                hitboxes = GetHitboxes(boxSetArr, numBoxes);
+                hitboxes = GetHitboxes(boxSetArr, boxSetExtraArr, numBoxes);
             }
 
             return new()

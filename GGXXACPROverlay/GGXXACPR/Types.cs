@@ -50,7 +50,7 @@
         DUMMY     = 0,
         HIT       = 1,
         HURT      = 2,
-        UNKNOWN_3 = 3,  // Something with particle effects. Sprite sheet selector?
+        UNKNOWN_3 = 3,  // Select from extra hitbox set indicator
         PUSH      = 4,
         UNKNOWN_5 = 5,
         UNKNOWN_6 = 6,  // Also something to do with drawing particle effects
