@@ -21,6 +21,9 @@
         // This move has a special pushbox adjustment
         public const int BRIDGET_SHOOT_ACT_ID = 134;
         public const int BRIDGET_SHOOT_PUSHBOX_ADJUST = 7000;
+        // Slide head uses a grounded status check for hit detection instead of a hitbox
+        //  The frame meter will check for this act id to see if it should mark the frame as an active frame
+        public const int SLIDE_HEAD_ACT_ID = 181;
         // For whatever reason, this throw range is hardcoded and not in the array with everything else
         public const int SPECIAL_CASE_COMMAND_THROW_ID = 0x19;
         public const int SPECIAL_CASE_COMMAND_THROW_RANGE = 11000; // GGXXACPR_Win.exe+12054F
@@ -89,6 +92,7 @@
         private const int SCALE_Y_OFFSET= 0x52;
         private const int HITBOX_LIST_OFFSET = 0x54;
         private const int HITBOX_EXTRA_LIST_OFFSET = 0x58;
+        private const int HITBOX_FLAG_OFFSET= 0x5D;
         private const int HITBOX_LIST_LENGTH_OFFSET = 0x84;
         private const int HITBOX_ITERATION_VAR_OFFSET = 0x85;
         private const int XPOS_OFFSET = 0xB0;
@@ -406,6 +410,7 @@
                 ScaleX           = BitConverter.ToInt16(data, SCALE_X_OFFSET),
                 ScaleY           = BitConverter.ToInt16(data, SCALE_Y_OFFSET),
                 HitboxSet        = boxSet,
+                HitboxFlag       = data[HITBOX_FLAG_OFFSET],
                 BoxCount         = boxCount,
                 BoxIter          = data[HITBOX_ITERATION_VAR_OFFSET],
                 XPos             = BitConverter.ToInt32(data, XPOS_OFFSET),

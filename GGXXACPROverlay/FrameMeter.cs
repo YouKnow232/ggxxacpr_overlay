@@ -267,6 +267,13 @@ namespace GGXXACPROverlay
             {
                 return FrameType.Active;
             }
+            // Slide Head runs a grounded status check for all entities when his hitbox flag is -1 to determine if the unblockable connects
+            else if (player.CharId == CharacterID.POTEMKIN &&
+                player.ActionId == GGXXACPR.GGXXACPR.SLIDE_HEAD_ACT_ID &&
+                player.HitboxFlag == 0xFF)
+            {
+                return FrameType.Active;
+            }
             else if (player.Status.IsInBlockstun || player.Extra.SBTime > 0)
             {
                 return FrameType.BlockStun;

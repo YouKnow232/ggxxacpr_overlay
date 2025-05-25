@@ -110,6 +110,7 @@
         /*0x050*/ public short ScaleX = -1;
         /*0x052*/ public short ScaleY = -1;
         /*0x054*/ public Hitbox[] HitboxSet = [];
+        /*0x05D*/ public byte HitboxFlag = 0;
         /*0x084*/ public byte BoxCount = 0;
         /*0x085*/ public byte BoxIter = 255;
         /*0x0B0*/ public int XPos = 0;
