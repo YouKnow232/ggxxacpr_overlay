@@ -1,23 +1,29 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <IncludeNativeLibrariesForSelfExtract>True</IncludeNativeLibrariesForSelfExtract>
+    <IncludeSymbolsInSingleFile>True</IncludeSymbolsInSingleFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <StartupObject>GGXXACPROverlay.Program</StartupObject>
-    <Version>$(VersionPrefix)1.2-develop$(VersionSuffix)</Version>
+    <Version>$(VersionPrefix)2.0-develop$(VersionSuffix)</Version>
     <PackageProjectUrl>https://github.com/YouKnow232/ggxxacpr_overlay</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/YouKnow232/ggxxacpr_overlay</RepositoryUrl>
     <AssemblyVersion></AssemblyVersion>
     <FileVersion></FileVersion>
-    <PlatformTarget>AnyCPU</PlatformTarget>
+    <PlatformTarget>x86</PlatformTarget>
+    <PublishAot>True</PublishAot>
+    <IsAotCompatible>True</IsAotCompatible>
+    <Platforms>AnyCPU;x86</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
     <None Remove="GGXXACPR\MoveData.csv" />
+    <None Remove="OverlaySettings.ini" />
+    <None Remove="Shaders\SolidColorShader.hlsl" />
   </ItemGroup>
 
   <ItemGroup>
@@ -33,10 +39,18 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Vortice.D3DCompiler" Version="3.6.2" />
+    <PackageReference Include="Vortice.Direct3D9" Version="3.6.2" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="GGXXACPR\MoveData.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="OverlaySettings.ini">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Shaders\SolidColorShader.hlsl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
   </ItemGroup>

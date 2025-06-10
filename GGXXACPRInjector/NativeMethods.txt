@@ -1,0 +1,6 @@
+﻿OpenProcess
+GetModuleHandle
+GetProcAddress
+VirtualAllocEx
+WriteProcessMemory
+CreateRemoteThread

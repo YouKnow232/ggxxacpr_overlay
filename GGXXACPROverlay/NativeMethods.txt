@@ -1,12 +1,2 @@
-SetWindowsHookEx
-UnhookWindowsHookEx
-CallNextHookEx
-GetModuleHandle
-
-OpenProcess
-CloseHandle
-ReadProcessMemory
-
-GetMessage
-TranslateMessage
-DispatchMessage
+VirtualProtect
+AllocConsole

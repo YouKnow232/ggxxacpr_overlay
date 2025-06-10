@@ -1,4 +1,6 @@
-﻿namespace GGXXACPROverlay.GGXXACPR
+﻿using System.Runtime.InteropServices;
+
+namespace GGXXACPROverlay.GGXXACPR
 {
     public struct GlobalFlags()
     {
@@ -50,10 +52,10 @@
         DUMMY     = 0,
         HIT       = 1,
         HURT      = 2,
-        UNKNOWN_3 = 3,  // Select from extra hitbox set indicator
+        USE_EXTRA = 3,  // Select from extra hitbox set indicator
         PUSH      = 4,
         UNKNOWN_5 = 5,
-        UNKNOWN_6 = 6,  // Also something to do with drawing particle effects
+        UNKNOWN_6 = 6,  // Something to do with drawing particle effects
     }
 
     public enum CharacterID : short
@@ -92,36 +94,37 @@
         PLUS_R = 1,
     }
 
+    [StructLayout(LayoutKind.Explicit)]
     public struct Player()
     {
-        /*0x000*/ public CharacterID CharId = 0;
-        /*0x002*/ public bool IsFacingRight = false;
-        /*0x00C*/ public ActionStateFlags Status = 0;
-        /*0x012*/ public BufferFlags BufferFlags = 0;
-        /*0x018*/ public ushort ActionId = 0;
-        /*0x01C*/ public ushort AnimationCounter = 0;
-        /*0x027*/ public byte PlayerIndex = 0;
-        /*0x02A*/ public GuardStateFlags GuardFlags = 0;
-        /*0x02C*/ public PlayerExtra Extra = new();
-        /*0x034*/ public AttackStateFlags AttackFlags = 0;
-        /*0x038*/ public CommandFlags CommandFlags = 0;
-        /*0x04C*/ public short CoreX = 0;
-        /*0x04E*/ public short CoreY = 0;
-        /*0x050*/ public short ScaleX = -1;
-        /*0x052*/ public short ScaleY = -1;
-        /*0x054*/ public Hitbox[] HitboxSet = [];
-        /*0x05D*/ public byte HitboxFlag = 0;
-        /*0x084*/ public byte BoxCount = 0;
-        /*0x085*/ public byte BoxIter = 255;
-        /*0x0B0*/ public int XPos = 0;
-        /*0x0B4*/ public int YPos = 0;
-        /*0x0FD*/ public byte HitstopCounter = 255;
-        /*0x0FF*/ public byte Mark = 0;  // Multi-use variable used for move-specific behavior (For Axl, holds parry active state)
-        /*none */ public Hitbox PushBox = new();
+        /*0x000*/ [FieldOffset(0x00)] public CharacterID CharId = 0;
+        /*0x002*/ [FieldOffset(0x02)] public bool IsFacingRight = false;
+        /*0x00C*/ [FieldOffset(0x0C)] public ActionStateFlags Status = 0;
+        /*0x012*/ [FieldOffset(0x12)] public BufferFlags BufferFlags = 0;
+        /*0x018*/ [FieldOffset(0x18)] public ushort ActionId = 0;
+        /*0x01C*/ [FieldOffset(0x1C)] public ushort AnimationCounter = 0;
+        /*0x027*/ [FieldOffset(0x27)] public byte PlayerIndex = 0;
+        /*0x02A*/ [FieldOffset(0x2A)] public GuardStateFlags GuardFlags = 0;
+        ///*0x02C*/ [FieldOffset(0x2C)] public PlayerExtra Extra = new(); // change to a pointer
+        /*0x034*/ [FieldOffset(0x34)] public AttackStateFlags AttackFlags = 0;
+        /*0x038*/ [FieldOffset(0x38)] public CommandFlags CommandFlags = 0;
+        /*0x04C*/ [FieldOffset(0x4C)] public short CoreX = 0;
+        /*0x04E*/ [FieldOffset(0x4E)] public short CoreY = 0;
+        /*0x050*/ [FieldOffset(0x50)] public short ScaleX = -1;
+        /*0x052*/ [FieldOffset(0x52)] public short ScaleY = -1;
+        ///*0x054*/ [FieldOffset(0x54)] public Hitbox[] HitboxSet = []; // switch to a pointer
+        /*0x05D*/ [FieldOffset(0x5D)] public byte HitboxFlag = 0;
+        /*0x084*/ [FieldOffset(0x84)] public byte BoxCount = 0;
+        /*0x085*/ [FieldOffset(0x85)] public byte BoxIter = 255;
+        /*0x0B0*/ [FieldOffset(0xB0)] public int XPos = 0;
+        /*0x0B4*/ [FieldOffset(0xB4)] public int YPos = 0;
+        /*0x0FD*/ [FieldOffset(0xFD)] public byte HitstopCounter = 255;
+        /*0x0FF*/ [FieldOffset(0xFF)] public byte Mark = 0;  // Multi-use variable used for move-specific behavior (For Axl, holds parry active state)
+        ///*none */ public Hitbox PushBox = new();
 
-        public readonly bool HasActiveFrame() =>
-            HitboxSet.Where(hb => hb.BoxTypeId == BoxId.HIT).Any() && !Status.DisableHitboxes ||
-            Mark == 1 && MoveData.IsActiveByMark(CharId, ActionId);
+        //public readonly bool HasActiveFrame() =>
+        //    HitboxSet.Where(hb => hb.BoxTypeId == BoxId.HIT).Any() && !Status.DisableHitboxes ||
+        //    Mark == 1 && MoveData.IsActiveByMark(CharId, ActionId);
     }
     public struct PlayerExtra()
     {

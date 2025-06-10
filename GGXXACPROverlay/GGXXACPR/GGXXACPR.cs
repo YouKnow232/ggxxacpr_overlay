@@ -148,452 +148,452 @@
         private static short[] _airThrowRangesAC = [];
         private static short[] _airThrowUpperBounds = [];
         private static short[] _airThrowLowerBounds = [];
-        private static nint Player1Pointer {
-            get
-            {
-                if (_playerPointerCache == nint.Zero)
-                {
-                    _playerPointerCache = DereferencePointer(PLAYER_1_PTR_ADDR);
-                }
-                return _playerPointerCache;
-            }
-        }
-        private static nint Player2Pointer
-        {
-            get { return Player1Pointer + ENTITY_STRUCT_BUFFER; }
-        }
-        private static short[] CommandGrabRanges
-        {
-            get
-            {
-                if (_cmdGrabRangeArray.Length == 0)
-                {
-                    var data = Memory.ReadMemoryPlusBaseOffset(COMMAND_GRAB_RANGE_LOOKUP_TABLE,
-                        sizeof(short) * COMMAND_GRAB_RANGE_LOOKUP_TABLE_SIZE);
-                    if (data.Length == 0) return [];
+        //private static nint Player1Pointer {
+        //    get
+        //    {
+        //        if (_playerPointerCache == nint.Zero)
+        //        {
+        //            _playerPointerCache = DereferencePointer(PLAYER_1_PTR_ADDR);
+        //        }
+        //        return _playerPointerCache;
+        //    }
+        //}
+        //private static nint Player2Pointer
+        //{
+        //    get { return Player1Pointer + ENTITY_STRUCT_BUFFER; }
+        //}
+        //private static short[] CommandGrabRanges
+        //{
+        //    get
+        //    {
+        //        if (_cmdGrabRangeArray.Length == 0)
+        //        {
+        //            var data = Memory.ReadMemoryPlusBaseOffset(COMMAND_GRAB_RANGE_LOOKUP_TABLE,
+        //                sizeof(short) * COMMAND_GRAB_RANGE_LOOKUP_TABLE_SIZE);
+        //            if (data.Length == 0) return [];
 
-                    _cmdGrabRangeArray = data.Chunk(sizeof(short)).Select(chunk => BitConverter.ToInt16(chunk)).ToArray();
-                }
+        //            _cmdGrabRangeArray = data.Chunk(sizeof(short)).Select(chunk => BitConverter.ToInt16(chunk)).ToArray();
+        //        }
 
-                return _cmdGrabRangeArray;
-            }
-        }
-        private static short[] PushBoxStandingWidths { get => CharacterWORDArrayCacheAccessor(ref _pushBoxStandingWidths, PUSHBOX_STANDING_WIDTH_ARRAY); }
-        private static short[] PushBoxStandingHeights { get => CharacterWORDArrayCacheAccessor(ref _pushBoxStandingHeights, PUSHBOX_STANDING_HEIGHT_ARRAY); }
-        private static short[] PushBoxCrouchingWidths { get => CharacterWORDArrayCacheAccessor(ref _pushBoxCrouchingWidths, PUSHBOX_CROUCHING_WIDTH_ARRAY); }
-        private static short[] PushBoxCrouchingHeights { get => CharacterWORDArrayCacheAccessor(ref _pushBoxCrouchingHeights, PUSHBOX_CROUCHING_HEIGHT_ARRAY); }
-        private static short[] PushBoxAirWidths { get => CharacterWORDArrayCacheAccessor(ref _pushBoxAirWidths, PUSHBOX_AIR_WIDTH_ARRAY); }
-        private static short[] PushBoxAirHeights { get => CharacterWORDArrayCacheAccessor(ref _pushBoxAirHeights, PUSHBOX_AIR_HEIGHT_ARRAY); }
-        private static short[] GroundThrowRangesPlusR { get => CharacterWORDArrayCacheAccessor(ref _groundThrowRangesPlusR, PLUSR_GROUND_THROW_RANGE_ARRAY); }
-        private static short[] GroundThrowRangesAC { get => CharacterWORDArrayCacheAccessor(ref _groundThrowRangesAC, AC_GROUND_THROW_RANGE_ARRAY); }
-        private static short[] AirThrowRangesPlusR { get => CharacterWORDArrayCacheAccessor(ref _airThrowRangesPlusR, PLUSR_AIR_THROW_HORIZONTAL_RANGE_ARRAY); }
-        private static short[] AirThrowRangesAC { get => CharacterWORDArrayCacheAccessor(ref _airThrowRangesAC, AC_AIR_THROW_HORIZONTAL_RANGE_ARRAY); }
-        private static short[] AirThrowUpperBounds { get => CharacterWORDArrayCacheAccessor(ref _airThrowUpperBounds, AIR_THROW_UPPER_RANGE_ARRAY); }
-        private static short[] AirThrowLowerBounds { get => CharacterWORDArrayCacheAccessor(ref _airThrowLowerBounds, AIR_THROW_LOWER_RANGE_ARRAY); }
-        private static short[] CharacterWORDArrayCacheAccessor(ref short[] cache, nint targetAddress)
-        {
-            if (cache.Length == 0)
-            {
-                var data = Memory.ReadMemoryPlusBaseOffset(targetAddress,
-                    sizeof(short) * (NUMBER_OF_CHARACTERS + 1));
-                if (data.Length == 0) return [];
+        //        return _cmdGrabRangeArray;
+        //    }
+        //}
+        //private static short[] PushBoxStandingWidths { get => CharacterWORDArrayCacheAccessor(ref _pushBoxStandingWidths, PUSHBOX_STANDING_WIDTH_ARRAY); }
+        //private static short[] PushBoxStandingHeights { get => CharacterWORDArrayCacheAccessor(ref _pushBoxStandingHeights, PUSHBOX_STANDING_HEIGHT_ARRAY); }
+        //private static short[] PushBoxCrouchingWidths { get => CharacterWORDArrayCacheAccessor(ref _pushBoxCrouchingWidths, PUSHBOX_CROUCHING_WIDTH_ARRAY); }
+        //private static short[] PushBoxCrouchingHeights { get => CharacterWORDArrayCacheAccessor(ref _pushBoxCrouchingHeights, PUSHBOX_CROUCHING_HEIGHT_ARRAY); }
+        //private static short[] PushBoxAirWidths { get => CharacterWORDArrayCacheAccessor(ref _pushBoxAirWidths, PUSHBOX_AIR_WIDTH_ARRAY); }
+        //private static short[] PushBoxAirHeights { get => CharacterWORDArrayCacheAccessor(ref _pushBoxAirHeights, PUSHBOX_AIR_HEIGHT_ARRAY); }
+        //private static short[] GroundThrowRangesPlusR { get => CharacterWORDArrayCacheAccessor(ref _groundThrowRangesPlusR, PLUSR_GROUND_THROW_RANGE_ARRAY); }
+        //private static short[] GroundThrowRangesAC { get => CharacterWORDArrayCacheAccessor(ref _groundThrowRangesAC, AC_GROUND_THROW_RANGE_ARRAY); }
+        //private static short[] AirThrowRangesPlusR { get => CharacterWORDArrayCacheAccessor(ref _airThrowRangesPlusR, PLUSR_AIR_THROW_HORIZONTAL_RANGE_ARRAY); }
+        //private static short[] AirThrowRangesAC { get => CharacterWORDArrayCacheAccessor(ref _airThrowRangesAC, AC_AIR_THROW_HORIZONTAL_RANGE_ARRAY); }
+        //private static short[] AirThrowUpperBounds { get => CharacterWORDArrayCacheAccessor(ref _airThrowUpperBounds, AIR_THROW_UPPER_RANGE_ARRAY); }
+        //private static short[] AirThrowLowerBounds { get => CharacterWORDArrayCacheAccessor(ref _airThrowLowerBounds, AIR_THROW_LOWER_RANGE_ARRAY); }
+        //private static short[] CharacterWORDArrayCacheAccessor(ref short[] cache, nint targetAddress)
+        //{
+        //    if (cache.Length == 0)
+        //    {
+        //        var data = Memory.ReadMemoryPlusBaseOffset(targetAddress,
+        //            sizeof(short) * (NUMBER_OF_CHARACTERS + 1));
+        //        if (data.Length == 0) return [];
 
-                cache = data.Chunk(sizeof(short)).Select(chunk => BitConverter.ToInt16(chunk)).ToArray();
-            }
+        //        cache = data.Chunk(sizeof(short)).Select(chunk => BitConverter.ToInt16(chunk)).ToArray();
+        //    }
 
-            return cache;
-        }
+        //    return cache;
+        //}
         #endregion
 
-        private static nint DereferencePointer(nint pointer)
-        {
-            byte[] data = Memory.ReadMemoryPlusBaseOffset(pointer, sizeof(int));
-            if ( data.Length == 0 ) { return nint.Zero; }
-            return BitConverter.ToInt32(data);
-        }
+        //private static nint DereferencePointer(nint pointer)
+        //{
+        //    byte[] data = Memory.ReadMemoryPlusBaseOffset(pointer, sizeof(int));
+        //    if ( data.Length == 0 ) { return nint.Zero; }
+        //    return BitConverter.ToInt32(data);
+        //}
 
-        public static bool ShouldRender()
-        {
-            byte[] data = Memory.ReadMemoryPlusBaseOffset(IN_GAME_FLAG, sizeof(byte));
-            if (data.Length == 0) { Memory.HandleSystemError("In-game flag read error"); }
+        //public static bool ShouldRender()
+        //{
+        //    byte[] data = Memory.ReadMemoryPlusBaseOffset(IN_GAME_FLAG, sizeof(byte));
+        //    if (data.Length == 0) { Memory.HandleSystemError("In-game flag read error"); }
 
-            return data[0] == 1;
-        }
+        //    return data[0] == 1;
+        //}
 
-        public static short LookUpCommandGrabRange(int cmdGrabId)
-        {
-            if (CommandGrabRanges.Length == 0) { return 0; }
+        //public static short LookUpCommandGrabRange(int cmdGrabId)
+        //{
+        //    if (CommandGrabRanges.Length == 0) { return 0; }
 
-            return CommandGrabRanges[cmdGrabId];
-        }
+        //    return CommandGrabRanges[cmdGrabId];
+        //}
 
-        public static Hitbox GetThrowBox(GameState state, Player p)
-        {
-            if (p.Status.IsAirborne)
-            {
-                short horizontalRange;
-                if (state.GlobalFlags.GameVersionFlag == GameVersion.PLUS_R)
-                {
-                    horizontalRange = AirThrowRangesPlusR[(int)p.CharId];
-                }
-                else
-                {
-                    horizontalRange = AirThrowRangesAC[(int)p.CharId];
-                }
-                short upperBound = AirThrowUpperBounds[(int)p.CharId];
-                short lowerBound = AirThrowLowerBounds[(int)p.CharId];
+        //public static Hitbox GetThrowBox(GameState state, Player p)
+        //{
+        //    if (p.Status.IsAirborne)
+        //    {
+        //        short horizontalRange;
+        //        if (state.GlobalFlags.GameVersionFlag == GameVersion.PLUS_R)
+        //        {
+        //            horizontalRange = AirThrowRangesPlusR[(int)p.CharId];
+        //        }
+        //        else
+        //        {
+        //            horizontalRange = AirThrowRangesAC[(int)p.CharId];
+        //        }
+        //        short upperBound = AirThrowUpperBounds[(int)p.CharId];
+        //        short lowerBound = AirThrowLowerBounds[(int)p.CharId];
 
-                return new Hitbox()
-                {
-                    XOffset = (short)(p.PushBox.XOffset - horizontalRange / 100),
-                    YOffset = (short)(p.PushBox.YOffset + p.PushBox.Height + upperBound / 100),
-                    Width   = (short)(p.PushBox.Width + horizontalRange / 50),
-                    Height  = (short)((lowerBound - upperBound) / 100),
-                };
-            }
-            else
-            {
-                short range;
-                if (state.GlobalFlags.GameVersionFlag == GameVersion.PLUS_R)
-                {
-                    range = GroundThrowRangesPlusR[(int)p.CharId];
-                }
-                else
-                {
-                    range = GroundThrowRangesAC[(int)p.CharId];
-                }
+        //        return new Hitbox()
+        //        {
+        //            XOffset = (short)(p.PushBox.XOffset - horizontalRange / 100),
+        //            YOffset = (short)(p.PushBox.YOffset + p.PushBox.Height + upperBound / 100),
+        //            Width = (short)(p.PushBox.Width + horizontalRange / 50),
+        //            Height = (short)((lowerBound - upperBound) / 100),
+        //        };
+        //    }
+        //    else
+        //    {
+        //        short range;
+        //        if (state.GlobalFlags.GameVersionFlag == GameVersion.PLUS_R)
+        //        {
+        //            range = GroundThrowRangesPlusR[(int)p.CharId];
+        //        }
+        //        else
+        //        {
+        //            range = GroundThrowRangesAC[(int)p.CharId];
+        //        }
 
-                return new Hitbox()
-                {
-                    XOffset = (short)(p.PushBox.XOffset - range / 100),
-                    YOffset = p.PushBox.YOffset,
-                    Width   = (short)(p.PushBox.Width + range / 50),
-                    Height  = p.PushBox.Height,
-                };
-            }
-        }
+        //        return new Hitbox()
+        //        {
+        //            //XOffset = (short)(p.PushBox.XOffset - range / 100),
+        //            //YOffset = p.PushBox.YOffset,
+        //            //Width   = (short)(p.PushBox.Width + range / 50),
+        //            //Height  = p.PushBox.Height,
+        //        };
+        //    }
+        //}
 
-        public static GameState GetGameState()
-        {
-            return new GameState(
-                GetPlayerStruct(Player1Pointer),
-                GetPlayerStruct(Player2Pointer),
-                GetCameraStruct(),
-                GetEntities(),
-                GetGlobals()
-            );
-        }
+        //public static GameState GetGameState()
+        //{
+        //    return new GameState(
+        //        GetPlayerStruct(Player1Pointer),
+        //        GetPlayerStruct(Player2Pointer),
+        //        GetCameraStruct(),
+        //        GetEntities(),
+        //        GetGlobals()
+        //    );
+        //}
 
-        private static GlobalFlags GetGlobals()
-        {
-            byte[] data;
+        //private static GlobalFlags GetGlobals()
+        //{
+        //    byte[] data;
 
-            ThrowFlags throwFlags = new();
-            data = Memory.ReadMemoryPlusBaseOffset(GLOBAL_THROW_FLAGS_ADDR, 1);
-            if (data.Length != 0) {
-                throwFlags = new ThrowFlags(data[0]);
-            }
+        //    ThrowFlags throwFlags = new();
+        //    data = Memory.ReadMemoryPlusBaseOffset(GLOBAL_THROW_FLAGS_ADDR, 1);
+        //    if (data.Length != 0) {
+        //        throwFlags = new ThrowFlags(data[0]);
+        //    }
 
-            int p1CommandThrowId = 0;
-            int p2CommandThrowId = 0;
-            data = Memory.ReadMemoryPlusBaseOffset(COMMAND_GRAB_ID_ADDR, sizeof(int) * 2);
-            if (data.Length != 0)
-            {
-                p1CommandThrowId = BitConverter.ToInt32(data);
-                p2CommandThrowId = BitConverter.ToInt32(data, sizeof(int));
-            }
+        //    int p1CommandThrowId = 0;
+        //    int p2CommandThrowId = 0;
+        //    data = Memory.ReadMemoryPlusBaseOffset(COMMAND_GRAB_ID_ADDR, sizeof(int) * 2);
+        //    if (data.Length != 0)
+        //    {
+        //        p1CommandThrowId = BitConverter.ToInt32(data);
+        //        p2CommandThrowId = BitConverter.ToInt32(data, sizeof(int));
+        //    }
 
-            data = Memory.ReadMemoryPlusBaseOffset(COMMAND_GRAB_RANGE_LOOKUP_TABLE + p1CommandThrowId*2, sizeof(short));
-            int p1CommandThrowRange = 0;
-            if (data.Length != 0)
-            {
-                p1CommandThrowRange = BitConverter.ToInt16(data);
-            }
-            data = Memory.ReadMemoryPlusBaseOffset(COMMAND_GRAB_RANGE_LOOKUP_TABLE + p2CommandThrowId * 2, sizeof(short));
-            int p2CommandThrowRange = 0;
-            if (data.Length != 0)
-            {
-                p2CommandThrowRange = BitConverter.ToInt16(data);
-            }
+        //    data = Memory.ReadMemoryPlusBaseOffset(COMMAND_GRAB_RANGE_LOOKUP_TABLE + p1CommandThrowId*2, sizeof(short));
+        //    int p1CommandThrowRange = 0;
+        //    if (data.Length != 0)
+        //    {
+        //        p1CommandThrowRange = BitConverter.ToInt16(data);
+        //    }
+        //    data = Memory.ReadMemoryPlusBaseOffset(COMMAND_GRAB_RANGE_LOOKUP_TABLE + p2CommandThrowId * 2, sizeof(short));
+        //    int p2CommandThrowRange = 0;
+        //    if (data.Length != 0)
+        //    {
+        //        p2CommandThrowRange = BitConverter.ToInt16(data);
+        //    }
 
-            GameVersion gameVer = GameVersion.PLUS_R;
-            data = Memory.ReadMemoryPlusBaseOffset(GAME_VER_FLAG, sizeof(int));
-            if (data.Length != 0)
-            {
-                gameVer = (GameVersion)BitConverter.ToInt32(data);
-            }
+        //    GameVersion gameVer = GameVersion.PLUS_R;
+        //    data = Memory.ReadMemoryPlusBaseOffset(GAME_VER_FLAG, sizeof(int));
+        //    if (data.Length != 0)
+        //    {
+        //        gameVer = (GameVersion)BitConverter.ToInt32(data);
+        //    }
 
-            int pauseVar = 0;
-            data = Memory.ReadMemoryPlusBaseOffset(GLOBAL_PAUSE_VAR_ADDR, sizeof(int));
-            if (data.Length != 0)
-            {
-                pauseVar = BitConverter.ToInt32(data);
-            }
+        //    int pauseVar = 0;
+        //    data = Memory.ReadMemoryPlusBaseOffset(GLOBAL_PAUSE_VAR_ADDR, sizeof(int));
+        //    if (data.Length != 0)
+        //    {
+        //        pauseVar = BitConverter.ToInt32(data);
+        //    }
 
-            int replaySim = 0;
-            data = Memory.ReadMemoryPlusBaseOffset(GLOBAL_REPLAY_SIMULATE_ADDR, sizeof(int));
-            if (data.Length != 0)
-            {
-                replaySim = BitConverter.ToInt32(data);
-            }
+        //    int replaySim = 0;
+        //    data = Memory.ReadMemoryPlusBaseOffset(GLOBAL_REPLAY_SIMULATE_ADDR, sizeof(int));
+        //    if (data.Length != 0)
+        //    {
+        //        replaySim = BitConverter.ToInt32(data);
+        //    }
 
-            return new()
-            {
-                ThrowFlags            = throwFlags,
-                P1ActiveCommandGrabId = p1CommandThrowId,
-                P2ActiveCommandGrabId = p2CommandThrowId,
-                P1CommandGrabRange    = p1CommandThrowRange,
-                P2CommandGrabRange    = p2CommandThrowRange,
-                GameVersionFlag       = gameVer,
-                PauseState1           = pauseVar,
-                ReplaySimState        = replaySim,
-            };
-        }
+        //    return new()
+        //    {
+        //        ThrowFlags            = throwFlags,
+        //        P1ActiveCommandGrabId = p1CommandThrowId,
+        //        P2ActiveCommandGrabId = p2CommandThrowId,
+        //        P1CommandGrabRange    = p1CommandThrowRange,
+        //        P2CommandGrabRange    = p2CommandThrowRange,
+        //        GameVersionFlag       = gameVer,
+        //        PauseState1           = pauseVar,
+        //        ReplaySimState        = replaySim,
+        //    };
+        //}
 
-        private static Camera GetCameraStruct()
-        {
-            byte[] data = Memory.ReadMemoryPlusBaseOffset(CAMERA_ADDR, CAMERA_STRUCT_BUFFER);
-            if (data.Length == 0) { return new(); }
+        //private static Camera GetCameraStruct()
+        //{
+        //    byte[] data = Memory.ReadMemoryPlusBaseOffset(CAMERA_ADDR, CAMERA_STRUCT_BUFFER);
+        //    if (data.Length == 0) { return new(); }
 
-            return new()
-            {
-                CenterXPos = BitConverter.ToInt32(data, CAMERA_X_CENTER_OFFSET),
-                BottomEdge = BitConverter.ToInt32(data, CAMERA_BOTTOM_EDGE_OFFSET),
-                LeftEdge   = BitConverter.ToInt32(data, CAMERA_LEFT_EDGE_OFFSET),
-                Width      = BitConverter.ToInt32(data, CAMERA_WIDTH_OFFSET),
-                Height     = BitConverter.ToInt32(data, CAMERA_HEIGHT_OFFSET),
-                Zoom       = BitConverter.ToSingle(data, CAMERA_ZOOM_OFFSET)
-            };
-        }
+        //    return new()
+        //    {
+        //        CenterXPos = BitConverter.ToInt32(data, CAMERA_X_CENTER_OFFSET),
+        //        BottomEdge = BitConverter.ToInt32(data, CAMERA_BOTTOM_EDGE_OFFSET),
+        //        LeftEdge   = BitConverter.ToInt32(data, CAMERA_LEFT_EDGE_OFFSET),
+        //        Width      = BitConverter.ToInt32(data, CAMERA_WIDTH_OFFSET),
+        //        Height     = BitConverter.ToInt32(data, CAMERA_HEIGHT_OFFSET),
+        //        Zoom       = BitConverter.ToSingle(data, CAMERA_ZOOM_OFFSET)
+        //    };
+        //}
 
-        private static Player GetPlayerStruct(nint playerPtr)
-        {
-            if (playerPtr == nint.Zero) { return new(); }
+        //private static Player GetPlayerStruct(nint playerPtr)
+        //{
+        //    if (playerPtr == nint.Zero) { return new(); }
 
-            byte[] data = Memory.ReadMemory(playerPtr, ENTITY_STRUCT_BUFFER);
-            if (data.Length == 0) {
-                _playerPointerCache = nint.Zero;
-                return new();
-            }
-            var boxCount = data[HITBOX_LIST_LENGTH_OFFSET];
+        //    byte[] data = Memory.ReadMemory(playerPtr, ENTITY_STRUCT_BUFFER);
+        //    if (data.Length == 0) {
+        //        _playerPointerCache = nint.Zero;
+        //        return new();
+        //    }
+        //    var boxCount = data[HITBOX_LIST_LENGTH_OFFSET];
 
-            nint playerExtraPtr = (nint)BitConverter.ToUInt32(data, PLAYER_EXTRA_PTR_OFFSET);
-            nint hitboxArrayPtr = (nint)BitConverter.ToUInt32(data, HITBOX_LIST_OFFSET);
-            nint hitboxExtraArrayPtr = (nint)BitConverter.ToUInt32(data, HITBOX_EXTRA_LIST_OFFSET);
+        //    nint playerExtraPtr = (nint)BitConverter.ToUInt32(data, PLAYER_EXTRA_PTR_OFFSET);
+        //    nint hitboxArrayPtr = (nint)BitConverter.ToUInt32(data, HITBOX_LIST_OFFSET);
+        //    nint hitboxExtraArrayPtr = (nint)BitConverter.ToUInt32(data, HITBOX_EXTRA_LIST_OFFSET);
 
-            PlayerExtra extra = new();
-            if (playerExtraPtr != 0) { extra = GetPlayerExtra(playerExtraPtr); }
-            Hitbox[] boxSet = [];
-            if (hitboxArrayPtr != 0) { boxSet = GetHitboxes(hitboxArrayPtr, hitboxExtraArrayPtr, boxCount); }
-            var charId = (CharacterID)BitConverter.ToUInt16(data);
-            var status = BitConverter.ToUInt32(data, STATUS_OFFSET);
-            var actId = BitConverter.ToUInt16(data, ACT_ID_OFFSET);
-            var yPos = BitConverter.ToInt32(data, YPOS_OFFSET);
+        //    PlayerExtra extra = new();
+        //    if (playerExtraPtr != 0) { extra = GetPlayerExtra(playerExtraPtr); }
+        //    Hitbox[] boxSet = [];
+        //    if (hitboxArrayPtr != 0) { boxSet = GetHitboxes(hitboxArrayPtr, hitboxExtraArrayPtr, boxCount); }
+        //    var charId = (CharacterID)BitConverter.ToUInt16(data);
+        //    var status = BitConverter.ToUInt32(data, STATUS_OFFSET);
+        //    var actId = BitConverter.ToUInt16(data, ACT_ID_OFFSET);
+        //    var yPos = BitConverter.ToInt32(data, YPOS_OFFSET);
 
-            var pushBox = GetPushBox((ushort)charId, status, actId, yPos, boxSet);
+        //    var pushBox = GetPushBox((ushort)charId, status, actId, yPos, boxSet);
 
-            return new()
-            {
-                CharId           = charId,
-                IsFacingRight    = data[IS_FACING_RIGHT_OFFSET] == 1,
-                Status           = status,
-                BufferFlags      = BitConverter.ToUInt16(data, BUFFER_FLAGS_OFFSET),
-                ActionId         = actId,
-                AnimationCounter = BitConverter.ToUInt16(data, ANIMATION_FRAME_OFFSET),
-                PlayerIndex      = data[PLAYER_INDEX_OFFSET],
-                GuardFlags       = BitConverter.ToUInt16(data, GUARD_FLAGS_OFFSET),
-                Extra            = extra,
-                AttackFlags      = BitConverter.ToUInt32(data, ATTACK_FLAGS_OFFSET),
-                CommandFlags     = BitConverter.ToUInt16(data, COMMAND_FLAGS_OFFSET),
-                CoreX            = BitConverter.ToInt16(data, CORE_X_OFFSET),
-                CoreY            = BitConverter.ToInt16(data, CORE_Y_OFFSET),
-                ScaleX           = BitConverter.ToInt16(data, SCALE_X_OFFSET),
-                ScaleY           = BitConverter.ToInt16(data, SCALE_Y_OFFSET),
-                HitboxSet        = boxSet,
-                HitboxFlag       = data[HITBOX_FLAG_OFFSET],
-                BoxCount         = boxCount,
-                BoxIter          = data[HITBOX_ITERATION_VAR_OFFSET],
-                XPos             = BitConverter.ToInt32(data, XPOS_OFFSET),
-                YPos             = yPos,
-                HitstopCounter   = data[HITSTOP_TIMER_OFFSET],
-                Mark             = data[MARK_OFFSET],
-                PushBox          = pushBox
-            };
-        }
+        //    return new()
+        //    {
+        //        CharId           = charId,
+        //        IsFacingRight    = data[IS_FACING_RIGHT_OFFSET] == 1,
+        //        Status           = status,
+        //        BufferFlags      = BitConverter.ToUInt16(data, BUFFER_FLAGS_OFFSET),
+        //        ActionId         = actId,
+        //        AnimationCounter = BitConverter.ToUInt16(data, ANIMATION_FRAME_OFFSET),
+        //        PlayerIndex      = data[PLAYER_INDEX_OFFSET],
+        //        GuardFlags       = BitConverter.ToUInt16(data, GUARD_FLAGS_OFFSET),
+        //        //Extra            = extra,
+        //        AttackFlags      = BitConverter.ToUInt32(data, ATTACK_FLAGS_OFFSET),
+        //        CommandFlags     = BitConverter.ToUInt16(data, COMMAND_FLAGS_OFFSET),
+        //        CoreX            = BitConverter.ToInt16(data, CORE_X_OFFSET),
+        //        CoreY            = BitConverter.ToInt16(data, CORE_Y_OFFSET),
+        //        ScaleX           = BitConverter.ToInt16(data, SCALE_X_OFFSET),
+        //        ScaleY           = BitConverter.ToInt16(data, SCALE_Y_OFFSET),
+        //        //HitboxSet        = boxSet,
+        //        HitboxFlag       = data[HITBOX_FLAG_OFFSET],
+        //        BoxCount         = boxCount,
+        //        BoxIter          = data[HITBOX_ITERATION_VAR_OFFSET],
+        //        XPos             = BitConverter.ToInt32(data, XPOS_OFFSET),
+        //        YPos             = yPos,
+        //        HitstopCounter   = data[HITSTOP_TIMER_OFFSET],
+        //        Mark             = data[MARK_OFFSET],
+        //        //PushBox          = pushBox
+        //    };
+        //}
 
-        private static PlayerExtra GetPlayerExtra(nint playerExtraPtr)
-        {
-            byte[] data = Memory.ReadMemory(playerExtraPtr, PLAYER_EXTRA_STRUCT_BUFFER);
-            if (data.Length == 0) { return new(); }
+        //private static PlayerExtra GetPlayerExtra(nint playerExtraPtr)
+        //{
+        //    byte[] data = Memory.ReadMemory(playerExtraPtr, PLAYER_EXTRA_STRUCT_BUFFER);
+        //    if (data.Length == 0) { return new(); }
 
-            return new()
-            {
-                ThrowProtectionTimer = BitConverter.ToInt16(data, PLAYER_EXTRA_THROW_PROTECTION_TIMER_OFFSET),
-                InvulnCounter        = data[PLAYER_EXTRA_INVULN_COUNTER_OFFSET],
-                RCTime               = data[PLAYER_EXTRA_RC_TIME_OFFSET],
-                JamParryTime         = data[PLAYER_EXTRA_JAM_PARRY_TIME_OFFSET],
-                ComboTime            = BitConverter.ToInt16(data, PLAYER_EXTRA_COMBO_TIME_OFFSET),
-                SBTime               = data[PLAYER_EXTRA_SLASH_BACK_TIME_OFFSET]
-            };
-        }
+        //    return new()
+        //    {
+        //        ThrowProtectionTimer = BitConverter.ToInt16(data, PLAYER_EXTRA_THROW_PROTECTION_TIMER_OFFSET),
+        //        InvulnCounter        = data[PLAYER_EXTRA_INVULN_COUNTER_OFFSET],
+        //        RCTime               = data[PLAYER_EXTRA_RC_TIME_OFFSET],
+        //        JamParryTime         = data[PLAYER_EXTRA_JAM_PARRY_TIME_OFFSET],
+        //        ComboTime            = BitConverter.ToInt16(data, PLAYER_EXTRA_COMBO_TIME_OFFSET),
+        //        SBTime               = data[PLAYER_EXTRA_SLASH_BACK_TIME_OFFSET]
+        //    };
+        //}
 
-        private static Hitbox GetPushBox(ushort charId, ActionStateFlags status, ushort actId, int yPos, Hitbox[] boxSet)
-        {
-            int yOffset = 0;
-            short[] widthArr;
-            short[] heightArr;
-            if (status.IsAirborne)
-            {
-                widthArr = PushBoxAirWidths;
-                heightArr = PushBoxAirHeights;
-                // Special offsets for pushbox collision checks
-                if (status.IsPlayer1)
-                {
-                    yOffset = BitConverter.ToInt32(Memory.ReadMemoryPlusBaseOffset(PUSHBOX_P1_JUMP_OFFSET_ADDRESS, sizeof(int))) + yPos;
-                }
-                else if (status.IsPlayer2)
-                {
-                    yOffset = BitConverter.ToInt32(Memory.ReadMemoryPlusBaseOffset(PUSHBOX_P2_JUMP_OFFSET_ADDRESS, sizeof(int))) + yPos;
-                }
-            }
-            else if (status.IsCrouching)
-            {
-                widthArr = PushBoxCrouchingWidths;
-                heightArr = PushBoxCrouchingHeights;
-            }
-            else if (status.IsPushboxType1)
-            {
-                // Not really sure what state this is. Adapting the draw logic from another project.
-                widthArr = PushBoxAirWidths;
-                heightArr = PushBoxStandingHeights;
-            }
-            else    // IsStanding
-            {
-                widthArr = PushBoxStandingWidths;
-                heightArr = PushBoxStandingHeights;
-            }
+        //private static Hitbox GetPushBox(ushort charId, ActionStateFlags status, ushort actId, int yPos, Hitbox[] boxSet)
+        //{
+        //    int yOffset = 0;
+        //    short[] widthArr;
+        //    short[] heightArr;
+        //    if (status.IsAirborne)
+        //    {
+        //        widthArr = PushBoxAirWidths;
+        //        heightArr = PushBoxAirHeights;
+        //        // Special offsets for pushbox collision checks
+        //        if (status.IsPlayer1)
+        //        {
+        //            yOffset = BitConverter.ToInt32(Memory.ReadMemoryPlusBaseOffset(PUSHBOX_P1_JUMP_OFFSET_ADDRESS, sizeof(int))) + yPos;
+        //        }
+        //        else if (status.IsPlayer2)
+        //        {
+        //            yOffset = BitConverter.ToInt32(Memory.ReadMemoryPlusBaseOffset(PUSHBOX_P2_JUMP_OFFSET_ADDRESS, sizeof(int))) + yPos;
+        //        }
+        //    }
+        //    else if (status.IsCrouching)
+        //    {
+        //        widthArr = PushBoxCrouchingWidths;
+        //        heightArr = PushBoxCrouchingHeights;
+        //    }
+        //    else if (status.IsPushboxType1)
+        //    {
+        //        // Not really sure what state this is. Adapting the draw logic from another project.
+        //        widthArr = PushBoxAirWidths;
+        //        heightArr = PushBoxStandingHeights;
+        //    }
+        //    else    // IsStanding
+        //    {
+        //        widthArr = PushBoxStandingWidths;
+        //        heightArr = PushBoxStandingHeights;
+        //    }
 
-            short w = widthArr[charId];
-            short h = heightArr[charId];
+        //    short w = widthArr[charId];
+        //    short h = heightArr[charId];
 
-            var pushBoxOverrides = boxSet.Where(b => b.BoxTypeId == BoxId.PUSH);
+        //    var pushBoxOverrides = boxSet.Where(b => b.BoxTypeId == BoxId.PUSH);
 
-            if (pushBoxOverrides.Any())
-            {
-                return new Hitbox()
-                {
-                    XOffset = pushBoxOverrides.First().XOffset,
-                    YOffset = (short)((h + yOffset) / -100),
-                    Width   = pushBoxOverrides.First().Width,
-                    Height  = (short)(h / 100)
-                };
-            }
-            else if (charId == (int)CharacterID.BRIDGET && actId == BRIDGET_SHOOT_ACT_ID)
-            {
-                return new Hitbox()
-                {
-                    XOffset = (short)(w / -100),
-                    YOffset = (short)((h + yOffset + BRIDGET_SHOOT_PUSHBOX_ADJUST) / -100),
-                    Width   = (short)(w / 100 * 2),
-                    Height  = (short)((h + BRIDGET_SHOOT_PUSHBOX_ADJUST) / 100)
-                };
-            }
-            else
-            {
-                return new Hitbox()
-                {
-                    XOffset = (short)(w / -100),
-                    YOffset = (short)((h + yOffset) / -100),
-                    Width = (short)(w / 100 * 2),
-                    Height = (short)(h / 100)
-                };
-            }
-        }
+        //    if (pushBoxOverrides.Any())
+        //    {
+        //        return new Hitbox()
+        //        {
+        //            XOffset = pushBoxOverrides.First().XOffset,
+        //            YOffset = (short)((h + yOffset) / -100),
+        //            Width   = pushBoxOverrides.First().Width,
+        //            Height  = (short)(h / 100)
+        //        };
+        //    }
+        //    else if (charId == (int)CharacterID.BRIDGET && actId == BRIDGET_SHOOT_ACT_ID)
+        //    {
+        //        return new Hitbox()
+        //        {
+        //            XOffset = (short)(w / -100),
+        //            YOffset = (short)((h + yOffset + BRIDGET_SHOOT_PUSHBOX_ADJUST) / -100),
+        //            Width   = (short)(w / 100 * 2),
+        //            Height  = (short)((h + BRIDGET_SHOOT_PUSHBOX_ADJUST) / 100)
+        //        };
+        //    }
+        //    else
+        //    {
+        //        return new Hitbox()
+        //        {
+        //            XOffset = (short)(w / -100),
+        //            YOffset = (short)((h + yOffset) / -100),
+        //            Width = (short)(w / 100 * 2),
+        //            Height = (short)(h / 100)
+        //        };
+        //    }
+        //}
 
-        private static Hitbox[] GetHitboxes(nint hitboxArrPtr, nint hitboxExtraArrayPtr, int numBoxes)
-        {
-            byte[] data = Memory.ReadMemory(hitboxArrPtr, numBoxes * HITBOX_ARRAY_STEP);
-            byte[] extraData = Memory.ReadMemory(hitboxExtraArrayPtr, numBoxes * HITBOX_ARRAY_STEP);
-            if (data.Length == 0) { return []; }
-            Hitbox[] output = new Hitbox[numBoxes];
+        //private static Hitbox[] GetHitboxes(nint hitboxArrPtr, nint hitboxExtraArrayPtr, int numBoxes)
+        //{
+        //    byte[] data = Memory.ReadMemory(hitboxArrPtr, numBoxes * HITBOX_ARRAY_STEP);
+        //    byte[] extraData = Memory.ReadMemory(hitboxExtraArrayPtr, numBoxes * HITBOX_ARRAY_STEP);
+        //    if (data.Length == 0) { return []; }
+        //    Hitbox[] output = new Hitbox[numBoxes];
 
-            for (int i = 0; i < numBoxes; i++)
-            {
-                Hitbox b = ByteArrToHitbox(data, i * HITBOX_ARRAY_STEP);
-                if (extraData.Length > 0 && b.BoxTypeId == BoxId.UNKNOWN_3)
-                {
-                    b = ByteArrToHitbox(extraData, i * HITBOX_ARRAY_STEP);
-                }
-                output[i] = b;
-            }
+        //    for (int i = 0; i < numBoxes; i++)
+        //    {
+        //        Hitbox b = ByteArrToHitbox(data, i * HITBOX_ARRAY_STEP);
+        //        if (extraData.Length > 0 && b.BoxTypeId == BoxId.USE_EXTRA)
+        //        {
+        //            b = ByteArrToHitbox(extraData, i * HITBOX_ARRAY_STEP);
+        //        }
+        //        output[i] = b;
+        //    }
 
-            return output;
-        }
+        //    return output;
+        //}
 
-        private static Hitbox ByteArrToHitbox(byte[] data, int offset)
-        {
-            return new()
-            {
-                XOffset   = BitConverter.ToInt16(data, offset),
-                YOffset   = BitConverter.ToInt16(data, offset + 0x02),
-                Width     = BitConverter.ToInt16(data, offset + 0x04),
-                Height    = BitConverter.ToInt16(data, offset + 0x06),
-                BoxTypeId = (BoxId)BitConverter.ToInt16(data, offset + 0x08),
-                BoxFlags  = BitConverter.ToInt16(data, offset + 0x0A)
-            };
-        }
+        //private static Hitbox ByteArrToHitbox(byte[] data, int offset)
+        //{
+        //    return new()
+        //    {
+        //        XOffset   = BitConverter.ToInt16(data, offset),
+        //        YOffset   = BitConverter.ToInt16(data, offset + 0x02),
+        //        Width     = BitConverter.ToInt16(data, offset + 0x04),
+        //        Height    = BitConverter.ToInt16(data, offset + 0x06),
+        //        BoxTypeId = (BoxId)BitConverter.ToInt16(data, offset + 0x08),
+        //        BoxFlags  = BitConverter.ToInt16(data, offset + 0x0A)
+        //    };
+        //}
 
-        private static Entity[] GetEntities()
-        {
-            Entity[] entityArray = ByteArrayToEntities(Memory.ReadMemory(Player1Pointer, ENTITY_STRUCT_BUFFER * ENTITY_ARRAY_SIZE));
+        //private static Entity[] GetEntities()
+        //{
+        //    Entity[] entityArray = ByteArrayToEntities(Memory.ReadMemory(Player1Pointer, ENTITY_STRUCT_BUFFER * ENTITY_ARRAY_SIZE));
 
-            return entityArray.Skip(2).Where(e => e.Id != 0).ToArray();
-        }
+        //    return entityArray.Skip(2).Where(e => e.Id != 0).ToArray();
+        //}
 
-        private static Entity[] ByteArrayToEntities(byte[] data)
-        {
-            int total = data.Length / ENTITY_STRUCT_BUFFER;
-            Entity[] output = new Entity[total];
-            for (int i = 0; i < total; i++)
-            {
-                output[i] = ByteArrToEntity(data, ENTITY_STRUCT_BUFFER * i);
-            }
+        //private static Entity[] ByteArrayToEntities(byte[] data)
+        //{
+        //    int total = data.Length / ENTITY_STRUCT_BUFFER;
+        //    Entity[] output = new Entity[total];
+        //    for (int i = 0; i < total; i++)
+        //    {
+        //        output[i] = ByteArrToEntity(data, ENTITY_STRUCT_BUFFER * i);
+        //    }
 
-            return output;
-        }
+        //    return output;
+        //}
 
-        private static Entity ByteArrToEntity(byte[] data, int offset)
-        {
-            if (data.Length == 0) { return new(); }
-            byte numBoxes = data[offset + HITBOX_LIST_LENGTH_OFFSET];
-            nint boxSetArr = (nint)BitConverter.ToUInt32(data, offset + HITBOX_LIST_OFFSET);
-            nint boxSetExtraArr = (nint)BitConverter.ToUInt32(data, offset + HITBOX_EXTRA_LIST_OFFSET);
-            Hitbox[] hitboxes = [];
-            if (boxSetArr != nint.Zero)
-            {
-                hitboxes = GetHitboxes(boxSetArr, boxSetExtraArr, numBoxes);
-            }
+        //private static Entity ByteArrToEntity(byte[] data, int offset)
+        //{
+        //    if (data.Length == 0) { return new(); }
+        //    byte numBoxes = data[offset + HITBOX_LIST_LENGTH_OFFSET];
+        //    nint boxSetArr = (nint)BitConverter.ToUInt32(data, offset + HITBOX_LIST_OFFSET);
+        //    nint boxSetExtraArr = (nint)BitConverter.ToUInt32(data, offset + HITBOX_EXTRA_LIST_OFFSET);
+        //    Hitbox[] hitboxes = [];
+        //    if (boxSetArr != nint.Zero)
+        //    {
+        //        hitboxes = GetHitboxes(boxSetArr, boxSetExtraArr, numBoxes);
+        //    }
 
-            return new()
-            {
-                Id              = BitConverter.ToUInt16(data, offset),
-                IsFacingRight   = data[offset + IS_FACING_RIGHT_OFFSET] == 1,
-                BackPtr         = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_BACK_PTR_OFFSET),
-                NextPtr         = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_NEXT_PTR_OFFSET),
-                Status          = BitConverter.ToUInt32(data, offset + STATUS_OFFSET),
-                ParentPtrRaw    = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_PARENT_PTR_OFFSET),
-                PlayerIndex     = data[offset + PLAYER_INDEX_OFFSET],
-                ParentFlag      = BitConverter.ToUInt16(data, offset + PROJECTILE_PARENT_FLAG_OFFSET),
-                CoreX           = BitConverter.ToInt16(data, CORE_X_OFFSET + offset),
-                CoreY           = BitConverter.ToInt16(data, CORE_Y_OFFSET + offset),
-                ScaleX          = BitConverter.ToInt16(data, SCALE_X_OFFSET + offset),
-                ScaleY          = BitConverter.ToInt16(data, SCALE_Y_OFFSET + offset),
-                HitboxSetPtr    = (nint)BitConverter.ToUInt32(data, offset + HITBOX_LIST_OFFSET),
-                HitboxSet       = hitboxes,
-                BoxCount        = numBoxes,
-                XPos            = BitConverter.ToInt32(data, offset + XPOS_OFFSET),
-                YPos            = BitConverter.ToInt32(data, offset + YPOS_OFFSET)
-            };
-        }
+        //    return new()
+        //    {
+        //        Id              = BitConverter.ToUInt16(data, offset),
+        //        IsFacingRight   = data[offset + IS_FACING_RIGHT_OFFSET] == 1,
+        //        BackPtr         = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_BACK_PTR_OFFSET),
+        //        NextPtr         = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_NEXT_PTR_OFFSET),
+        //        Status          = BitConverter.ToUInt32(data, offset + STATUS_OFFSET),
+        //        ParentPtrRaw    = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_PARENT_PTR_OFFSET),
+        //        PlayerIndex     = data[offset + PLAYER_INDEX_OFFSET],
+        //        ParentFlag      = BitConverter.ToUInt16(data, offset + PROJECTILE_PARENT_FLAG_OFFSET),
+        //        CoreX           = BitConverter.ToInt16(data, CORE_X_OFFSET + offset),
+        //        CoreY           = BitConverter.ToInt16(data, CORE_Y_OFFSET + offset),
+        //        ScaleX          = BitConverter.ToInt16(data, SCALE_X_OFFSET + offset),
+        //        ScaleY          = BitConverter.ToInt16(data, SCALE_Y_OFFSET + offset),
+        //        HitboxSetPtr    = (nint)BitConverter.ToUInt32(data, offset + HITBOX_LIST_OFFSET),
+        //        HitboxSet       = hitboxes,
+        //        BoxCount        = numBoxes,
+        //        XPos            = BitConverter.ToInt32(data, offset + XPOS_OFFSET),
+        //        YPos            = BitConverter.ToInt32(data, offset + YPOS_OFFSET)
+        //    };
+        //}
     }
 }

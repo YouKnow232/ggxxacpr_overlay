@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using GameOverlay.Drawing;
 using GGXXACPROverlay.GGXXACPR;
+using Vortice.Direct3D9;
 
 namespace GGXXACPROverlay
 {
@@ -78,67 +79,67 @@ namespace GGXXACPROverlay
             _frameProperty2Palette = [];
         }
 
-        public void Initilize(Graphics g)
+        public void Initilize(IDirect3DDevice9 d)
         {
-            Font = g.CreateFont("Arial Bold", 24);
-            LegendFont = g.CreateFont("Arial Bold", 16);
+            //Font = d.CreateFont("Arial Bold", 24);
+            //LegendFont = d.CreateFont("Arial Bold", 16);
 
-            _generalPalette.Add(GeneralPalette.DEFAULT, g.CreateSolidBrush(0, 0, 0));
-            _generalPalette.Add(GeneralPalette.BLACK, g.CreateSolidBrush(0, 0, 0));
-            _generalPalette.Add(GeneralPalette.WHITE, g.CreateSolidBrush(255, 255, 255));
-            _generalPalette.Add(GeneralPalette.GREEN, g.CreateSolidBrush(150, 255, 150));
-            _generalPalette.Add(GeneralPalette.RED, g.CreateSolidBrush(255, 150, 150));
-            _generalPalette.Add(GeneralPalette.BLUE, g.CreateSolidBrush(0, 0, 255));
-            _generalPalette.Add(GeneralPalette.YELLOW, g.CreateSolidBrush(255, 255, 0));
-            _generalPalette.Add(GeneralPalette.LABEL_BG, g.CreateSolidBrush(0, 0, 0, 150));
-            _generalPalette.Add(GeneralPalette.COLLISION, g.CreateSolidBrush(_defaultCollisionboxClr));
-            _generalPalette.Add(GeneralPalette.GRAB, g.CreateSolidBrush(_defaultGrabboxClr));
+            //_generalPalette.Add(GeneralPalette.DEFAULT, d.CreateSolidBrush(0, 0, 0));
+            //_generalPalette.Add(GeneralPalette.BLACK, d.CreateSolidBrush(0, 0, 0));
+            //_generalPalette.Add(GeneralPalette.WHITE, d.CreateSolidBrush(255, 255, 255));
+            //_generalPalette.Add(GeneralPalette.GREEN, d.CreateSolidBrush(150, 255, 150));
+            //_generalPalette.Add(GeneralPalette.RED, d.CreateSolidBrush(255, 150, 150));
+            //_generalPalette.Add(GeneralPalette.BLUE, d.CreateSolidBrush(0, 0, 255));
+            //_generalPalette.Add(GeneralPalette.YELLOW, d.CreateSolidBrush(255, 255, 0));
+            //_generalPalette.Add(GeneralPalette.LABEL_BG, d.CreateSolidBrush(0, 0, 0, 150));
+            //_generalPalette.Add(GeneralPalette.COLLISION, d.CreateSolidBrush(_defaultCollisionboxClr));
+            //_generalPalette.Add(GeneralPalette.GRAB, d.CreateSolidBrush(_defaultGrabboxClr));
 
-            _generalTransparencyPalette.Add(GeneralPalette.DEFAULT, g.CreateSolidBrush(0, 0, 0, _boxAlpha));
-            _generalTransparencyPalette.Add(GeneralPalette.COLLISION, g.CreateSolidBrush(new Color(_defaultCollisionboxClr, _boxAlpha)));
-            _generalTransparencyPalette.Add(GeneralPalette.GRAB, g.CreateSolidBrush(new Color(_defaultGrabboxClr, _boxAlpha)));
+            //_generalTransparencyPalette.Add(GeneralPalette.DEFAULT, d.CreateSolidBrush(0, 0, 0, _boxAlpha));
+            //_generalTransparencyPalette.Add(GeneralPalette.COLLISION, d.CreateSolidBrush(new Color(_defaultCollisionboxClr, _boxAlpha)));
+            //_generalTransparencyPalette.Add(GeneralPalette.GRAB, d.CreateSolidBrush(new Color(_defaultGrabboxClr, _boxAlpha)));
 
-            _hitboxOutlinePalette.Add(BoxId.DUMMY, g.CreateSolidBrush(10, 10, 10));
-            _hitboxOutlinePalette.Add(BoxId.HIT, g.CreateSolidBrush(_defaultHitboxClr));
-            _hitboxOutlinePalette.Add(BoxId.HURT, g.CreateSolidBrush(_defaultHurtboxClr));
-            _hitboxOutlinePalette.Add(BoxId.UNKNOWN_3, g.CreateSolidBrush(10, 10, 10));
-            _hitboxOutlinePalette.Add(BoxId.PUSH, g.CreateSolidBrush(_defaultCollisionboxClr));
-            _hitboxOutlinePalette.Add(BoxId.UNKNOWN_5, g.CreateSolidBrush(10, 10, 10));
-            _hitboxOutlinePalette.Add(BoxId.UNKNOWN_6, g.CreateSolidBrush(10, 10, 10));
+            //_hitboxOutlinePalette.Add(BoxId.DUMMY, d.CreateSolidBrush(10, 10, 10));
+            //_hitboxOutlinePalette.Add(BoxId.HIT, d.CreateSolidBrush(_defaultHitboxClr));
+            //_hitboxOutlinePalette.Add(BoxId.HURT, d.CreateSolidBrush(_defaultHurtboxClr));
+            //_hitboxOutlinePalette.Add(BoxId.UNKNOWN_3, d.CreateSolidBrush(10, 10, 10));
+            //_hitboxOutlinePalette.Add(BoxId.PUSH, d.CreateSolidBrush(_defaultCollisionboxClr));
+            //_hitboxOutlinePalette.Add(BoxId.UNKNOWN_5, d.CreateSolidBrush(10, 10, 10));
+            //_hitboxOutlinePalette.Add(BoxId.UNKNOWN_6, d.CreateSolidBrush(10, 10, 10));
 
-            _hitboxFillPalette.Add(BoxId.DUMMY, g.CreateSolidBrush(10, 10, 10, _boxAlpha));
-            _hitboxFillPalette.Add(BoxId.HIT, g.CreateSolidBrush(new Color(_defaultHitboxClr, _boxAlpha)));
-            _hitboxFillPalette.Add(BoxId.HURT, g.CreateSolidBrush(new Color(_defaultHurtboxClr, _boxAlpha)));
-            _hitboxFillPalette.Add(BoxId.UNKNOWN_3, g.CreateSolidBrush(10, 10, 10, _boxAlpha));
-            _hitboxFillPalette.Add(BoxId.PUSH, g.CreateSolidBrush(new Color(_defaultCollisionboxClr, _boxAlpha)));
-            _hitboxFillPalette.Add(BoxId.UNKNOWN_5, g.CreateSolidBrush(10, 10, 10, _boxAlpha));
-            _hitboxFillPalette.Add(BoxId.UNKNOWN_6, g.CreateSolidBrush(10, 10, 10, _boxAlpha));
+            //_hitboxFillPalette.Add(BoxId.DUMMY, d.CreateSolidBrush(10, 10, 10, _boxAlpha));
+            //_hitboxFillPalette.Add(BoxId.HIT, d.CreateSolidBrush(new Color(_defaultHitboxClr, _boxAlpha)));
+            //_hitboxFillPalette.Add(BoxId.HURT, d.CreateSolidBrush(new Color(_defaultHurtboxClr, _boxAlpha)));
+            //_hitboxFillPalette.Add(BoxId.UNKNOWN_3, d.CreateSolidBrush(10, 10, 10, _boxAlpha));
+            //_hitboxFillPalette.Add(BoxId.PUSH, d.CreateSolidBrush(new Color(_defaultCollisionboxClr, _boxAlpha)));
+            //_hitboxFillPalette.Add(BoxId.UNKNOWN_5, d.CreateSolidBrush(10, 10, 10, _boxAlpha));
+            //_hitboxFillPalette.Add(BoxId.UNKNOWN_6, d.CreateSolidBrush(10, 10, 10, _boxAlpha));
 
-            _frameTypePalette.Add(FrameMeter.FrameType.None, g.CreateSolidBrush(15, 15, 15));
-            _frameTypePalette.Add(FrameMeter.FrameType.Neutral, g.CreateSolidBrush(27, 27, 27));
-            _frameTypePalette.Add(FrameMeter.FrameType.Movement, g.CreateSolidBrush(65, 248, 252));
-            _frameTypePalette.Add(FrameMeter.FrameType.CounterHitState, g.CreateSolidBrush(1, 181, 151));
-            _frameTypePalette.Add(FrameMeter.FrameType.Startup, g.CreateSolidBrush(1, 181, 151));
-            _frameTypePalette.Add(FrameMeter.FrameType.Active, g.CreateSolidBrush(203, 43, 103));
-            _frameTypePalette.Add(FrameMeter.FrameType.ActiveThrow, g.CreateSolidBrush(203, 43, 103));
-            _frameTypePalette.Add(FrameMeter.FrameType.Recovery, g.CreateSolidBrush(0, 111, 188));
-            _frameTypePalette.Add(FrameMeter.FrameType.BlockStun, g.CreateSolidBrush(200, 200, 0));
-            _frameTypePalette.Add(FrameMeter.FrameType.HitStun, g.CreateSolidBrush(200, 200, 0));
+            //_frameTypePalette.Add(FrameMeter.FrameType.None, d.CreateSolidBrush(15, 15, 15));
+            //_frameTypePalette.Add(FrameMeter.FrameType.Neutral, d.CreateSolidBrush(27, 27, 27));
+            //_frameTypePalette.Add(FrameMeter.FrameType.Movement, d.CreateSolidBrush(65, 248, 252));
+            //_frameTypePalette.Add(FrameMeter.FrameType.CounterHitState, d.CreateSolidBrush(1, 181, 151));
+            //_frameTypePalette.Add(FrameMeter.FrameType.Startup, d.CreateSolidBrush(1, 181, 151));
+            //_frameTypePalette.Add(FrameMeter.FrameType.Active, d.CreateSolidBrush(203, 43, 103));
+            //_frameTypePalette.Add(FrameMeter.FrameType.ActiveThrow, d.CreateSolidBrush(203, 43, 103));
+            //_frameTypePalette.Add(FrameMeter.FrameType.Recovery, d.CreateSolidBrush(0, 111, 188));
+            //_frameTypePalette.Add(FrameMeter.FrameType.BlockStun, d.CreateSolidBrush(200, 200, 0));
+            //_frameTypePalette.Add(FrameMeter.FrameType.HitStun, d.CreateSolidBrush(200, 200, 0));
 
-            _framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.Default, g.CreateSolidBrush(0, 0, 0));
-            _framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.SlashBack, g.CreateSolidBrush(255, 0, 0));
-            _framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.InvulnFull, g.CreateSolidBrush(255, 255, 255));
-            _framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.InvulnThrow, g.CreateSolidBrush(255, 125, 0));
-            _framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.InvulnStrike, g.CreateSolidBrush(0, 125, 255));
-            _framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.Armor, g.CreateSolidBrush(120, 80, 0));
-            _framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.Parry, g.CreateSolidBrush(120, 80, 0));
-            _framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.GuardPointFull, g.CreateSolidBrush(120, 80, 0));
-            _framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.GuardPointHigh, g.CreateSolidBrush(120, 80, 0));
-            _framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.GuardPointLow, g.CreateSolidBrush(120, 80, 0));
-            _framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.TEST, g.CreateSolidBrush(255, 255, 0));
+            //_framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.Default, d.CreateSolidBrush(0, 0, 0));
+            //_framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.SlashBack, d.CreateSolidBrush(255, 0, 0));
+            //_framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.InvulnFull, d.CreateSolidBrush(255, 255, 255));
+            //_framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.InvulnThrow, d.CreateSolidBrush(255, 125, 0));
+            //_framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.InvulnStrike, d.CreateSolidBrush(0, 125, 255));
+            //_framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.Armor, d.CreateSolidBrush(120, 80, 0));
+            //_framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.Parry, d.CreateSolidBrush(120, 80, 0));
+            //_framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.GuardPointFull, d.CreateSolidBrush(120, 80, 0));
+            //_framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.GuardPointHigh, d.CreateSolidBrush(120, 80, 0));
+            //_framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.GuardPointLow, d.CreateSolidBrush(120, 80, 0));
+            //_framePropertyPalette.Add(FrameMeter.PrimaryFrameProperty.TEST, d.CreateSolidBrush(255, 255, 0));
 
-            _frameProperty2Palette.Add(FrameMeter.SecondaryFrameProperty.Default, g.CreateSolidBrush(0, 0, 0));
-            _frameProperty2Palette.Add(FrameMeter.SecondaryFrameProperty.FRC, g.CreateSolidBrush(255, 255, 0));
+            //_frameProperty2Palette.Add(FrameMeter.SecondaryFrameProperty.Default, d.CreateSolidBrush(0, 0, 0));
+            //_frameProperty2Palette.Add(FrameMeter.SecondaryFrameProperty.FRC, d.CreateSolidBrush(255, 255, 0));
         }
 
         public static LegendEntry[] GetLegend()

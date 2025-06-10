@@ -1,5 +1,24 @@
 ﻿namespace GGXXACPROverlay
 {
+    public readonly struct D3DCOLOR_ARGB
+    {
+        private readonly uint _packedValue;
+
+        public byte Alpha { get => (byte)(_packedValue >> 24 & 0xff); }
+        public int Red { get => (byte)(_packedValue >> 16 & 0xff); }
+        public int Green { get => (byte)(_packedValue >> 8 & 0xff); }
+        public int Blue { get => (byte)(_packedValue & 0xff); }
+
+        public D3DCOLOR_ARGB(uint packedValue)
+        {
+            _packedValue = packedValue;
+        }
+        public D3DCOLOR_ARGB(byte a, byte r, byte g, byte b)
+        {
+            _packedValue = (uint)((a << 24) | (r << 16) | (g << 8) | b);
+        }
+    }
+
     public struct OverlaySettings()
     {
         // Implemented
@@ -14,28 +33,28 @@
         public bool AdvancedMode = false;
     }
 
-    internal static class Constants
-    {
-        public const string CONSOLE_BETA_WARNING =
-            "This is a beta build. It has known issues and may even have some unknown ones.\n" +
-            "You can help report issues here https://github.com/YouKnow232/ggxxacpr_overlay/issues\n";
-        public const string CONSOLE_NETPLAY_NOTICE =
-            "Please close the overlay during netplay.\n";
-        public const string CONSOLE_KNOWN_ISSUES =
-            "Known Issues:\n" +
-            "- PLACE HOLDER\n"+
-            "- Update this in release branch\n";
-        public const string CONSOLE_CONTROLS =
-            "In this console window:\n" +
-            "Press '1' to toggle hitbox display\n" +
-            "Press '2' to toggle always-on throw range display\n" +
-            " *Air throw boxes only check for the pushbox's bottom edge highlighted in yellow\n\n" +
-            "Press '3' to toggle frame meter display\n" +
-            "Press '4' to display frame meter legend\n" +
-            "Press '5' to toggle frame meter hitstop pausing\n" +
-            "Press '6' to toggle frame meter super flash pausing\n" +
-            "\nPress 'q' to exit\n";
-        public const string CONSOLE_EXIT_PROMPT =
-            "Press any key to exit\n";
-    }
+    //internal static class Constants
+    //{
+    //    public const string CONSOLE_BETA_WARNING =
+    //        "This is a beta build. It has known issues and may even have some unknown ones.\n" +
+    //        "You can help report issues here https://github.com/YouKnow232/ggxxacpr_overlay/issues\n";
+    //    public const string CONSOLE_NETPLAY_NOTICE =
+    //        "Please close the overlay during netplay.\n";
+    //    public const string CONSOLE_KNOWN_ISSUES =
+    //        "Known Issues:\n" +
+    //        "- PLACE HOLDER\n"+
+    //        "- Update this in release branch\n";
+    //    public const string CONSOLE_CONTROLS =
+    //        "In this console window:\n" +
+    //        "Press '1' to toggle hitbox display\n" +
+    //        "Press '2' to toggle always-on throw range display\n" +
+    //        " *Air throw boxes only check for the pushbox's bottom edge highlighted in yellow\n\n" +
+    //        "Press '3' to toggle frame meter display\n" +
+    //        "Press '4' to display frame meter legend\n" +
+    //        "Press '5' to toggle frame meter hitstop pausing\n" +
+    //        "Press '6' to toggle frame meter super flash pausing\n" +
+    //        "\nPress 'q' to exit\n";
+    //    public const string CONSOLE_EXIT_PROMPT =
+    //        "Press any key to exit\n";
+    //}
 }

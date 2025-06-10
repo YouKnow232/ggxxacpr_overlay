@@ -141,7 +141,8 @@ namespace GGXXACPROverlay.GGXXACPR
 
             if (cmdGrabId == SPECIAL_CASE_COMMAND_THROW_ID) { return SPECIAL_CASE_COMMAND_THROW_RANGE; }
 
-            return GGXXACPR.LookUpCommandGrabRange(cmdGrabId);
+            return 0; //return GGXXACPR.LookUpCommandGrabRange(cmdGrabId);
+
         }
     }
 }
