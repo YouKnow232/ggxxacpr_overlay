@@ -53,6 +53,7 @@ namespace GGXXACPROverlay
         public static bool InstallHooks()
         {
             _page = Marshal.AllocHGlobal(_pageSize);
+            PInvoke.VirtualProtect((void*)_page, _pageSize, PAGE_PROTECTION_FLAGS.PAGE_EXECUTE_READWRITE, out _);
 
             WriteASMCallingConventionHelper(_page);
             if (!InstallGraphicsHooks(_page + 0x100))

@@ -25,7 +25,7 @@ namespace GGXXACPROverlay.GGXXACPR
         [FieldOffset(0x00)] public readonly float PlayerXDiff;
         [FieldOffset(0x04)] public readonly float PlayerYDiff;
         [FieldOffset(0x10)] public readonly int CenterXPos;
-        [FieldOffset(0x14)] public readonly int CameraHeight;  // Camera YPos, but ancor point is 1/12th of height from bottom edge
+        [FieldOffset(0x14)] public readonly int CameraHeight;  // Camera YPos, but anchor point is 1/12th of height from bottom edge
         [FieldOffset(0x20)] public readonly int LeftEdge;
         [FieldOffset(0x24)] public readonly int CameraHeightPlusOffset;   // Height offset
         [FieldOffset(0x28)] public readonly int Width;

@@ -5,12 +5,13 @@
     <TargetFramework>net9.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PublishAot>true</PublishAot>
     <InvariantGlobalization>true</InvariantGlobalization>
     <PlatformTarget>x86</PlatformTarget>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <StartupObject>GGXXACPRInjector.Program</StartupObject>
     <Platforms>AnyCPU;x86</Platforms>
+    <ApplicationIcon>Sidewinder.ico</ApplicationIcon>
+    <PackageIcon>Sidewinder.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,5 +20,31 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GGXXACPROverlay\GGXXACPROverlay.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="DragonInstall.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Update="README.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+	<Target Name="CopyGGXXACPROverlayBootstrapper" AfterTargets="Build">
+		<Copy SourceFiles="..\Release\GGXXACPROverlay.Bootstrapper.dll" DestinationFolder="$(OutDir)" />
+		<Copy SourceFiles="..\Release\nethost.dll" DestinationFolder="$(OutDir)" />
+		<Copy SourceFiles="..\GGXXACPROverlay\bin\x86\Release\net9.0-windows\win-x86\GGXXACPROverlay.runtimeconfig.json" DestinationFolder="$(OutDir)" />
+	</Target>
+
+	<Target Name="CopyGGXXACPROverlayBootstrapperToPublish" AfterTargets="Publish">
+		<Copy SourceFiles="..\Release\GGXXACPROverlay.Bootstrapper.dll" DestinationFolder="$(PublishDir)" />
+		<Copy SourceFiles="..\Release\nethost.dll" DestinationFolder="$(PublishDir)" />
+		<Copy SourceFiles="..\GGXXACPROverlay\bin\x86\Release\net9.0-windows\win-x86\GGXXACPROverlay.runtimeconfig.json" DestinationFolder="$(PublishDir)" />
+	</Target>
 
 </Project>

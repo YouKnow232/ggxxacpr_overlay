@@ -1,38 +1,17 @@
-﻿using System.Reflection;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Loader;
 using Windows.Win32;
-using Windows.Win32.Foundation;
 
 namespace GGXXACPROverlay
 {
     public static class Program
     {
-        private const uint DLL_PROCESS_DETACH = 0;
-        private const uint DLL_PROCESS_ATTACH = 1;
-
-        internal static HMODULE _module;
-        //private static HANDLE _targetProcessId;
-        //private static HANDLE _targetProcessMainThread;
-        //private static uint _mainThreadId;
-
-        //internal static HMODULE ThisModule => _module;
-
         [UnmanagedCallersOnly(EntryPoint = "Main", CallConvs = [typeof(CallConvStdcall)])]
         public static unsafe uint Main(nint args, int argsSize)
         {
             Debug.Log("[Overlay] Main() called!");
-
-            Console.WriteLine(typeof(Program).Assembly.GetName().Name);
-            Console.WriteLine(Assembly.GetExecutingAssembly().FullName);
-            Console.WriteLine(typeof(Program).Assembly.IsDynamic); // should be false
-            Console.WriteLine(AssemblyLoadContext.GetLoadContext(typeof(Program).Assembly));
-
             return Start((void*)nint.Zero); // Just call Start directly?
         }
-
-        //private static SafeFileHandle? _messageThread;
 
         /// <summary>
         /// Initialize hooks
@@ -48,8 +27,9 @@ namespace GGXXACPROverlay
             }
 
             // DEBUG: allocate new console window.
-            Debug.DebugStatements = Settings.Get("Debug", "ShowDebugStatements", false);
-            if (Settings.Get("Debug", "DisplayConsole", false)) PInvoke.AllocConsole();
+            //Debug.DebugStatements = Settings.Get("Debug", "ShowDebugStatements", true);
+            Debug.DebugStatements = true;
+            //if (Settings.Get("Debug", "DisplayConsole", true)) PInvoke.AllocConsole();
             Debug.Log("DLL Attached!");
 
             //// Keyboard Hook
@@ -89,9 +69,14 @@ namespace GGXXACPROverlay
         //    return entry.th32ThreadID;
         //}
 
+        //private static SafeFileHandle? _messageThread;
+
         [UnmanagedCallersOnly(EntryPoint = "DetachAndUnload", CallConvs = [typeof(CallConvStdcall)])]
         public static unsafe uint DetachAndUnload(nint _, int __)
         {
+            Debug.Log("[ERROR] DetachAndUnload not implemented");
+            return 1;
+
             Debug.Log("DetachAndUnload called!");
             // if (!_keyboardHook.IsNull) PInvoke.UnhookWindowsHookEx(_keyboardHook);
             // PInvoke.TerminateThread(_messageThread, 0);
@@ -101,7 +86,7 @@ namespace GGXXACPROverlay
             Overlay.Instance?.Dispose();
             PInvoke.FreeConsole();
 
-            PInvoke.FreeLibraryAndExitThread(_module, 0);
+            //PInvoke.FreeLibraryAndExitThread(_module, 0);
             return 1;   // Make compiler happy
         }
 

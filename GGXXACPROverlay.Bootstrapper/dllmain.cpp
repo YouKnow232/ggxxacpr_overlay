@@ -55,12 +55,26 @@ static DWORD WINAPI HostDotnetRuntime(LPVOID lpParam)
     //const char* basePath = "C:\\Users\\chase\\workspace\\GGXXACPROverlay\\GGXXACPROverlay\\bin\\Release\\net9.0-windows\\win-x86\\publish\\framework-dependent\\";
     // const char_t* runtimeConfigPath = L"C:\\Users\\chase\\workspace\\GGXXACPROverlay\\GGXXACPROverlay\\bin\\Release\\net9.0-windows\\win-x86\\publish\\framework-dependent\\GGXXACPROverlay.runtimeconfig.json";
     //const char_t* overlayPath = L"C:\\Users\\chase\\workspace\\GGXXACPROverlay\\GGXXACPROverlay\\bin\\Release\\net9.0-windows\\win-x86\\publish\\framework-dependent\\GGXXACPROverlay.dll";
-    const char_t* runtimeConfigPath = L"C:\\Users\\chase\\workspace\\GGXXACPROverlay\\GGXXACPROverlay\\bin\\x86\\Release\\net9.0-windows\\win-x86\\GGXXACPROverlay.runtimeconfig.json";
-    const char_t* overlayPath = L"C:\\Users\\chase\\workspace\\GGXXACPROverlay\\GGXXACPROverlay\\bin\\x86\\Release\\net9.0-windows\\win-x86\\GGXXACPROverlay.dll";
+    //const char_t* runtimeConfigPath = L"C:\\Users\\chase\\workspace\\GGXXACPROverlay\\GGXXACPROverlay\\bin\\x86\\Release\\net9.0-windows\\win-x86\\GGXXACPROverlay.runtimeconfig.json";
+    //const char_t* overlayPath = L"C:\\Users\\chase\\workspace\\GGXXACPROverlay\\GGXXACPROverlay\\bin\\x86\\Release\\net9.0-windows\\win-x86\\GGXXACPROverlay.dll";
+    const char_t* runtimeConfigPath = L".\\GGXXACPROverlay\\GGXXACPROverlay.runtimeconfig.json";
+    const char_t* overlayPath = L".\\GGXXACPROverlay\\GGXXACPROverlay.dll";
 
-    auto hostfxrInstallPath = "C:\\Program Files (x86)\\dotnet\\host\\fxr\\9.0.1\\hostfxr.dll";
+    // auto hostfxrInstallPath = "C:\\Program Files (x86)\\dotnet\\host\\fxr\\9.0.1\\hostfxr.dll";
 
-    HMODULE hHostfxr = LoadLibraryA(hostfxrInstallPath);
+    char_t hostfxrPath[512];
+    size_t hostfxrBufferSize = sizeof(hostfxrPath) / sizeof(char_t);
+
+    int rc = get_hostfxr_path(hostfxrPath, &hostfxrBufferSize, nullptr);
+    if (rc == 0) {
+        DebugLog("hostfxr.dll path: %1", hostfxrPath);
+    }
+    else {
+        DebugLog("Failed to get hostfxr path");
+        return 1;
+    }
+
+    HMODULE hHostfxr = LoadLibraryW(hostfxrPath);
     if (!hHostfxr) {
         DWORD err = GetLastError();
         DebugLog("ERROR: LoadLibraryA failed. GLE=%1lu\n", err);

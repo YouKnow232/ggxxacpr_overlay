@@ -13,7 +13,7 @@ namespace GGXXACPROverlay
         public static D3DCOLOR_ARGB Hurtbox { get; private set; }       = new(0x8000FF00);
         public static D3DCOLOR_ARGB Collision { get; private set; }     = new(0x8000FFFF);
         public static D3DCOLOR_ARGB Grab { get; private set; }          = new(0x80FF00FF);
-        public static D3DCOLOR_ARGB CLHitbox { get; private set; }      = new(0x8000FF00);
+        public static D3DCOLOR_ARGB CLHitbox { get; private set; }      = new(0x80FF8000);
         public static D3DCOLOR_ARGB PivotCrossColor { get; private set; } = new(0xFF800080);
         public static float PivotCrossSize { get; private set; }        = 10.0f;
         public static float PivotCrossThickness { get; private set; }   = 2.0f;

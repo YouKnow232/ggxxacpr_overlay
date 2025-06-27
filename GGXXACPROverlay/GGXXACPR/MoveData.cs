@@ -6,6 +6,7 @@ namespace GGXXACPROverlay.GGXXACPR
     {
         private const int SPECIAL_CASE_COMMAND_THROW_ID = 0x19;
         private const int SPECIAL_CASE_COMMAND_THROW_RANGE = 11000; // GGXXACPR_Win.exe+12054F
+        private const string MoveDataFileName = "MoveData.csv";
 
         private readonly struct CharIdActIdKey(CharacterID charId, int actId)
         {
@@ -28,7 +29,6 @@ namespace GGXXACPROverlay.GGXXACPR
             public int moveId;  // custom identifier
         }
 
-        private static readonly string MoveDataFileName = "MoveData.csv";
         private static readonly List<MoveDataEntry> rawMoveData = [];
         private static readonly Lookup<CharIdActIdKey, MoveDataEntry> actIdToMoveIds;
 

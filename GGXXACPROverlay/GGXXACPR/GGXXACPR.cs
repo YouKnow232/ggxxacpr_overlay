@@ -28,16 +28,19 @@ namespace GGXXACPROverlay.GGXXACPR
         // For whatever reason, this throw range is hardcoded and not in the array with everything else
         public const int SPECIAL_CASE_COMMAND_THROW_ID = 0x19;
         public const int SPECIAL_CASE_COMMAND_THROW_RANGE = 11000; // GGXXACPR_Win.exe+12054F
+        // 170 unit offset hardcoded into CL function (GGXXACPR_Win.exe+132129)
+        public const int CLEAN_HIT_Y_OFFSET = 170;
         #endregion
 
         // DirectX
         // Dereferencing pointer at class init since pointer is not expected to change
-        public static readonly nint Direct3D9DevicePointer = *(nint*)(Memory.BaseAddress + Offsets.DIRECT3D9_DEVICE_OFFSET);
-        public static readonly nint GraphicsHookBreakPointAddress = Memory.BaseAddress + Offsets.GRAPHICS_HOOK_BREAKPOINT_OFFSET;
+        public static readonly nint Direct3D9DevicePointer = *(nint*)(Memory.BaseAddress + Offsets.DIRECT3D9_DEVICE);
+        public static readonly nint GraphicsHookBreakPointAddress = Memory.BaseAddress + Offsets.GRAPHICS_HOOK_BREAKPOINT;
 
         private const int COMMAND_GRAB_RANGE_LOOKUP_TABLE_SIZE = 27;
 
         #region Struct Field Offsets
+        // TODO Clean this up
         // Projectils Arr (Entity Arr)
         private const nint ENTITY_ARR_HEAD_TAIL_PTR = 0x006D27A8;
         private const nint ENTITY_ARR_HEAD_PTR = 0x006D27A8 + 0x04;
@@ -51,32 +54,29 @@ namespace GGXXACPROverlay.GGXXACPR
         private const int PROJECTILE_PARENT_FLAG_OFFSET = 0x28;
         #endregion
 
-        // Buffer sizes
-        private const int ENTITY_STRUCT_BUFFER = 0x130;
-        private const int PLAYER_EXTRA_STRUCT_BUFFER = 0x148;
-        private const int HITBOX_ARRAY_STEP = 0x0C;
-
-
         /// <summary>
         /// Dereferences and returns a snapshot of the player 1 struct. If null, will return a dummy struct with default values.
         /// </summary>
         public static Player Player1 => *_Player1 is null ? default : **_Player1;
-        private static readonly Player** _Player1 = (Player**)(Memory.BaseAddress + Offsets.PLAYER_1_PTR_ADDR);
+        private static readonly Player** _Player1 = (Player**)(Memory.BaseAddress + Offsets.PLAYER_1_PTR);
         /// <summary>
         /// Dereferences and returns a snapshot of the player 2 struct. If null, will return a dummy struct with default values.
         /// </summary>
         public static Player Player2 => *_Player2 is null ? default : **_Player2;
-        private static readonly Player** _Player2 = (Player**)(Memory.BaseAddress + Offsets.PLAYER_2_PTR_ADDR);
+        private static readonly Player** _Player2 = (Player**)(Memory.BaseAddress + Offsets.PLAYER_2_PTR);
         public static readonly Entity* EntityList = (Entity*)*_Player1;
         /// <summary>
         /// Dereferences and returns a snapshot of the camera struct.
         /// </summary>
         public static Camera Camera => *_camera;
-        private static readonly Camera* _camera = (Camera*)(Memory.BaseAddress + Offsets.CAMERA_ADDR);
+        private static readonly Camera* _camera = (Camera*)(Memory.BaseAddress + Offsets.CAMERA);
 
-        public static readonly ThrowDetection ThrowFlags = *(ThrowDetection*)(Memory.BaseAddress + Offsets.GLOBAL_THROW_FLAGS_ADDR);
-        public static readonly int CommandThrowIDP1 = *(int*)(Memory.BaseAddress + Offsets.COMMAND_GRAB_ID_ADDR);
-        public static readonly int CommandThrowIDP2 = *(int*)(Memory.BaseAddress + Offsets.COMMAND_GRAB_ID_ADDR + sizeof(int));
+        private static readonly int* _viewHeight = (int*)(Memory.BaseAddress + Offsets.VIEW_HEIGHT);
+        private static readonly int* _viewWidth = (int*)(Memory.BaseAddress + Offsets.VIEW_WIDTH);
+
+        public static readonly ThrowDetection ThrowFlags = *(ThrowDetection*)(Memory.BaseAddress + Offsets.GLOBAL_THROW_FLAGS);
+        public static readonly int CommandThrowIDP1 = *(int*)(Memory.BaseAddress + Offsets.COMMAND_GRAB_ID);
+        public static readonly int CommandThrowIDP2 = *(int*)(Memory.BaseAddress + Offsets.COMMAND_GRAB_ID + sizeof(int));
         /// <summary>
         /// Index with CommandThrowIDP1 or CommandThrowIDP2
         /// </summary>
@@ -86,12 +86,12 @@ namespace GGXXACPROverlay.GGXXACPR
         /// </summary>
         public static readonly GameVersion* GameVersion = (GameVersion*)(Memory.BaseAddress + Offsets.GAME_VER_FLAG);
         public static readonly byte* InGameFlag = (byte*)(Memory.BaseAddress + Offsets.IN_GAME_FLAG);
-        public static readonly int* PauseState = (int*)(Memory.BaseAddress + Offsets.GLOBAL_PAUSE_VAR_ADDR);
-        public static readonly int* ReplaySimState = (int*)(Memory.BaseAddress + Offsets.GLOBAL_REPLAY_SIMULATE_ADDR);
+        public static readonly int* PauseState = (int*)(Memory.BaseAddress + Offsets.GLOBAL_PAUSE_VAR);
+        public static readonly int* ReplaySimState = (int*)(Memory.BaseAddress + Offsets.GLOBAL_REPLAY_SIMULATE);
 
 
         private static readonly delegate* unmanaged[Cdecl]<int, int, float, byte, float, int> _RenderText =
-            (delegate* unmanaged[Cdecl]<int, int, float, byte, float, int>)(Memory.BaseAddress + Offsets.RENDER_TEXT_OFFSET);
+            (delegate* unmanaged[Cdecl]<int, int, float, byte, float, int>)(Memory.BaseAddress + Offsets.RENDER_TEXT);
 
         public static unsafe int RenderText(string text, int xPos, int yPos, byte alpha)
         {
@@ -181,7 +181,7 @@ namespace GGXXACPROverlay.GGXXACPR
 
             return new Rect(
                 hp.CLCenterX - halfWidth,
-                (hp.CLCenterY - halfHeight) + 170, // 170 unit offset hardcoded into CL function (GGXXACPR_Win.exe+132129)
+                (hp.CLCenterY - halfHeight) + CLEAN_HIT_Y_OFFSET,
                 halfWidth * 2,
                 halfHeight * 2
             );
@@ -263,11 +263,11 @@ namespace GGXXACPROverlay.GGXXACPR
             {
                 if (p.PlayerIndex == 0)
                 {
-                    y = *(int*)(Memory.BaseAddress + Offsets.PUSHBOX_P1_JUMP_OFFSET_ADDRESS) + p.YPos;
+                    y = *(int*)(Memory.BaseAddress + Offsets.PUSHBOX_P1_JUMP_OFFSET) + p.YPos;
                 }
                 else if (p.PlayerIndex == 1)
                 {
-                    y = *(int*)(Memory.BaseAddress + Offsets.PUSHBOX_P2_JUMP_OFFSET_ADDRESS) + p.YPos;
+                    y = *(int*)(Memory.BaseAddress + Offsets.PUSHBOX_P2_JUMP_OFFSET) + p.YPos;
                 }
             }
             else if (p.Status.HasFlag(ActionState.IsCrouching))
@@ -461,8 +461,7 @@ namespace GGXXACPROverlay.GGXXACPR
             );
 
             // Widescreen correction
-            // TODO: find viewport info in game memory
-            //matrix *= Matrix4x4.CreateScale((c.Width * _device.Viewport.Height) * 1.0f / (c.Height * _device.Viewport.Width), 1.0f, 1.0f);
+            matrix *= Matrix4x4.CreateScale((c.Width * (*_viewHeight)) * 1.0f / (c.Height * (*_viewWidth)), 1.0f, 1.0f);
 
             return matrix;
         }
@@ -474,11 +473,10 @@ namespace GGXXACPROverlay.GGXXACPR
             return 100.0f / c.Zoom;
         }
 
-        public static float WorldCoorPerViewPixel()
+        public static float WorldCoorPerViewPixel() => WorldCoorPerViewPixel(Camera);
+        public static float WorldCoorPerViewPixel(Camera c)
         {
-            return 1.0f;
-            // TODO: find viewport height in game memory
-            //return c.Height / _device.Viewport.Height;
+            return c.Height * 1.0f / (*_viewHeight);
         }
 
     }
