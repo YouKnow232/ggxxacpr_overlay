@@ -46,24 +46,16 @@ namespace GGXXACPROverlay
             FRC
         }
 
-        public readonly struct Frame(
-            FrameType type = FrameType.None,
-            PrimaryFrameProperty pprop1 = PrimaryFrameProperty.Default,
-            PrimaryFrameProperty pprop2 = PrimaryFrameProperty.Default,
-            SecondaryFrameProperty sprop = SecondaryFrameProperty.Default,
-            int actId = -1,
-            int actTimer = -1,
-            byte hitStop = 0,
-            uint status = 0)
+        public struct Frame
         {
-            public readonly FrameType Type = type;
-            public readonly PrimaryFrameProperty PrimaryProperty1 = pprop1;
-            public readonly PrimaryFrameProperty PrimaryProperty2 = pprop2;
-            public readonly SecondaryFrameProperty SecondaryProperty = sprop;
-            public readonly int ActId = actId;
-            public readonly int ActTimer = actTimer;
-            public readonly byte HitStop = hitStop;
-            public readonly ActionStateFlags Status = status;
+            public FrameType Type;
+            public PrimaryFrameProperty PrimaryProperty1;
+            public PrimaryFrameProperty PrimaryProperty2;
+            public SecondaryFrameProperty SecondaryProperty;
+            public int ActId;
+            public int ActTimer;
+            public byte HitStop;
+            public ActionState Status;
         }
 
         public const int METER_LENGTH = 80;
@@ -86,7 +78,6 @@ namespace GGXXACPROverlay
         public Meter[] PlayerMeters = new Meter[2];
         public Meter[] EntityMeters = new Meter[2];
 
-        private GameState? prevState = null;
 
         //public FrameMeter()
         //{

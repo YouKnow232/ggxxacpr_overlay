@@ -2,27 +2,45 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
+    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
     <TargetFramework>net9.0-windows</TargetFramework>
+    <PublishTrimmed>false</PublishTrimmed>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IncludeNativeLibrariesForSelfExtract>True</IncludeNativeLibrariesForSelfExtract>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
     <IncludeSymbolsInSingleFile>True</IncludeSymbolsInSingleFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Version>$(VersionPrefix)2.0-develop$(VersionSuffix)</Version>
     <PackageProjectUrl>https://github.com/YouKnow232/ggxxacpr_overlay</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/YouKnow232/ggxxacpr_overlay</RepositoryUrl>
-    <AssemblyVersion></AssemblyVersion>
-    <FileVersion></FileVersion>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0.0</FileVersion>
     <PlatformTarget>x86</PlatformTarget>
-    <PublishAot>True</PublishAot>
-    <IsAotCompatible>True</IsAotCompatible>
     <Platforms>AnyCPU;x86</Platforms>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <IsAotCompatible>False</IsAotCompatible>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <IsAotCompatible>False</IsAotCompatible>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <IsAotCompatible>False</IsAotCompatible>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <IsAotCompatible>False</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
     <None Remove="GGXXACPR\MoveData.csv" />
     <None Remove="OverlaySettings.ini" />
+    <None Remove="Shaders\HitboxShader.hlsl" />
     <None Remove="Shaders\SolidColorShader.hlsl" />
   </ItemGroup>
 
@@ -34,7 +52,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="GameOverlay.Net" Version="4.3.1" />
     <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.162">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -48,6 +65,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="OverlaySettings.ini">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Shaders\HitboxShader.hlsl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Shaders\SolidColorShader.hlsl">

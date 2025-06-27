@@ -8,32 +8,126 @@ using Microsoft.Win32.SafeHandles;
 
 namespace GGXXACPRInjector
 {
-    internal unsafe class Program
+    internal unsafe partial class Program
     {
-        static int Main(string[] args)
-        {
-            Console.WriteLine("== GGXXACPROverlay Injector ==");
-            Console.WriteLine("Version: ?");
+        private const int _timeout = 10000;
+        private const string injecteeDirectory = "C:\\Users\\chase\\workspace\\GGXXACPROverlay\\Release\\GGXXACPROverlay.Bootstrapper.dll";
 
-            // TODO: decide how to package dll
-            return Inject("GGXXACPR_Win", "C:\\Users\\chase\\workspace\\GGXXACPROverlay\\GGXXACPROverlay\\bin\\Release\\net9.0-windows\\publish\\win-x86\\GGXXACPROverlay");
+        private static bool injected = false;
+        private static Process? targetProc;
+        private static SafeFileHandle? procHandle;
+        private static uint bootstrapperHandle;
+        private static nint ejectFunctionOffset;
+
+
+        [LibraryImport("kernel32.dll", SetLastError = true)]
+        internal static partial nint CreateRemoteThread(
+            nint hProcess,
+            nint lpThreadAttributes,
+            uint dwStackSize,
+            nint lpStartAddress,
+            nint lpParameter,
+            uint dwCreationFlags,
+            out uint lpThreadId);
+
+        static void Main(string[] args)
+        {
+            // AppDomain.CurrentDomain.ProcessExit += new EventHandler(Eject);
+
+            Console.WriteLine("== GGXXACPROverlay Injector ==");
+            Console.WriteLine("Version: dev-0.0.1");
+            Console.WriteLine();
+
+            string targetProcessName = "GGXXACPR_Win";
+
+            ejectFunctionOffset = GetEjectMethodOffset();
+            //ejectFunctionOffset = 0x1210;
+
+            // TODO: decide how to package dlls
+            injected = Inject(targetProcessName, injecteeDirectory);
 
             // TODO: unhook UX?
+            if (injected)
+            {
+                Console.WriteLine("Press any key to close the overlay...");
+                //while (!(targetProc?.HasExited ?? true) && !Console.KeyAvailable)
+                //{
+                //    Thread.Sleep(30);
+                //}
+            }
+            else
+            {
+                Console.WriteLine("Press any key to continue...");
+                Console.ReadKey(true);
+            }
         }
 
-        static int Inject(string targetProcName, string dllName)
+        static nint GetEjectMethodOffset()
+        {
+            SafeHandle localHandle = PInvoke.LoadLibraryEx(injecteeDirectory, Windows.Win32.System.LibraryLoader.LOAD_LIBRARY_FLAGS.DONT_RESOLVE_DLL_REFERENCES);
+            if (localHandle.IsInvalid)
+            {
+                int errCode = Marshal.GetLastPInvokeError();
+                Console.Error.WriteLine($"[ERROR] Local LoadLibraryEx failed: Error Code 0x{errCode:X8}");
+                return 1;
+            }
+            FARPROC localFunctionPtr = PInvoke.GetProcAddress(localHandle, "Eject");
+            if (localFunctionPtr.IsNull)
+            {
+                int errCode = Marshal.GetLastPInvokeError();
+                Console.Error.WriteLine($"[ERROR] Local GetProcAddress failed: Error Code 0x{errCode:X8}");
+                return 2;
+            }
+
+            nint offset = localFunctionPtr.Value - localHandle.DangerousGetHandle();
+
+            localHandle.Close();
+
+            return offset;
+        }
+
+        static void Eject(object? sender, EventArgs e)
+        {
+            if (!injected || targetProc is null || (procHandle?.IsClosed ?? true)) return;
+
+            Console.WriteLine("[DEBUG] Calling remote unload function...");
+
+            //LPTHREAD_START_ROUTINE lpStartAddress = Marshal.GetDelegateForFunctionPointer<LPTHREAD_START_ROUTINE>((nint)remoteUnloadFunctionPtr);
+            HANDLE remoteThreadHandle = (HANDLE)CreateRemoteThread(procHandle.DangerousGetHandle(), 0, 0, (nint)(bootstrapperHandle + ejectFunctionOffset), 0, 0, out _);
+            if (remoteThreadHandle == nint.Zero)
+            {
+                int errCode = Marshal.GetLastPInvokeError();
+                Console.Error.WriteLine($"[ERROR] CreateRemoteThread failed: Error Code 0x{errCode:X8}");
+                return;
+            }
+
+            PInvoke.WaitForSingleObject(remoteThreadHandle, _timeout);
+            uint result = 0;
+            if (!PInvoke.GetExitCodeThread(remoteThreadHandle, &result))
+            {
+                int errCode = Marshal.GetLastPInvokeError();
+                Console.Error.WriteLine($"[ERROR] GetExitCodeThread failed: Error Code 0x{errCode:X8}");
+                return;
+            }
+            PInvoke.CloseHandle(remoteThreadHandle);
+
+            Console.WriteLine($"[DEBUG] Overlay ejected. Result: 0x{result:X8}");
+        }
+
+        static bool Inject(string targetProcName, string dllName)
         {
             // Find target process
             var results = Process.GetProcessesByName(targetProcName);
             if (results.Length < 1)
             {
                 Console.Error.WriteLine($"Process \"{targetProcName}\" not found");
-                return 1;
+                return false;
             }
 
-            nint targetProcess = results[0].Id;
+            targetProc = results[0];
+            nint targetProcess = targetProc.Id;
 
-            SafeFileHandle procHandle = PInvoke.OpenProcess_SafeHandle(
+            procHandle = PInvoke.OpenProcess_SafeHandle(
                 PROCESS_ACCESS_RIGHTS.PROCESS_CREATE_THREAD
                 | PROCESS_ACCESS_RIGHTS.PROCESS_QUERY_INFORMATION
                 | PROCESS_ACCESS_RIGHTS.PROCESS_VM_OPERATION
@@ -45,10 +139,10 @@ namespace GGXXACPRInjector
             {
                 int errCode = Marshal.GetLastPInvokeError();
                 Console.Error.WriteLine($"OpenProcess_SafeHandle failed: Error Code {errCode}");
-                return 1;
+                return false;
             }
 
-            // *IMPORTANT* This method of getting the address of LoadLibraryA relies on the injector's bitness being the same as the target process
+            // *IMPORTANT* This method of getting the address of LoadLibraryA relies on the injector's bitness being the same as the target process.
             // Create a delegate function for the LoadLibraryA function in kernel32
             FARPROC loadLibraryAddr = PInvoke.GetProcAddress(PInvoke.GetModuleHandle("kernel32.dll"), "LoadLibraryA");
 
@@ -56,7 +150,7 @@ namespace GGXXACPRInjector
             {
                 int errCode = Marshal.GetLastPInvokeError();
                 Console.Error.WriteLine($"GetProcAddress failed: Error Code {errCode}");
-                return 1;
+                return false;
             }
 
             // Allocate memory for the injectee file name
@@ -73,7 +167,7 @@ namespace GGXXACPRInjector
             {
                 int errCode = Marshal.GetLastPInvokeError();
                 Console.Error.WriteLine($"VirtualAllocEx failed: Error Code {errCode}");
-                return 1;
+                return false;
             }
 
             // Write the dll's filename into process memory
@@ -94,11 +188,11 @@ namespace GGXXACPRInjector
             {
                 int errCode = Marshal.GetLastPInvokeError();
                 Console.Error.WriteLine($"WriteProcessMemory failed: Error Code {errCode}");
-                return 1;
+                return false;
             }
 
             // Create a remote thread in the target process that begins execution at LoadLibraryA
-            //  with a pointer parameter pointing to the dll file name previously written in memory
+            //  with a string pointer parameter to the dll file name previously written in memory
             void* lpThreadParameter = (void*)loadLibraryAddr.Value;
             LPTHREAD_START_ROUTINE lpStartAddress = Marshal.GetDelegateForFunctionPointer<LPTHREAD_START_ROUTINE>(loadLibraryAddr.Value);
             SafeFileHandle remoteThreadHandle = PInvoke.CreateRemoteThread(procHandle, null, 0, lpStartAddress, allocMemAddress, 0, null);
@@ -106,11 +200,51 @@ namespace GGXXACPRInjector
             {
                 int errCode = Marshal.GetLastPInvokeError();
                 Console.Error.WriteLine($"CreateRemoteThread failed: Error Code {errCode}");
-                return 1;
+                return false;
             }
 
-            Console.WriteLine("Completed without error");
-            return 0;
+            PInvoke.WaitForSingleObject(remoteThreadHandle, _timeout);
+            PInvoke.GetExitCodeThread(remoteThreadHandle, out bootstrapperHandle);
+            Console.WriteLine($"[DEBUG] Thread returned Eject function pointer: 0x{bootstrapperHandle:X8}");
+            remoteThreadHandle.Close();
+
+            if (bootstrapperHandle == 0)
+            {
+                Console.Error.WriteLine($"Remote bootstrapper failed: {bootstrapperHandle}");
+                return false;
+            }
+
+            // release allocated memory
+            PInvoke.VirtualFreeEx(procHandle, allocMemAddress, 0, VIRTUAL_FREE_TYPE.MEM_RELEASE);
+
+            Console.WriteLine("Overlay injected");
+            return true;
         }
+
+
+        //internal static class Constants
+        //{
+        //    public const string CONSOLE_BETA_WARNING =
+        //        "This is a beta build. It has known issues and may even have some unknown ones.\n" +
+        //        "You can help report issues here https://github.com/YouKnow232/ggxxacpr_overlay/issues\n";
+        //    public const string CONSOLE_NETPLAY_NOTICE =
+        //        "Please close the overlay during netplay.\n";
+        //    public const string CONSOLE_KNOWN_ISSUES =
+        //        "Known Issues:\n" +
+        //        "- PLACE HOLDER\n" +
+        //        "- Update this in release branch\n";
+        //    public const string CONSOLE_CONTROLS =
+        //        "In this console window:\n" +
+        //        "Press '1' to toggle hitbox display\n" +
+        //        "Press '2' to toggle always-on throw range display\n" +
+        //        " *Air throw boxes only check for the pushbox's bottom edge highlighted in yellow\n\n" +
+        //        "Press '3' to toggle frame meter display\n" +
+        //        "Press '4' to display frame meter legend\n" +
+        //        "Press '5' to toggle frame meter hitstop pausing\n" +
+        //        "Press '6' to toggle frame meter super flash pausing\n" +
+        //        "\nPress 'q' to exit\n";
+        //    public const string CONSOLE_EXIT_PROMPT =
+        //        "Press any key to exit\n";
+        //}
     }
 }

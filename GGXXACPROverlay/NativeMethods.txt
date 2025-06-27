@@ -1,2 +1,15 @@
 VirtualProtect
+FlushInstructionCache
 AllocConsole
+CreateThread
+ResumeThread
+TerminateThread
+GetCurrentThreadId
+FreeLibraryAndExitThread
+GetCurrentProcess
+SetWindowsHookEx
+CallNextHookEx
+CreateToolhelp32Snapshot
+Thread32First
+GetProcAddress
+FreeConsole

@@ -1,0 +1,4 @@
+LIBRARY GGXXACPROverlay.Bootstrapper
+
+EXPORTS
+	Eject

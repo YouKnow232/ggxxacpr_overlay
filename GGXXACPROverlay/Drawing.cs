@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections;
-using GameOverlay.Drawing;
-using GGXXACPROverlay.GGXXACPR;
-using SharpDX.Direct2D1;
-using SharpDX.Mathematics.Interop;
+﻿using GGXXACPROverlay.GGXXACPR;
 
 namespace GGXXACPROverlay
 {
-    internal class Drawing
+    internal static class Drawing
     {
         private const float LINE_THICKNESS = 1f;
         private const int LINE_THICKNESS_PX = 2;
@@ -25,6 +20,65 @@ namespace GGXXACPROverlay
         {
             public readonly int X = x;
             public readonly int Y = y;
+        }
+
+        private static readonly ColorRectangle[] _colorRectangleBuffer = new ColorRectangle[100];
+        private static readonly Comparison<Hitbox> _hitboxSorter = new((hb1, hb2) => (short)hb2.BoxTypeId - (short)hb1.BoxTypeId);
+        public static Span<ColorRectangle> GetHitboxPrimitives(Player p)
+        {
+            Span<Hitbox> boxes = GGXXACPR.GGXXACPR.GetHitboxes(Settings.BoxDrawList, p);
+            boxes.Sort(_hitboxSorter);
+
+
+            for (int i = 0; i < boxes.Length; i++)
+            {
+                Convert(boxes[i], out _colorRectangleBuffer[i]);
+            }
+
+
+            return _colorRectangleBuffer.AsSpan(0, boxes.Length);
+        }
+
+        private static void Convert(Hitbox h, out ColorRectangle output)
+        {
+            var colorValue = Settings.Default;
+            if (h.BoxTypeId == BoxId.HIT) colorValue = Settings.Hitbox;
+            else if (h.BoxTypeId == BoxId.HURT) colorValue = Settings.Hurtbox;
+            output = new ColorRectangle(h.XOffset, h.YOffset, h.Width, h.Height, colorValue);
+        }
+
+        public static ColorRectangle GetCLHitBox(Player p)
+            => new ColorRectangle(GGXXACPR.GGXXACPR.GetCLRect(p), Settings.CLHitbox);
+
+        
+        /// <summary>
+        /// Expresses the character origin point (pivot) as two rectangles forming a cross.
+        /// </summary>
+        /// <param name="resources"></param>
+        /// <param name="p"></param>
+        /// <param name="ratio"></param>
+        /// <returns></returns>
+        public static Span<ColorRectangle> GetPivot(Player p, float ratio)
+        {
+            var halfSize = Settings.PivotCrossSize * ratio / 2.0f;
+            var halfThickness = Settings.PivotCrossThickness * ratio / 2.0f;
+
+            _colorRectangleBuffer[0] = new ColorRectangle(
+                p.XPos - halfSize,
+                p.YPos - halfThickness,
+                halfSize * 2,
+                halfThickness * 2,
+                Settings.PivotCrossColor
+            );
+            _colorRectangleBuffer[1] = new ColorRectangle(
+                p.XPos - halfThickness,
+                p.YPos - halfSize,
+                halfThickness * 2,
+                halfSize * 2,
+                Settings.PivotCrossColor
+            );
+
+            return _colorRectangleBuffer.AsSpan(0, 2);
         }
 
     //    internal static void BeginClipGameRegion(Graphics g, Dimensions windowDimensions)

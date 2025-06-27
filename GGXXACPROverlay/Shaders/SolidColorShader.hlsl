@@ -9,7 +9,6 @@ struct VertexShaderOutput
     float4 color : COLOR0;
 };
 
-
 VertexShaderOutput ColorVertexShader(VertexShaderInput input)
 {
     VertexShaderOutput output;
@@ -31,7 +30,7 @@ float4 ColorPixelShader(PixelShaderInput input) : COLOR0
 }
 
 float4 g_SolidColor : register(c0);
-float4 SolidColorPixelShader() : COLOR0
+float4 SolidColorPixelShader() : COLOR
 {
     return g_SolidColor;
 }

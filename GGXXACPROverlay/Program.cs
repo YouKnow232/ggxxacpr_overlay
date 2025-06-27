@@ -1,97 +1,130 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Loader;
 using Windows.Win32;
+using Windows.Win32.Foundation;
 
 namespace GGXXACPROverlay
 {
-    internal class Program
+    public static class Program
     {
         private const uint DLL_PROCESS_DETACH = 0;
         private const uint DLL_PROCESS_ATTACH = 1;
-        [UnmanagedCallersOnly(EntryPoint = "DllMain", CallConvs = [typeof(CallConvStdcall)])]
-        public static bool DllMain(nint module, uint reason, nint reserved)
-        {
-            switch (reason)
-            {
-                case DLL_PROCESS_ATTACH:
-                    PInvoke.AllocConsole();
-                    Console.WriteLine("DLL Attached!");
-                    // Initialize graphics stuff (find the d3d9 device pointer)
-                    //Console.WriteLine("Graphics Initialized");
-                    return Hooks.InstallHooks();
-                case DLL_PROCESS_DETACH:
-                    Graphics.Dispose();
-                    return Hooks.UninstallHooks();
-                default:
-                    break;
-            }
 
-            return true;
+        internal static HMODULE _module;
+        //private static HANDLE _targetProcessId;
+        //private static HANDLE _targetProcessMainThread;
+        //private static uint _mainThreadId;
+
+        //internal static HMODULE ThisModule => _module;
+
+        [UnmanagedCallersOnly(EntryPoint = "Main", CallConvs = [typeof(CallConvStdcall)])]
+        public static unsafe uint Main(nint args, int argsSize)
+        {
+            Debug.Log("[Overlay] Main() called!");
+
+            Console.WriteLine(typeof(Program).Assembly.GetName().Name);
+            Console.WriteLine(Assembly.GetExecutingAssembly().FullName);
+            Console.WriteLine(typeof(Program).Assembly.IsDynamic); // should be false
+            Console.WriteLine(AssemblyLoadContext.GetLoadContext(typeof(Program).Assembly));
+
+            return Start((void*)nint.Zero); // Just call Start directly?
         }
 
-        //static void Main()
+        //private static SafeFileHandle? _messageThread;
+
+        /// <summary>
+        /// Initialize hooks
+        /// </summary>
+        /// <param name="lpThreadParameter"></param>
+        /// <returns></returns>
+        public static unsafe uint Start(void* lpThreadParameter)
+        {
+            if (!Settings.Load())
+            {
+                Debug.Log("Couldn't load OverlaySettings.ini. Creating default ini.");
+                Settings.WriteDefault();
+            }
+
+            // DEBUG: allocate new console window.
+            Debug.DebugStatements = Settings.Get("Debug", "ShowDebugStatements", false);
+            if (Settings.Get("Debug", "DisplayConsole", false)) PInvoke.AllocConsole();
+            Debug.Log("DLL Attached!");
+
+            //// Keyboard Hook
+            //_mainThreadId = GetMainThread();
+            //if (_mainThreadId != 0)
+            //{
+            //    _keyboardHook = PInvoke.SetWindowsHookEx(WINDOWS_HOOK_ID.WH_KEYBOARD, _hookProc, HINSTANCE.Null, _mainThreadId);
+            //    if (_keyboardHook == 0) Debug.Log("Keyboard Hook failed to install");
+            //    else Debug.Log($"KeyboardHook: 0x{(nint)_keyboardHook.Value:X8}");
+            //}
+
+            // Detour/Trampoline Hooks
+            Hooks.InstallHooks();
+
+            return 0;
+        }
+
+        //private static unsafe uint GetMainThread()
         //{
-        //    // Version
-        //    Console.WriteLine($"GGXXACPR Overlay v{Assembly.GetEntryAssembly()?.GetName().Version}\n");
-
-        //    Console.WriteLine(Constants.CONSOLE_BETA_WARNING);
-        //    Console.WriteLine(Constants.CONSOLE_NETPLAY_NOTICE);
-        //    Console.WriteLine(Constants.CONSOLE_KNOWN_ISSUES);
-
-        //    TimerService.EnableHighPrecisionTimers();
-
-        //    try
+        //    using var snapshot = PInvoke.CreateToolhelp32Snapshot_SafeHandle(CREATE_TOOLHELP_SNAPSHOT_FLAGS.TH32CS_SNAPTHREAD, 0);
+        //    if (snapshot.IsInvalid)
         //    {
-        //        using var overlay = new Overlay();
-        //        overlay.Run();
-        //        Console.WriteLine(Constants.CONSOLE_CONTROLS);
+        //        Debug.Log("CreateToolhelp32Snapshot failed");
+        //        return 0;
+        //    }
 
-        //        ConsoleKey? key = null;
-        //        Stream inputStream = Console.OpenStandardInput();
-        //        while (overlay.IsRunning())
+        //    THREADENTRY32 entry = new() { dwSize = (uint)sizeof(THREADENTRY32) };
+
+        //    // TODO: wrong assumption?
+        //    // ASSUMPTION: main window thread is first
+        //    if (!PInvoke.Thread32First(snapshot, ref entry))
+        //    {
+        //        Debug.Log("Thread32First failed");
+        //        return 0;
+        //    }
+
+        //    return entry.th32ThreadID;
+        //}
+
+        [UnmanagedCallersOnly(EntryPoint = "DetachAndUnload", CallConvs = [typeof(CallConvStdcall)])]
+        public static unsafe uint DetachAndUnload(nint _, int __)
+        {
+            Debug.Log("DetachAndUnload called!");
+            // if (!_keyboardHook.IsNull) PInvoke.UnhookWindowsHookEx(_keyboardHook);
+            // PInvoke.TerminateThread(_messageThread, 0);
+            Hooks.UninstallHooks();
+            // TODO: Actually check to see if the VException Handler executed
+            Thread.Sleep(100);  // Wait for VException Handler to execute
+            Overlay.Instance?.Dispose();
+            PInvoke.FreeConsole();
+
+            PInvoke.FreeLibraryAndExitThread(_module, 0);
+            return 1;   // Make compiler happy
+        }
+
+        //// internal unsafe delegate winmdroot.Foundation.LRESULT HOOKPROC(int code, winmdroot.Foundation.WPARAM wParam, winmdroot.Foundation.LPARAM lParam);
+        ////private static readonly HOOKPROC _hookProc = KeyboardHook;
+        ////private static HHOOK _keyboardHook;
+        //[UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
+        //private static LRESULT KeyboardHook(int code, WPARAM wParam, LPARAM lParam)
+        //{
+        //    if (code >= 0)
+        //    {
+        //        int vkCode = (int)wParam.Value;
+
+        //        Debug.Log($"Keyboard event hook reached!: {vkCode}");
+        //        switch (vkCode)
         //        {
-        //            if (Console.KeyAvailable) key = Console.ReadKey(true).Key;
-        //            switch (key)
-        //            {
-        //                case ConsoleKey.NumPad1:
-        //                case ConsoleKey.D1:
-        //                    overlay.ToggleHitboxOverlay();
-        //                    break;
-        //                case ConsoleKey.NumPad2:
-        //                case ConsoleKey.D2:
-        //                    overlay.ToggleThrowRangeDisplay();
-        //                    break;
-        //                case ConsoleKey.NumPad3:
-        //                case ConsoleKey.D3:
-        //                    overlay.ToggleFrameMeter();
-        //                    break;
-        //                case ConsoleKey.NumPad4:
-        //                case ConsoleKey.D4:
-        //                    overlay.ToggleDisplayLegend();
-        //                    break;
-        //                case ConsoleKey.NumPad5:
-        //                case ConsoleKey.D5:
-        //                    overlay.ToggleRecordHitstop();
-        //                    break;
-        //                case ConsoleKey.NumPad6:
-        //                case ConsoleKey.D6:
-        //                    overlay.ToggleRecordSuperFlash();
-        //                    break;
-        //                case ConsoleKey.Q:
-        //                    overlay.Dispose();
-        //                    break;
-        //            }
-        //            key = null;
-
-        //            Thread.Sleep(30);
+        //            case 0x1B:
+        //                Debug.Log("KeyboardHook>> ESC keystroke detected!");
+        //                break;
         //        }
         //    }
-        //    catch (InvalidOperationException e)
-        //    {
-        //        Console.WriteLine(e.Message + "\n");
-        //        Console.WriteLine(Constants.CONSOLE_EXIT_PROMPT);
-        //        Console.ReadKey(true);
-        //    }
+
+        //    return PInvoke.CallNextHookEx(_keyboardHook, code, wParam, lParam);
         //}
     }
 }

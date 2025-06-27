@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Reflection;
+﻿using System.Reflection;
 
 namespace GGXXACPROverlay.GGXXACPR
 {
@@ -85,18 +84,15 @@ namespace GGXXACPROverlay.GGXXACPR
                     line = reader.ReadLine();
                 }
 
-                Debug.WriteLine("Move Data loaded successfully.");
+                Debug.Log("Move Data loaded successfully.");
             }
             catch (Exception e)
             {
                 if (e is FileNotFoundException || e is IOException || e is UnauthorizedAccessException)
                 {
-                    Console.WriteLine($"Could not find {MoveDataFileName}, move startup will be incorrect.");
+                    Debug.Log($"Could not find {MoveDataFileName}, move startup will be incorrect.");
                 }
-                else
-                {
-                    throw;
-                }
+                else throw;
             }
 
             actIdToMoveIds = (Lookup<CharIdActIdKey, MoveDataEntry>)rawMoveData.ToLookup(
