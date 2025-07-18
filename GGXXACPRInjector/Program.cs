@@ -2,22 +2,11 @@
 
 namespace GGXXACPRInjector
 {
-    internal unsafe partial class Program
+    internal unsafe static partial class Program
     {
         private const string targetProcessName = "GGXXACPR_Win";
         private const string injectee = "GGXXACPROverlay.Bootstrapper.dll";
         private const string injecteeDependency = "nethost.dll";
-
-
-        [LibraryImport("kernel32.dll", SetLastError = true)]
-        internal static partial nint CreateRemoteThread(
-            nint hProcess,
-            nint lpThreadAttributes,
-            uint dwStackSize,
-            nint lpStartAddress,
-            nint lpParameter,
-            uint dwCreationFlags,
-            out uint lpThreadId);
 
         static void Main(string[] args)
         {

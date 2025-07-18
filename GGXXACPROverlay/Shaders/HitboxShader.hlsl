@@ -2,15 +2,13 @@ struct HitboxVSInput
 {
     float4 vPosition : POSITION;
     float4 vDiffuse : COLOR0;
-    float2 boxDim : TEXCOORD0;
-    float2 vTexCoor : TEXCOORD1;
+    float2 vTexCoor : TEXCOORD0;
 };
 struct HitboxVSOutput
 {
     float4 position : POSITION;
     float4 color : COLOR0;
-    float2 boxDim : TEXCOORD0;
-    float2 vTexCoor : TEXCOORD1;
+    float2 vTexCoor : TEXCOORD0;
 };
 
 uniform float4x4 mvpMatrix : register(c0);
@@ -22,11 +20,11 @@ HitboxVSOutput HitboxVS(HitboxVSInput input)
     HitboxVSOutput output;
     
     output.position = mul(input.vPosition, mvpMatrix);
+    // D3D9 Half-pixel offset correction
+    output.position.xy -= float2(0.5, 0.5) * output.position.w / viewPort;
     //float2 ndc = output.position.xy / output.position.w;
     output.color = input.vDiffuse;
     output.vTexCoor = input.vTexCoor;
-    output.boxDim = input.boxDim;
-    //output.screenPos = (ndc * 0.5f + 0.5f) * viewPort;
     
     return output;
 }
@@ -34,8 +32,7 @@ HitboxVSOutput HitboxVS(HitboxVSInput input)
 struct HitboxPSInput
 {
     float4 color : COLOR0;
-    float2 boxDim : TEXCOORD0;
-    float2 vTexCoor : TEXCOORD1;
+    float2 vTexCoor : TEXCOORD0;
 };
 
 uniform float borderThickness : register(c5);
@@ -47,20 +44,22 @@ float4 HitboxPS(HitboxPSInput input) : COLOR
     
     if (borderThickness >= 0)
     {
-        // subtracting small amount to account for float inaccuracy
-        float2 uvEdgeThickness = (borderThickness - 0.001f) / input.boxDim;
-    
-        bool isEdge =
-        uv.x < uvEdgeThickness.x ||
-        uv.x > (1.0 - uvEdgeThickness.x) ||
-        uv.y < uvEdgeThickness.y ||
-        uv.y > (1.0 - uvEdgeThickness.y);
-    
-        color.a = isEdge ? 1.0 : color.a;
+        float2 dx = ddx(uv);
+        float2 dy = ddy(uv);
+        float2 uvSizeInPixels;
+        uvSizeInPixels.x = 1.0 / length(dx);
+        uvSizeInPixels.y = 1.0 / length(dy);
+        float2 borderUV = borderThickness / uvSizeInPixels;
+        
+        bool isBorder =
+            (uv.x < borderUV.x) || (uv.x > 1.0 - borderUV.x) ||
+            (uv.y < borderUV.y) || (uv.y > 1.0 - borderUV.y);
+        
+        color.a = isBorder ? 1.0 : color.a;
     }
     
-        return color;
-    }
+    return color;
+}
 
 technique Hitbox
 {

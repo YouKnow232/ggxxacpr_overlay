@@ -20,11 +20,14 @@ namespace GGXXACPROverlay
         {
             Console.WriteLine("[GGXXACPROverlay] " + message?.ToString());
         }
-        private static void DebugOff(object? _) { }
+        private static void DebugOff(object? _)
+        {
+            // Intentionally blank
+        }
 
         /// <summary>
         /// Controls Debug.Log behavior. Debug.Log will print messages if true.
         /// </summary>
-        public static bool DebugStatements { get => DebugBehavior == DebugOn; set => DebugBehavior = value ? DebugOn : DebugOff; }
+        public static bool DebugStatements { get => DebugBehavior == DebugOn; set => DebugBehavior = (value ? DebugOn : DebugOff); }
     }
 }

@@ -1,6 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Windows.Win32;
 
 namespace GGXXACPROverlay
 {
@@ -9,17 +8,6 @@ namespace GGXXACPROverlay
         [UnmanagedCallersOnly(EntryPoint = "Main", CallConvs = [typeof(CallConvStdcall)])]
         public static unsafe uint Main(nint args, int argsSize)
         {
-            Debug.Log("[Overlay] Main() called!");
-            return Start((void*)nint.Zero); // Just call Start directly?
-        }
-
-        /// <summary>
-        /// Initialize hooks
-        /// </summary>
-        /// <param name="lpThreadParameter"></param>
-        /// <returns></returns>
-        public static unsafe uint Start(void* lpThreadParameter)
-        {
             if (!Settings.Load())
             {
                 Debug.Log("Couldn't load OverlaySettings.ini. Creating default ini.");
@@ -27,8 +15,8 @@ namespace GGXXACPROverlay
             }
 
             // DEBUG: allocate new console window.
-            //Debug.DebugStatements = Settings.Get("Debug", "ShowDebugStatements", true);
-            Debug.DebugStatements = true;
+            Debug.DebugStatements = Settings.Get("Debug", "ShowDebugStatements", true);
+            // Console is attached in bootstrapper right now.
             //if (Settings.Get("Debug", "DisplayConsole", true)) PInvoke.AllocConsole();
             Debug.Log("DLL Attached!");
 
@@ -41,8 +29,7 @@ namespace GGXXACPROverlay
             //    else Debug.Log($"KeyboardHook: 0x{(nint)_keyboardHook.Value:X8}");
             //}
 
-            // Detour/Trampoline Hooks
-            Hooks.InstallHooks();
+            Hooks.HookInstaller.InstallHooks();
 
             return 0;
         }
@@ -77,17 +64,17 @@ namespace GGXXACPROverlay
             Debug.Log("[ERROR] DetachAndUnload not implemented");
             return 1;
 
-            Debug.Log("DetachAndUnload called!");
-            // if (!_keyboardHook.IsNull) PInvoke.UnhookWindowsHookEx(_keyboardHook);
-            // PInvoke.TerminateThread(_messageThread, 0);
-            Hooks.UninstallHooks();
-            // TODO: Actually check to see if the VException Handler executed
-            Thread.Sleep(100);  // Wait for VException Handler to execute
-            Overlay.Instance?.Dispose();
-            PInvoke.FreeConsole();
+            //Debug.Log("DetachAndUnload called!");
+            //// if (!_keyboardHook.IsNull) PInvoke.UnhookWindowsHookEx(_keyboardHook);
+            //// PInvoke.TerminateThread(_messageThread, 0);
+            //Hooks.UninstallHooks();
+            //// TODO: Actually check to see if the VException Handler executed
+            //Thread.Sleep(100);  // Wait for VException Handler to execute
+            //Overlay.Instance?.Dispose();
+            //PInvoke.FreeConsole();
 
-            //PInvoke.FreeLibraryAndExitThread(_module, 0);
-            return 1;   // Make compiler happy
+            ////PInvoke.FreeLibraryAndExitThread(_module, 0);
+            //return 1;   // Make compiler happy
         }
 
         //// internal unsafe delegate winmdroot.Foundation.LRESULT HOOKPROC(int code, winmdroot.Foundation.WPARAM wParam, winmdroot.Foundation.LPARAM lParam);

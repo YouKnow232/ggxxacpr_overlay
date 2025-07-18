@@ -35,4 +35,7 @@
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="DEV-README.txt" />
+  </ItemGroup>
 </Project>

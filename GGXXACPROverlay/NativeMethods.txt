@@ -1,7 +1,12 @@
 VirtualProtect
+VirtualAlloc
+VirtualFree
 FlushInstructionCache
 AllocConsole
 CreateThread
+GetThreadContext
+OpenThread
+SuspendThread
 ResumeThread
 TerminateThread
 GetCurrentThreadId

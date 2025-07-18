@@ -40,6 +40,7 @@
   <ItemGroup>
     <None Remove="GGXXACPR\MoveData.csv" />
     <None Remove="OverlaySettings.ini" />
+    <None Remove="Shaders\ComboTimeMeter.hlsl" />
     <None Remove="Shaders\HitboxShader.hlsl" />
     <None Remove="Shaders\SolidColorShader.hlsl" />
   </ItemGroup>
@@ -65,6 +66,9 @@
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="OverlaySettings.ini">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Shaders\ComboTimeMeter.hlsl">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Shaders\HitboxShader.hlsl">

@@ -9,7 +9,7 @@ using Windows.Win32.System.Threading;
 
 namespace GGXXACPRInjector
 {
-    public class Injector(string processName, string mainDllDir, string[] dllDependencies)
+    public partial class Injector(string processName, string mainDllDir, string[] dllDependencies)
     {
         private const int _timeout = 10000;
 
@@ -22,6 +22,16 @@ namespace GGXXACPRInjector
         private uint bootstrapperHandle;
 
         // private static nint ejectFunctionOffset;
+
+        [LibraryImport("kernel32.dll", SetLastError = true)]
+        internal static partial nint CreateRemoteThread(
+            nint hProcess,
+            nint lpThreadAttributes,
+            uint dwStackSize,
+            nint lpStartAddress,
+            nint lpParameter,
+            uint dwCreationFlags,
+            out uint lpThreadId);
 
         public Injector(string processName, string mainDllDir) : this(processName, mainDllDir, []) { }
 

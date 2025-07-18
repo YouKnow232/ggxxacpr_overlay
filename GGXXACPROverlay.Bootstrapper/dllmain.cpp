@@ -53,7 +53,7 @@ static DWORD WINAPI HostDotnetRuntime(LPVOID lpParam)
 
     // TODO: package these somehow
     //const char* basePath = "C:\\Users\\chase\\workspace\\GGXXACPROverlay\\GGXXACPROverlay\\bin\\Release\\net9.0-windows\\win-x86\\publish\\framework-dependent\\";
-    // const char_t* runtimeConfigPath = L"C:\\Users\\chase\\workspace\\GGXXACPROverlay\\GGXXACPROverlay\\bin\\Release\\net9.0-windows\\win-x86\\publish\\framework-dependent\\GGXXACPROverlay.runtimeconfig.json";
+    //const char_t* runtimeConfigPath = L"C:\\Users\\chase\\workspace\\GGXXACPROverlay\\GGXXACPROverlay\\bin\\Release\\net9.0-windows\\win-x86\\publish\\framework-dependent\\GGXXACPROverlay.runtimeconfig.json";
     //const char_t* overlayPath = L"C:\\Users\\chase\\workspace\\GGXXACPROverlay\\GGXXACPROverlay\\bin\\Release\\net9.0-windows\\win-x86\\publish\\framework-dependent\\GGXXACPROverlay.dll";
     //const char_t* runtimeConfigPath = L"C:\\Users\\chase\\workspace\\GGXXACPROverlay\\GGXXACPROverlay\\bin\\x86\\Release\\net9.0-windows\\win-x86\\GGXXACPROverlay.runtimeconfig.json";
     //const char_t* overlayPath = L"C:\\Users\\chase\\workspace\\GGXXACPROverlay\\GGXXACPROverlay\\bin\\x86\\Release\\net9.0-windows\\win-x86\\GGXXACPROverlay.dll";
@@ -83,19 +83,19 @@ static DWORD WINAPI HostDotnetRuntime(LPVOID lpParam)
     }
 
     // Define hostfxr function pointers
-    hostfxr_initialize_for_runtime_config_fn hostfxr_initialize_for_runtime_config =
+    auto hostfxr_initialize_for_runtime_config =
         (hostfxr_initialize_for_runtime_config_fn)GetProcAddress(hHostfxr, "hostfxr_initialize_for_runtime_config");
     if (hostfxr_initialize_for_runtime_config == nullptr) {
         DebugLog("Failed to load hostfxr_initialize_for_runtime_config");
         return 2;
     }
-    hostfxr_get_runtime_delegate_fn hostfxr_get_runtime_delegate =
+    auto hostfxr_get_runtime_delegate =
         (hostfxr_get_runtime_delegate_fn)GetProcAddress(hHostfxr, "hostfxr_get_runtime_delegate");
     if (hostfxr_get_runtime_delegate == nullptr) {
         DebugLog("Failed to load hostfxr_get_runtime_delegate");
         return 3;
     }
-    hostfxr_close_fn hostfxr_close =
+    auto hostfxr_close =
         (hostfxr_close_fn)GetProcAddress(hHostfxr, "hostfxr_close");
     if (hostfxr_close == nullptr) {
         DebugLog("Failed to load hostfxr_close");
@@ -191,19 +191,14 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 {
     thisModule = hModule;
 
-    switch (ul_reason_for_call)
+    if (ul_reason_for_call == DLL_PROCESS_ATTACH)
     {
-    case DLL_PROCESS_ATTACH:
         DisableThreadLibraryCalls(hModule);
         OpenConsoleWindow();
         DebugLog("Attached");
-        CreateThread(NULL, 0, HostDotnetRuntime, NULL, 0, NULL);
-        break;
-    case DLL_THREAD_ATTACH:
-    case DLL_THREAD_DETACH:
-    case DLL_PROCESS_DETACH:
-        break;
+        CreateThread(nullptr, 0, HostDotnetRuntime, nullptr, 0, nullptr);
     }
+
     return TRUE;
 }
  

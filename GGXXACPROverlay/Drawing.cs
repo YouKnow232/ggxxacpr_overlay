@@ -1,7 +1,13 @@
 ﻿using GGXXACPROverlay.GGXXACPR;
+using Vortice.Mathematics;
 
+// TODO: reevaluate preallocated buffers
 namespace GGXXACPROverlay
 {
+    /// <summary>
+    /// Helper functions that convert game data from the GGXXACPR class into a ready to draw
+    /// format using display information from the Settings class.
+    /// </summary>
     internal static class Drawing
     {
         private const float LINE_THICKNESS = 1f;
@@ -22,19 +28,19 @@ namespace GGXXACPROverlay
             public readonly int Y = y;
         }
 
+        public static readonly ColorRectangle ComboTimeMeter =
+            new ColorRectangle(-0.95f, 0.1f, 0.05f, 0.4f);
+        public static readonly ColorRectangle UntechTimeMeter =
+            new ColorRectangle(-0.85f, 0.1f, 0.05f, 0.4f, 0xFF00FFFF);
+
+
         private static readonly ColorRectangle[] _colorRectangleBuffer = new ColorRectangle[100];
         private static readonly Comparison<Hitbox> _hitboxSorter = new((hb1, hb2) => (short)hb2.BoxTypeId - (short)hb1.BoxTypeId);
-        public static Span<ColorRectangle> GetHitboxPrimitives(Player p)
+        public static Span<ColorRectangle> GetHitboxPrimitives(Span<Hitbox> boxes)
         {
-            Span<Hitbox> boxes = GGXXACPR.GGXXACPR.GetHitboxes(Settings.BoxDrawList, p);
             boxes.Sort(_hitboxSorter);
 
-
-            for (int i = 0; i < boxes.Length; i++)
-            {
-                Convert(boxes[i], out _colorRectangleBuffer[i]);
-            }
-
+            for (int i = 0; i < boxes.Length; i++) Convert(boxes[i], out _colorRectangleBuffer[i]);
 
             return _colorRectangleBuffer.AsSpan(0, boxes.Length);
         }
@@ -42,8 +48,8 @@ namespace GGXXACPROverlay
         private static void Convert(Hitbox h, out ColorRectangle output)
         {
             var colorValue = Settings.Default;
-            if (h.BoxTypeId == BoxId.HIT) colorValue = Settings.Hitbox;
-            else if (h.BoxTypeId == BoxId.HURT) colorValue = Settings.Hurtbox;
+            if (h.BoxTypeId == (ushort)BoxId.HIT) colorValue = Settings.Hitbox;
+            else if (h.BoxTypeId == (ushort)BoxId.HURT) colorValue = Settings.Hurtbox;
             output = new ColorRectangle(h.XOffset, h.YOffset, h.Width, h.Height, colorValue);
         }
 
@@ -81,200 +87,44 @@ namespace GGXXACPROverlay
             return _colorRectangleBuffer.AsSpan(0, 2);
         }
 
-    //    internal static void BeginClipGameRegion(Graphics g, Dimensions windowDimensions)
-    //    {
-    //        g.ClipRegionStart(PixelToWindow(new Rectangle(-1, -1, GGXXACPR.GGXXACPR.SCREEN_WIDTH_PIXELS,
-    //            GGXXACPR.GGXXACPR.SCREEN_HEIGHT_PIXELS), windowDimensions));
-    //    }
-    //    internal static void EndClipGameRegion(Graphics g)
-    //    {
-    //        g.ClipRegionEnd();
-    //    }
+        public static ColorRectangle GetPushboxPrimitives(Player p)
+        {
+            Rect push = GGXXACPR.GGXXACPR.GetPushBox(p);
+            return new ColorRectangle(push, Settings.Push);
+        }
 
-    //    internal static void DrawPlayerPivot(Graphics g, GraphicsResources r, GameState state, Player p, Dimensions windowDimensions)
-    //    {
-    //        DrawPivot(g, r, state, p.XPos, p.YPos, windowDimensions);
-    //    }
-    //    internal static void DrawEntityPivot(Graphics g, GraphicsResources r, GameState state, Entity e, Dimensions windowDimensions)
-    //    {
-    //        DrawPivot(g, r, state, e.XPos, e.YPos, windowDimensions);
-    //    }
-    //    private static void DrawPivot(Graphics g, GraphicsResources r, GameState state, int x, int y, Dimensions windowDimensions)
-    //    {
-    //        PointInt coor = PixelToWindow(WorldToPixel(new PointInt(x, y), state.Camera), windowDimensions);
-    //        // GameOverlay.Net Lines seem to not include the starting point pixel. The line defintions are extended to compensate.
-    //        var outline1 = new Line(coor.X - PIVOT_CROSS_SIZE - 2, coor.Y, coor.X + PIVOT_CROSS_SIZE + 1, coor.Y);
-    //        var outline2 = new Line(coor.X, coor.Y - PIVOT_CROSS_SIZE - 2, coor.X, coor.Y + PIVOT_CROSS_SIZE + 1);
-    //        var line1 = new Line(coor.X - PIVOT_CROSS_SIZE - 1, coor.Y, coor.X + PIVOT_CROSS_SIZE, coor.Y);
-    //        var line2 = new Line(coor.X, coor.Y - PIVOT_CROSS_SIZE - 1, coor.X, coor.Y + PIVOT_CROSS_SIZE);
-    //        g.DrawLine(r.GetBrush(GeneralPalette.BLACK), outline1, LINE_THICKNESS * 3);
-    //        g.DrawLine(r.GetBrush(GeneralPalette.BLACK), outline2, LINE_THICKNESS * 3);
-    //        g.DrawLine(r.GetBrush(GeneralPalette.WHITE), line1, LINE_THICKNESS);
-    //        g.DrawLine(r.GetBrush(GeneralPalette.WHITE), line2, LINE_THICKNESS);
-    //    }
-    //    internal static void DrawEntityCore(Graphics g, GraphicsResources r, GameState state, Entity e, Dimensions windowDimensions)
-    //    {
-    //        PointInt coor = PixelToWindow(WorldToPixel(new PointInt(e.XPos + (e.CoreX * 100), e.YPos + (e.CoreY * 100)), state.Camera), windowDimensions);
-    //        var line1 = new Line(coor.X - PIVOT_CROSS_SIZE - 1, coor.Y, coor.X + PIVOT_CROSS_SIZE, coor.Y);
-    //        var line2 = new Line(coor.X, coor.Y - PIVOT_CROSS_SIZE - 1, coor.X, coor.Y + PIVOT_CROSS_SIZE);
-    //        g.DrawLine(r.GetBrush(GeneralPalette.WHITE), line1, LINE_THICKNESS);
-    //        g.DrawLine(r.GetBrush(GeneralPalette.WHITE), line2, LINE_THICKNESS);
-    //    }
-    //    internal static void DrawPlayerPushBox(Graphics g, GraphicsResources r, GameState state, Player player, Dimensions windowDimensions)
-    //    {
-    //        var mappedRect = MapHitboxToPlayerOrigin(player.PushBox, player);
-    //        var drawRect = PixelToWindow(WorldToPixel(mappedRect, state.Camera), windowDimensions);
+        public static ColorRectangle GetGrabboxPrimitives(Player p)
+        {
+            return new ColorRectangle(GGXXACPR.GGXXACPR.GetGrabBox(p), Settings.Grab);
+        }
+        public static ColorRectangle GetCommnadGrabboxPrimitives(Player p)
+        {
+            GGXXACPR.GGXXACPR.GetCommandGrabBox(p, GGXXACPR.GGXXACPR.GetPushBox(p), out Rect cmdGrabBox);
+            return new ColorRectangle(cmdGrabBox, Settings.Grab);
+        }
 
-    //        if (player.Status.NoCollision)
-    //        {
-    //            g.DrawRectangle_InwardPixelBorder(
-    //                r.GetBrush(GeneralPalette.COLLISION),
-    //                drawRect,
-    //                LINE_THICKNESS_PX);
-    //        }
-    //        else
-    //        {
-    //            g.OutlineFillRectangle_InwardPixelBorder(
-    //                r.GetBrush(GeneralPalette.COLLISION),
-    //                r.GetFillBrush(GeneralPalette.COLLISION),
-    //                drawRect,
-    //                LINE_THICKNESS_PX);
-    //        }
+        private static readonly ColorRectangle[] _pushGrabBuffer = new ColorRectangle[2];
+        public static Span<ColorRectangle> GetPushAndGrabPrimitives(Player p)
+        {
+            Rect push = GGXXACPR.GGXXACPR.GetPushBox(p);
+            _pushGrabBuffer[0] = new ColorRectangle(push, Settings.Push);
+            ThrowDetection throwFlags = GGXXACPR.GGXXACPR.ThrowFlags;
 
-    //        var borderThicknessYAdjust = (LINE_THICKNESS_PX) / 2;
-    //        var underLine = new Line(drawRect.Left - 1, drawRect.Bottom - borderThicknessYAdjust,
-    //            drawRect.Right, drawRect.Bottom - borderThicknessYAdjust);
+            if (GGXXACPR.GGXXACPR.GetCommandGrabBox(p, push, out Rect cmdGrab))
+            {
+                _pushGrabBuffer[1] = new ColorRectangle(cmdGrab, Settings.Grab);
+                return _pushGrabBuffer.AsSpan();
+            }
+            else if (p.PlayerIndex == 0 && throwFlags.HasFlag(ThrowDetection.Player1ThrowSuccess) ||    // TODO: throw recognition bug going on here
+                     p.PlayerIndex == 1 && throwFlags.HasFlag(ThrowDetection.Player2ThrowSuccess))
+            {
+                Rect grab = GGXXACPR.GGXXACPR.GetGrabBox(p, push);
+                _pushGrabBuffer[1] = new ColorRectangle(grab, Settings.Grab);
+                return _pushGrabBuffer.AsSpan();
+            }
 
-    //        g.DrawLine(
-    //            r.GetBrush(GeneralPalette.YELLOW),
-    //            underLine,
-    //            LINE_THICKNESS_PX
-    //        );
-    //    }
-    //    internal static void DrawPlayerGrabBox(Graphics g, GraphicsResources r, GameState state, Player player, Dimensions windowDimensions, bool drawOverride)
-    //    {
-    //        if (DrawPlayerCommandGrabBox(g, r, state, player, windowDimensions)) { return; }
-    //        if (player.CommandFlags.DisableThrow) { return; }
-
-    //        if (state.GlobalFlags.ThrowFlags.Player1ThrowSuccess && player.PlayerIndex == 0 ||
-    //            state.GlobalFlags.ThrowFlags.Player2ThrowSuccess && player.PlayerIndex == 1 ||
-    //            drawOverride)
-    //        {
-    //            Hitbox throwBox = GGXXACPR.GGXXACPR.GetThrowBox(state, player);
-    //            Rectangle mappedRect = MapHitboxToPlayerOrigin(throwBox, player);
-    //            Rectangle drawRect = PixelToWindow(WorldToPixel(mappedRect, state.Camera), windowDimensions);
-
-    //            g.OutlineFillRectangle_InwardPixelBorder(
-    //                r.GetBrush(GeneralPalette.GRAB),
-    //                r.GetFillBrush(GeneralPalette.GRAB),
-    //                drawRect,
-    //                LINE_THICKNESS_PX);
-    //        }
-    //    }
-    //    private static bool DrawPlayerCommandGrabBox(Graphics g, GraphicsResources r, GameState state, Player player, Dimensions windowDimensions)
-    //    {
-    //        if ((player.Mark == 1) && MoveData.IsActiveByMark(player.CharId, player.ActionId))
-    //        {
-    //            var cmdThrowRange = MoveData.GetCommandGrabRange(player.CharId, player.ActionId);
-    //            Hitbox cmdThrowHitboxRep = new()
-    //            {
-    //                XOffset = (short)(player.PushBox.XOffset - cmdThrowRange / 100),
-    //                YOffset = player.PushBox.YOffset,
-    //                Width   = (short)(player.PushBox.Width + cmdThrowRange * 2 / 100),
-    //                Height  = player.PushBox.Height
-    //            };
-
-    //            Rectangle mappedRect = MapHitboxToPlayerOrigin(cmdThrowHitboxRep, player);
-    //            Rectangle drawRect = PixelToWindow(WorldToPixel(mappedRect, state.Camera), windowDimensions);
-
-    //            g.OutlineFillRectangle_InwardPixelBorder(
-    //                r.GetBrush(GeneralPalette.GRAB),
-    //                r.GetFillBrush(GeneralPalette.GRAB),
-    //                drawRect,
-    //                LINE_THICKNESS_PX);
-    //            return true;
-    //        }
-    //        return false;
-    //    }
-
-    //    private static Rectangle MapHitboxToPlayerOrigin(Hitbox hitbox, Player player)
-    //    {
-    //        return MapHitboxToOrigin(hitbox, player.IsFacingRight, player.XPos, player.YPos);
-    //    }
-    //    private static Rectangle MapHitboxToEntityOrigin(Hitbox hitbox, Entity e)
-    //    {
-    //        return MapHitboxToOrigin(hitbox, e.IsFacingRight, e.XPos, e.YPos);
-    //    }
-    //    private static Rectangle MapHitboxToOrigin(Hitbox hitbox, bool isFacingRight, int xPos, int yPos)
-    //    {
-    //        var offset = isFacingRight ? ((hitbox.XOffset + hitbox.Width) * -100) : (hitbox.XOffset * 100);
-    //        return new Rectangle(
-    //            xPos + offset,
-    //            yPos + hitbox.YOffset * 100,
-    //            xPos + offset + hitbox.Width * 100,
-    //            yPos + (hitbox.YOffset + hitbox.Height) * 100);
-    //    }
-
-    //    internal static void DrawPlayerBoxes(Graphics g, GraphicsResources r, BoxId[] drawList, GameState state, Player player, Dimensions windowDimensions)
-    //    {
-    //        if (player.HitboxSet == null) return;
-
-    //        foreach (Hitbox hitbox in player.HitboxSet)
-    //        {
-    //            if (hitbox.BoxTypeId == BoxId.HURT && (
-    //                    player.Extra.InvulnCounter > 0 ||
-    //                    player.Status.DisableHurtboxes ||
-    //                    player.Status.StrikeInvuln
-    //                ) ||
-    //                // hitboxes are technically disabled in recovery state, but we're going to draw them during hitstop anyway
-    //                (hitbox.BoxTypeId == BoxId.HIT) && (
-    //                    player.Status.DisableHitboxes &&
-    //                    !(player.HitstopCounter > 0 &&
-    //                    player.AttackFlags.HasConnected)    // Hitstop counter is also used in super flash, so need to check attack flags as well
-    //                ) ||
-    //                !drawList.Contains(hitbox.BoxTypeId))
-    //            {
-    //                continue;
-    //            }
-
-    //            Hitbox drawbox = ScaleHitbox(hitbox, player);
-    //            Rectangle mappedRect = MapHitboxToPlayerOrigin(drawbox, player);
-    //            Rectangle drawRect = PixelToWindow(WorldToPixel(mappedRect, state.Camera), windowDimensions);
-
-    //            g.OutlineFillRectangle_InwardPixelBorder(
-    //                r.GetOutlineBrush(drawbox.BoxTypeId),
-    //                r.GetFillBrush(drawbox.BoxTypeId),
-    //                drawRect,
-    //                LINE_THICKNESS_PX);
-    //        }
-    //    }
-
-    //    internal static void DrawProjectileBoxes(Graphics g, GraphicsResources r, BoxId[] drawList, GameState state, Dimensions windowDimensions)
-    //    {
-    //        Hitbox drawbox;
-    //        Rectangle mappedRect, drawRect;
-    //        foreach (Entity e in state.Entities)
-    //        {
-    //            foreach(Hitbox hitbox in e.HitboxSet)
-    //            {
-    //                if (e.Status.DisableHitboxes && hitbox.BoxTypeId == BoxId.HIT ||
-    //                    e.Status.DisableHurtboxes && hitbox.BoxTypeId == BoxId.HURT ||
-    //                    !drawList.Contains(hitbox.BoxTypeId))
-    //                { continue; }
-
-    //                drawbox = ScaleHitbox(hitbox, e);
-    //                mappedRect = MapHitboxToEntityOrigin(drawbox, e);
-    //                drawRect = PixelToWindow(WorldToPixel(mappedRect, state.Camera), windowDimensions);
-
-    //                g.OutlineFillRectangle_InwardPixelBorder(
-    //                    r.GetOutlineBrush(drawbox.BoxTypeId),
-    //                    r.GetFillBrush(drawbox.BoxTypeId),
-    //                    drawRect,
-    //                    LINE_THICKNESS_PX);
-    //            }
-    //            DrawEntityPivot(g, r, state, e, windowDimensions);
-    //        }
-    //    }
+            return _pushGrabBuffer.AsSpan(0, 1);
+        }
 
     //    private const int FRAME_METER_Y_ALT = 90;
     //    private const int FRAME_METER_BASE_LINE_X = 5;
@@ -624,127 +474,6 @@ namespace GGXXACPROverlay
     //            ((r.Right + 1) * windowDimensions.Height / GGXXACPR.GGXXACPR.SCREEN_HEIGHT_PIXELS) + wideScreenOffset,
     //            (r.Bottom + 1) * windowDimensions.Height / GGXXACPR.GGXXACPR.SCREEN_HEIGHT_PIXELS
     //        );
-    //    }
-
-    //    private static Hitbox ScaleHitbox(Hitbox hitbox, Player p)
-    //    {
-    //        if (p.ScaleX < 0 && p.ScaleY < 0) { return hitbox; }
-    //        // If scale var is -1, apply the other var to both dimensions
-    //        var scaleY = p.ScaleY < 0 ? p.ScaleX : p.ScaleY;
-    //        var scaleX = p.ScaleX < 0 ? p.ScaleY : p.ScaleX;
-
-    //        return new Hitbox()
-    //        {
-    //            XOffset = (short)Math.Floor(hitbox.XOffset * scaleX / 1000f),
-    //            YOffset = (short)Math.Floor(hitbox.YOffset * scaleY / 1000f),
-    //            Width = (short)Math.Floor(hitbox.Width * scaleX / 1000f),
-    //            Height = (short)Math.Floor(hitbox.Height * scaleY / 1000f),
-    //            BoxTypeId = hitbox.BoxTypeId,
-    //            BoxFlags = hitbox.BoxFlags
-    //        };
-    //    }
-    //    private static Hitbox ScaleHitbox(Hitbox hitbox, Entity e)
-    //    {
-    //        if (e.ScaleX < 0 && e.ScaleY < 0) { return hitbox; }
-    //        // If scale var is -1, apply the other var to both dimensions
-    //        var scaleY = e.ScaleY < 0 ? e.ScaleX : e.ScaleY;
-    //        var scaleX = e.ScaleX < 0 ? e.ScaleY : e.ScaleX;
-
-    //        return new Hitbox()
-    //        {
-    //            XOffset = (short)(hitbox.XOffset * scaleX / 1000),
-    //            YOffset = (short)(hitbox.YOffset * scaleY / 1000),
-    //            Width = (short)(hitbox.Width * scaleX / 1000),
-    //            Height = (short)(hitbox.Height * scaleY / 1000),
-    //            BoxTypeId = hitbox.BoxTypeId,
-    //            BoxFlags = hitbox.BoxFlags
-    //        };
-    //    }
-    //}
-
-    //internal static class GraphicsExtensions
-    //{
-
-    //    /// <summary>
-    //    /// Creates a new rectangle smaller on all sides by n pixels.
-    //    /// This is used to counteract dimensions expansion from border thickness.
-    //    /// </summary>
-    //    private static Rectangle Shrink(Rectangle r, float n)
-    //    {
-    //        return new Rectangle(
-    //            r.Left + n,
-    //            r.Top + n,
-    //            r.Right - n,
-    //            r.Bottom - n
-    //        );
-    //    }
-
-    //    /// <summary>
-    //    /// Wrapper for g.OutlineFillRectangle. Stroke defines the pixel width of the border which extends inwards so as to maintain the given rectangle dimensions.
-    //    /// </summary>
-    //    /// <param name="g"></param>
-    //    /// <param name="outline"></param>
-    //    /// <param name="fill"></param>
-    //    /// <param name="rectangle"></param>
-    //    /// <param name="stroke">Border length in px</param>
-    //    public static void OutlineFillRectangle_InwardPixelBorder(this Graphics g, IBrush outline, IBrush fill, Rectangle rectangle, int stroke)
-    //    {
-    //        if (!g.IsDrawing) throw new InvalidOperationException("Use Begin Scene");
-
-    //        var r = Shrink(rectangle, (stroke - 1) / 2f);
-
-    //        var _factory = g.GetFactory();
-    //        var _device = g.GetRenderTarget();
-
-    //        var rectangleGeometry = new RectangleGeometry(_factory,
-    //            new RawRectangleF(r.Left, r.Top, r.Right, r.Bottom));
-
-    //        var geometry = new PathGeometry(_factory);
-
-    //        var sink = geometry.Open();
-
-    //        rectangleGeometry.Outline(sink);
-
-    //        sink.Close();
-
-    //        _device.FillGeometry(geometry, fill.Brush);
-    //        _device.DrawGeometry(geometry, outline.Brush, stroke);
-
-    //        sink.Dispose();
-    //        geometry.Dispose();
-    //        rectangleGeometry.Dispose();
-    //    }
-
-    //    /// <summary>
-    //    /// Wrapper for g.DrawRectangle. Border defined by stroke will expand inward.
-    //    /// </summary>
-    //    /// <param name="g"></param>
-    //    /// <param name="brush"></param>
-    //    /// <param name="rectangle"></param>
-    //    /// <param name="stroke">Border length in px</param>
-    //    public static void DrawRectangle_InwardPixelBorder(this Graphics g, IBrush brush, Rectangle rectangle, int stroke)
-    //    {
-    //        var r = Shrink(rectangle, (stroke - 1) / 2f);
-    //        g.DrawRectangle(brush, r, stroke);
-    //    }
-
-    //    // Kinda hacky text outline. Might make a proper text renderer later.
-    //    public static void DrawOutlinedText(this Graphics g, Font font, IBrush fillBrush, IBrush outlineBrush, Point location, string text)
-    //    {
-    //        Point[] outlineOffsets =
-    //        [
-    //            new Point(location.X, location.Y-1),
-    //            new Point(location.X-1, location.Y),
-    //            new Point(location.X+1, location.Y),
-    //            new Point(location.X, location.Y+1),
-    //        ];
-
-    //        foreach (Point p in outlineOffsets)
-    //        {
-    //            g.DrawText(font, outlineBrush, p, text);
-    //        }
-
-    //        g.DrawText(font, fillBrush, location, text);
     //    }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.ComponentModel;
+using System.Reflection;
 using GGXXACPROverlay.GGXXACPR;
 
 namespace GGXXACPROverlay
@@ -8,18 +9,33 @@ namespace GGXXACPROverlay
         private const string path = "OverlaySettings.ini";
         private const string defaultSettingsResource = "GGXXACPROverlay.OverlaySettings.ini";
 
-        public static D3DCOLOR_ARGB Default = new(0xFF0000u);
+        public static bool DisplayBoxes { get; private set; }           = true;
+        public static D3DCOLOR_ARGB Default { get; private set; }       = new(0xFF0000u);
         public static D3DCOLOR_ARGB Hitbox { get; private set; }        = new(0x80FF0000);
         public static D3DCOLOR_ARGB Hurtbox { get; private set; }       = new(0x8000FF00);
-        public static D3DCOLOR_ARGB Collision { get; private set; }     = new(0x8000FFFF);
+        public static D3DCOLOR_ARGB Push { get; private set; }          = new(0x8000FFFF);
         public static D3DCOLOR_ARGB Grab { get; private set; }          = new(0x80FF00FF);
         public static D3DCOLOR_ARGB CLHitbox { get; private set; }      = new(0x80FF8000);
         public static D3DCOLOR_ARGB PivotCrossColor { get; private set; } = new(0xFF800080);
         public static float PivotCrossSize { get; private set; }        = 10.0f;
         public static float PivotCrossThickness { get; private set; }   = 2.0f;
         public static float HitboxBorderThickness { get; private set; } = 2.0f;
+        public static bool WidescreenClipping { get; private set; }     = true;
+        public static bool HideP1 { get; private set; }                 = false;
+        public static bool HideP2 { get; private set; }                 = false;
+        public static bool AlwaysDrawThrowRange { get; private set; }   = false;
 
         public static readonly BoxId[] BoxDrawList = [BoxId.HIT, BoxId.HURT, BoxId.USE_EXTRA];
+        // Pivot, CleanHit, Hit, Hurt, Grab, Push
+        public static DrawOperation[] DrawOrder { get; private set; } = [
+            DrawOperation.Push,     // back
+            DrawOperation.Grab,
+            DrawOperation.Hurt,
+            DrawOperation.Hit,
+            DrawOperation.CleanHit,
+            DrawOperation.Pivot     // front
+        ];
+        public static bool DisplayHSDMeter { get; private set; } = false;
 
         public static Dictionary<string, Dictionary<string, string>> Sections { get; } = [];
 
@@ -36,7 +52,7 @@ namespace GGXXACPROverlay
                     || ex is UnauthorizedAccessException
                     || ex is IOException)
                 {
-                    Debug.Log($"Could not load settings file: {ex.Message}");
+                    Debug.Log($"[Settings] Could not load settings file: {ex.Message}");
                     return false;
                 }
                 else throw;
@@ -68,35 +84,44 @@ namespace GGXXACPROverlay
                 }
             }
 
-            CacheProperties();
-
-            return true;
-        }
-
-        private static void CacheProperties()
-        {
-            Hitbox      = new(Get("Hitboxes.Palette", "Color_Hitbox", Hitbox.ARGB));
-            Hurtbox     = new(Get("Hitboxes.Palette", "Color_Hurtbox", Hurtbox.ARGB));
-            Collision   = new(Get("Hitboxes.Palette", "Color_Pushbox", Collision.ARGB));
-            Grab        = new(Get("Hitboxes.Palette", "Color_Grabbox", Grab.ARGB));
-            CLHitbox    = new(Get("Hitboxes.Palette", "Color_CleanHit", CLHitbox.ARGB));
+            // Cacheing settings that are checked at least once per frame
+            DisplayBoxes = Get("Hitboxes", "Display", DisplayBoxes);
+            Hitbox   = new(Get("Hitboxes.Palette", "Color_Hitbox", Hitbox.ARGB));
+            Hurtbox  = new(Get("Hitboxes.Palette", "Color_Hurtbox", Hurtbox.ARGB));
+            Push     = new(Get("Hitboxes.Palette", "Color_Pushbox", Push.ARGB));
+            Grab     = new(Get("Hitboxes.Palette", "Color_Grabbox", Grab.ARGB));
+            CLHitbox = new(Get("Hitboxes.Palette", "Color_CleanHit", CLHitbox.ARGB));
             PivotCrossColor = new(Get("Hitboxes.Palette", "Color_Pivot", PivotCrossColor.ARGB));
             // TODO: clamp some of these values
-            PivotCrossSize      = Get("Hitboxes", "PivotSize", PivotCrossSize);
-            PivotCrossThickness = Get("Hitboxes", "PivotThickness", PivotCrossThickness);
-            HitboxBorderThickness = Get("Hitboxes", "BorderThickenss", HitboxBorderThickness);
+            PivotCrossSize          = Get("Hitboxes", "PivotSize", PivotCrossSize);
+            PivotCrossThickness     = Get("Hitboxes", "PivotThickness", PivotCrossThickness);
+            HitboxBorderThickness   = Get("Hitboxes", "BorderThickness", HitboxBorderThickness);
+            WidescreenClipping      = Get("Hitboxes", "WidescreenClipping", WidescreenClipping);
+            HideP1                  = Get("Hitboxes", "HideP1", HideP1);
+            HideP2                  = Get("Hitboxes", "HideP2", HideP2);
+            AlwaysDrawThrowRange    = Get("Hitboxes", "AlwaysDrawThrowRange", AlwaysDrawThrowRange);
+            DrawOrder               = Get("Hitboxes", "DrawOrder", DrawOrder);
+            DisplayHSDMeter         = Get("Misc", "DisplayHSDMeter", DisplayHSDMeter);
+            return true;
         }
 
         public static T Get<T>(string section, string key, T defaultValue)
         {
             if (!Sections.TryGetValue(section, out var keys) || !keys.TryGetValue(key, out var rawValue))
+            {
+                Debug.Log($"[Settings] Section or key not found: [{section}] {key}");
                 return defaultValue;
+            }
 
             try
             {
                 Type type = typeof(T);
 
-                if (type == typeof(bool))
+                if (type.IsArray && (type.GetElementType()?.IsEnum ?? false))
+                {
+                    return (T)(object)ParseEnumArray<DrawOperation>(rawValue);
+                }
+                else if (type == typeof(bool))
                 {
                     return (T)(object)(rawValue.Equals("true", StringComparison.OrdinalIgnoreCase) || rawValue == "1");
                 }
@@ -117,16 +142,37 @@ namespace GGXXACPROverlay
             }
             catch
             {
+                Debug.Log($"[Settings] Failed to parse {section}.{key}");
                 return defaultValue;
             }
+        }
+
+        public static T[] ParseEnumArray<T>(string rawValue) where T : Enum
+        {
+            string[] entries = rawValue.Split(',', StringSplitOptions.TrimEntries);
+            T[] output = new T[entries.Length];
+
+            for (int i = 0; i < entries.Length; i++)
+            {
+                try
+                {
+                    output[i] = (T)Enum.Parse(typeof(T), entries[i], true);
+                }
+                catch (Exception e)
+                {
+                    Debug.Log($"[Settings] Enum.Parse threw an exception: {e}");
+                    output[i] = default;
+                }
+            }
+
+            return output;
         }
 
         public static void WriteDefault()
         {
             Assembly asm = Assembly.GetExecutingAssembly();
-            using Stream? fileStream = asm.GetManifestResourceStream(defaultSettingsResource);
-
-            if (fileStream == null) { throw new NullReferenceException($"Could not find default settings ini resource: {defaultSettingsResource}"); }
+            using Stream? fileStream = asm.GetManifestResourceStream(defaultSettingsResource)
+                ?? throw new FileNotFoundException($"Could not find default settings ini resource: {defaultSettingsResource}");
 
             try
             {
@@ -138,7 +184,6 @@ namespace GGXXACPROverlay
                 if (ex is IOException || ex is UnauthorizedAccessException)
                 {
                     Debug.Log($"Couldn't create file: {ex.Message}");
-                    return;
                 }
             }
         }

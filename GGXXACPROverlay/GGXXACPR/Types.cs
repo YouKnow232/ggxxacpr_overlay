@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Reflection.Metadata.Ecma335;
+using System.Runtime.InteropServices;
 
 namespace GGXXACPROverlay.GGXXACPR
 {
@@ -39,7 +40,7 @@ namespace GGXXACPROverlay.GGXXACPR
         public readonly short YOffset;
         public readonly short Width;
         public readonly short Height;
-        public readonly BoxId BoxTypeId;
+        public readonly ushort BoxTypeId;
         public readonly short BoxFlags;  // Always 0 for hit and hurt boxes, used for some unknown box types
     }
     public enum BoxId : ushort
@@ -94,24 +95,30 @@ namespace GGXXACPROverlay.GGXXACPR
         AC     = 0,
         PLUS_R = 1,
     }
-
+    /// <summary>
+    /// Represents players, projectiles, and other entities
+    /// </summary>
     [StructLayout(LayoutKind.Explicit, Size = 0x130)]
-    public unsafe readonly struct Player
+    public readonly unsafe ref struct BaseEntityRaw
     {
-        [FieldOffset(0x00)] public readonly CharacterID CharId;
+        [FieldOffset(0x00)] public readonly ushort Id;
         [FieldOffset(0x02)] public readonly byte IsFacingRight;
         [FieldOffset(0x03)] public readonly byte IsLeftSide;
-        [FieldOffset(0x0C)] public readonly ActionState Status;
+        [FieldOffset(0x04)] public readonly BaseEntityRaw* Prev;   // points to previous item in entity linked list
+        [FieldOffset(0x08)] public readonly BaseEntityRaw* Next;   // points to next item in the entity linked list
+        [FieldOffset(0x0C)] public readonly uint Status;
         [FieldOffset(0x10)] public readonly short BufferedActionId;
-        [FieldOffset(0x12)] public readonly BufferState BufferFlags;
+        [FieldOffset(0x12)] public readonly ushort BufferFlags;
         [FieldOffset(0x18)] public readonly short ActionId;
         [FieldOffset(0x1C)] public readonly ushort AnimationCounter;
         [FieldOffset(0x1E)] public readonly ushort Health;
+        [FieldOffset(0x20)] public readonly nint ParentPtrRaw;
+        [FieldOffset(0x2A)] public readonly ushort GuardFlags;
+        [FieldOffset(0x2C)] public readonly PlayerExtra* Extra; // Null pointer on non-player entities
         [FieldOffset(0x27)] public readonly byte PlayerIndex;
-        [FieldOffset(0x2A)] public readonly GuardState GuardFlags;
-        [FieldOffset(0x2C)] public readonly PlayerExtra* Extra;
-        [FieldOffset(0x34)] public readonly AttackState AttackFlags;
-        [FieldOffset(0x38)] public readonly CommandState CommandFlags;
+        [FieldOffset(0x28)] public readonly ushort ParentFlag;
+        [FieldOffset(0x34)] public readonly uint AttackFlags;
+        [FieldOffset(0x38)] public readonly uint CommandFlags;
         [FieldOffset(0x4C)] public readonly short CoreX;
         [FieldOffset(0x4E)] public readonly short CoreY;
         [FieldOffset(0x50)] public readonly short ScaleX;
@@ -129,11 +136,113 @@ namespace GGXXACPROverlay.GGXXACPR
         [FieldOffset(0xBC)] public readonly int YVelocity;
         [FieldOffset(0xD4)] public readonly int Gravity;
         [FieldOffset(0xFD)] public readonly byte HitstopCounter;
+        [FieldOffset(0xFF)] public readonly byte Mark;
+    }
+
+    public unsafe readonly ref struct Player
+    {
+        public readonly BaseEntityRaw* NativePointer;
+
+        public Player(BaseEntityRaw* entity)
+        {
+            if (entity is null) throw new ArgumentNullException(nameof(entity));
+            NativePointer = entity;
+        }
+
+        public CharacterID CharId => (CharacterID)NativePointer->Id;
+        public byte IsFacingRight => NativePointer->IsFacingRight;
+        public byte IsLeftSide => NativePointer->IsLeftSide;
+        public ActionState Status => (ActionState)NativePointer->Status;
+        public short BufferedActionId => NativePointer->BufferedActionId;
+        public BufferState BufferFlags => (BufferState)NativePointer->BufferFlags;
+        public short ActionId => NativePointer->ActionId;
+        public ushort AnimationCounter => NativePointer->AnimationCounter;
+        public ushort Health => NativePointer->Health;
+        public byte PlayerIndex => NativePointer->PlayerIndex;
+        public GuardState GuardFlags => (GuardState)NativePointer->GuardFlags;
+        public PlayerExtra Extra {
+            get
+            {
+                try
+                {
+                    return NativePointer->Extra is not null ? *NativePointer->Extra : default;
+                }
+                catch (AccessViolationException)
+                {
+                    return default;
+                }
+            }}
+        public AttackState AttackFlags => (AttackState)NativePointer->AttackFlags;
+        public CommandState CommandFlags => (CommandState)NativePointer->CommandFlags;
+        public short CoreX => NativePointer->CoreX;
+        public short CoreY => NativePointer->CoreY;
+        public short ScaleX => NativePointer->ScaleX;
+        public short ScaleY => NativePointer->ScaleY;
+        public Span<Hitbox> HitboxSet => NativePointer->HitboxSet is not null ?
+            new Span<Hitbox>(NativePointer->HitboxSet, NativePointer->BoxCount) : [];
+        public Span<Hitbox> HitboxExtraSet => NativePointer->HitboxExtraSet is not null ?
+            new Span<Hitbox>(NativePointer->HitboxSet, NativePointer->BoxCount) : [];
+        public byte HitboxFlag => NativePointer->HitboxFlag;
+        public byte HurtboxFlag => NativePointer->HurtboxFlag;
+        public byte BoxCount => NativePointer->BoxCount;
+        public byte BoxIter => NativePointer->BoxIter;
+        public HitParam HitParam {
+            get
+            {
+                try
+                {
+                    return NativePointer->HitParam is not null ? *NativePointer->HitParam : default;
+                }
+                catch (AccessViolationException)
+                {
+                    return default;
+                }
+            }}
+        public int XPos => NativePointer->XPos;
+        public int YPos => NativePointer->YPos;
+        public int XVelocity => NativePointer->XVelocity;
+        public int YVelocity => NativePointer->YVelocity;
+        public int Gravity => NativePointer->Gravity;
+        public byte HitstopCounter => NativePointer->HitstopCounter;
         /// <summary>
         /// Multi-use variable used for move-specific behavior (For Axl, holds parry active state)
         /// </summary>
-        [FieldOffset(0xFF)] public readonly byte Mark;
+        public byte Mark => NativePointer->Mark;
     }
+
+    public unsafe readonly ref struct Entity
+    {
+        public readonly BaseEntityRaw* NativePointer;
+
+        public Entity(BaseEntityRaw* entity)
+        {
+            if (entity is null) throw new ArgumentNullException(nameof(entity));
+            NativePointer = entity;
+        }
+
+        public ushort Id => NativePointer->Id;
+        public byte IsFacingRight => NativePointer->IsFacingRight;
+        public Entity Prev => new Entity(NativePointer->Prev);
+        public Entity Next => new Entity(NativePointer->Prev);
+        public ActionState Status => (ActionState)NativePointer->Status;
+        public byte PlayerIndex => NativePointer->PlayerIndex;
+        public ushort ParentFlag => NativePointer->ParentFlag;
+        public short CoreX => NativePointer->CoreX;
+        public short CoreY => NativePointer->CoreY;
+        public short ScaleX => NativePointer->ScaleX;
+        public short ScaleY => NativePointer->ScaleY;
+        public Span<Hitbox> HitboxSet => NativePointer->HitboxSet is not null ?
+            new Span<Hitbox>(NativePointer->HitboxSet, NativePointer->BoxCount) : [];
+        public Span<Hitbox> HitboxExtraSet => NativePointer->HitboxExtraSet is not null ?
+            new Span<Hitbox>(NativePointer->HitboxSet, NativePointer->BoxCount) : [];
+        public byte BoxCount => NativePointer->BoxCount;
+        public int XPos => NativePointer->XPos;
+        public int YPos => NativePointer->YPos;
+        public byte HitstopCounter => NativePointer->HitstopCounter;
+
+        public bool Equals(Entity e) => NativePointer == e.NativePointer;
+    }
+
     [StructLayout(LayoutKind.Explicit, Size = 0x148)]
     public readonly struct PlayerExtra
     {
@@ -225,7 +334,7 @@ namespace GGXXACPROverlay.GGXXACPR
         /// </summary>
         IsAtScreenLimit     = 1 << 13,
         ProjDisableHitboxes = 1 << 14,
-        IsPushboxType1      = 1 << 15,
+        Wakeup              = 1 << 15,
         /// <summary>
         /// Set on KD when health is 0. Used for KO screen.
         /// </summary>
@@ -370,26 +479,25 @@ namespace GGXXACPROverlay.GGXXACPR
         Cleanhit    = 1 << 17,
     }
 
-
-    // Similar to the player struct. It seems both the players and projectile entities are stored in the same array.
-    [StructLayout(LayoutKind.Explicit, Size = 0x130)]
-    public readonly unsafe struct Entity
+    [Flags]
+    public enum BackgroundState
     {
-        [FieldOffset(0x00)] public readonly ushort Id;
-        [FieldOffset(0x02)] public readonly byte IsFacingRight;
-        [FieldOffset(0x04)] public readonly Entity* BackPtr;   // points to previous item in entity array
-        [FieldOffset(0x08)] public readonly Entity* NextPtr;   // points to next item in the entity array
-        [FieldOffset(0x0C)] public readonly ActionState Status;
-        [FieldOffset(0x20)] public readonly nint ParentPtrRaw;
-        [FieldOffset(0x27)] public readonly byte PlayerIndex;
-        [FieldOffset(0x28)] public readonly ushort ParentFlag;
-        [FieldOffset(0x4C)] public readonly short CoreX;
-        [FieldOffset(0x4E)] public readonly short CoreY;
-        [FieldOffset(0x50)] public readonly short ScaleX;
-        [FieldOffset(0x52)] public readonly short ScaleY;
-        [FieldOffset(0x54)] public readonly Hitbox* HitboxSetPtr;
-        [FieldOffset(0x84)] public readonly byte BoxCount;
-        [FieldOffset(0xB0)] public readonly int XPos;
-        [FieldOffset(0xB4)] public readonly int YPos;
+        None = 0,
+        Unknown1        = 1 << 0,
+        HudOff          = 1 << 1,
+        Default         = 1 << 2,
+        BlackBackground = 1 << 3,
+        PostFlashDim    = 1 << 4,
+        Unknown6        = 1 << 5,
+        SomeCoolEffect  = 1 << 6,
+        Unknown8        = 1 << 7,
+        Unknown9        = 1 << 8,
+        Unknown10       = 1 << 9,
+        Unknown11       = 1 << 10,
+        SuperFlash      = 1 << 11,
+        Unknown13       = 1 << 12,
+        Unknown14       = 1 << 13,
+        FBSuperFlash    = 1 << 14,
+        Lightning       = 1 << 15,
     }
 }

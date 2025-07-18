@@ -1,4 +1,6 @@
-﻿namespace GGXXACPROverlay
+﻿// TODO: Split this among FrameMeter and Drawing
+
+namespace GGXXACPROverlay
 {
     public enum GeneralPalette
     {

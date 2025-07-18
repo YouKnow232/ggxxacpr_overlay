@@ -1,9 +1,22 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Vortice.Mathematics;
 
 namespace GGXXACPROverlay
 {
+    public enum DrawOperation
+    {
+        None,
+        Push,
+        MiscProximity,
+        Grab,
+        Hurt,
+        Hit,
+        CleanHit,
+        Pivot,
+    }
+
     public readonly struct D3DCOLOR_ARGB
     {
         private readonly uint _packedValue;
@@ -30,12 +43,12 @@ namespace GGXXACPROverlay
 
     public class ColorRectangle(Rect rectangle, D3DCOLOR_ARGB color)
     {
-        public Rect rectangle = rectangle;
-        public D3DCOLOR_ARGB color = color;
+        public readonly Rect rectangle = rectangle;
+        public readonly D3DCOLOR_ARGB color = color;
 
         public ColorRectangle(float x, float y, float width, float height, D3DCOLOR_ARGB color)
             : this(new Rect(x, y, width, height), color) { }
-        public ColorRectangle(float x, float y, float width, float height, uint packedValue)
+        public ColorRectangle(float x, float y, float width, float height, uint packedValue = 0xFFFFFFFF)
             : this(new Rect(x, y, width, height), new D3DCOLOR_ARGB(packedValue)) { }
 
         public override string ToString() => $"X:{rectangle.Left},Y:{rectangle.Top},W:{rectangle.Width},H:{rectangle.Height},0x{color.ARGB:X8}";
@@ -43,35 +56,37 @@ namespace GGXXACPROverlay
 
 
     [StructLayout(LayoutKind.Explicit, Size = 0x20)]
-    public readonly struct Vertex4PositionColor(Vector4 position, D3DCOLOR_ARGB color)
+    public readonly struct Vertex4PositionColor(Vector4 position, D3DCOLOR_ARGB color, Vector2 uv)
     {
         public static unsafe readonly uint SizeInBytes = (uint)sizeof(Vertex4PositionColor);
         public const Vortice.Direct3D9.VertexFormat VFV = Vortice.Direct3D9.VertexFormat.PositionRhw | Vortice.Direct3D9.VertexFormat.Diffuse;
         public const short PositionOffset = 0x00;
         public const short ColorOffset    = 0x10;
+        public const short UVOffset       = 0x18;
 
         [FieldOffset(0x00)] public readonly Vector4 Position = position;
         [FieldOffset(0x10)] public readonly D3DCOLOR_ARGB Color = color;
+        [FieldOffset(0x18)] public readonly Vector2 UV = uv;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 0x20)]
-    public readonly struct Vertex3PositionColor(Vector3 position, D3DCOLOR_ARGB color, Vector2 boxDim, Vector2 uv)
+    public readonly struct Vertex3PositionColor(Vector3 position, D3DCOLOR_ARGB color, Vector2 uv)
     {
         public static unsafe readonly uint SizeInBytes = (uint)sizeof(Vertex3PositionColor);
         public const Vortice.Direct3D9.VertexFormat VFV = Vortice.Direct3D9.VertexFormat.Position | Vortice.Direct3D9.VertexFormat.Diffuse;
         public const short PositionOffset = 0x00;
         public const short ColorOffset    = 0x0C;
-        public const short BoxDimOffset   = 0x10;
-        public const short UVOffset       = 0x18;
+        public const short UVOffset       = 0x10;
+        //public const short UnusedOffset   = 0x18;
 
         // 0x00 - 0x0B
         [FieldOffset(0x00)] public readonly Vector3 Position = position;
         // 0x0C - 0x0F
         [FieldOffset(0x0C)] public readonly D3DCOLOR_ARGB Color = color;
         // 0x10 - 0x17
-        [FieldOffset(0x10)] public readonly Vector2 BoxDim = boxDim;
-        // 0x18 - 0x20
-        [FieldOffset(0x18)] public readonly Vector2 UV = uv;
+        [FieldOffset(0x10)] public readonly Vector2 UV = uv;
+        //// 0x18 - 0x20
+        //[FieldOffset(0x18)] public readonly Vector2 Unused = placeholder;
 
         public override string ToString() => $"X:{Position.X},Y:{Position.Y},Z:{Position.Z},0x{Color.ARGB:X8},U:{UV.X},V:{UV.Y}";
     }

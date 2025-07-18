@@ -82,12 +82,14 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>C:\Program Files (x86)\dotnet\packs\Microsoft.NETCore.App.Host.win-x86\9.0.6\runtimes\win-x86\native\nethost.lib</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>GGXXACPROverlay.Bootstrapper.def</ModuleDefinitionFile>
+      <AdditionalDependencies>C:\Program Files (x86)\dotnet\packs\Microsoft.NETCore.App.Host.win-x86\9.0.6\runtimes\win-x86\native\nethost.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -169,6 +171,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="GGXXACPROverlay.Bootstrapper.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="DEV-README.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

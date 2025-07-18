@@ -4,12 +4,22 @@ using Vortice.Mathematics;
 
 namespace GGXXACPROverlay.GGXXACPR
 {
+    /// <summary>
+    /// Exposes game data. Handles dereferencing as well as some slightly higher level
+    /// functions for visualization.
+    /// </summary>
     public static unsafe class GGXXACPR
     {
         public const int SCREEN_HEIGHT_PIXELS = 480;
         public const int SCREEN_WIDTH_PIXELS = 640;
         public const int SCREEN_GROUND_PIXEL_OFFSET = 40;
         public const int NUMBER_OF_CHARACTERS = 25;
+
+        #region HSD
+        // See HSD function at GGXXACPR_Win.exe+132570
+        public static readonly int[] HSD_BREAK_POINTS = [0, 180, 300, 420, 600, 860];
+        public static readonly float[] HSD_PENALTIES = [0.0f, 0.95f, 0.9f, 0.8f, 0.7f, 0.6f];
+        #endregion
 
         #region Special case constants
         // Exception to the ActionStatusFlags.IsPlayer1/2 flag. Dizzy bubble is flagged as the opponent's entity while attackable by Dizzy.
@@ -19,17 +29,43 @@ namespace GGXXACPROverlay.GGXXACPR
         public const int AXL_TENHOU_SEKI_UPPER_ACT_ID = 188;
         public const int AXL_TENHOU_SEKI_LOWER_ACT_ID = 189;
         public const int DIZZY_EX_NECRO_UNLEASHED_ACT_ID = 247;
-        // This move has a special pushbox adjustment
+        /// <summary>
+        /// This move has a special pushbox adjustment (see GGXXACPR_Win.exe+14BDE9 ~ +14BE0D)
+        /// </summary>
         public const int BRIDGET_SHOOT_ACT_ID = 134;
         public const int BRIDGET_SHOOT_PUSHBOX_ADJUST = 7000;
         // Slide head uses a grounded status check for hit detection instead of a hitbox
         //  The frame meter will check for this act id to see if it should mark the frame as an active frame
         public const int SLIDE_HEAD_ACT_ID = 181;
         // For whatever reason, this throw range is hardcoded and not in the array with everything else
+        // TODO: test if this is necessary
         public const int SPECIAL_CASE_COMMAND_THROW_ID = 0x19;
         public const int SPECIAL_CASE_COMMAND_THROW_RANGE = 11000; // GGXXACPR_Win.exe+12054F
-        // 170 unit offset hardcoded into CL function (GGXXACPR_Win.exe+132129)
+        // 170 unit offset hardcoded into CL function (see GGXXACPR_Win.exe+132129)
         public const int CLEAN_HIT_Y_OFFSET = 170;
+        #endregion
+
+        #region Range Checks
+        public const int ROBO_KY_MAT_ID = 0x62; // Lot of overlap on entity IDs
+        public const int ROBO_KY_MAT_COLLISION_RANGE = 13200;   // GGXXACPR_Win.exe+382AE7
+
+        public const int TESTAMENT_HITOMI_ID = 0x50;
+        public const int TESTAMENT_HITOMI_ACTIVATION_RANGE_AC = 7000;   // GGXXACPR_Win.exe+246BA8
+        public const int TESTAMENT_HITOMI_ACTIVATION_RANGE_PR = 5500;   // GGXXACPR_Win.exe+246BA1
+
+        // Checked against PUSHBOX_EDGE_DISTANCE so visual is pushbox + 10000 unit halfwidth
+        public const int FAUST_HACK_N_SLASH_RANGE = 10000;  // GGXXACPR_Win.exe+292DFF
+        public const int FUAST_HACK_N_SLASH_FAIL_ACT_ID = 190;
+        public const int FUAST_HACK_N_SLASH_UNBLOCKABLE_ACT_ID = 122;
+
+        public const int FUAST_FOOD_ID = 0x2B;
+        public const int FUAST_DONUT_PICKUP_ACT_ID = 18;
+        public const int FUAST_CHOCOLATE_PICKUP_ACT_ID = 19;
+        public const int FUAST_CHIKUWA_PICKUP_ACT_ID = 53;
+        // GGXXACPR_Win.exe+28DE55 (Donut range)
+        // GGXXACPR_Win.exe+28E2AD (Chocolate range)
+        // GGXXACPR_Win.exe+28C571 (Chikuwa range)
+        public const int FAUST_FOOD_PICKUP_RANGE = 4800;    // All 4800
         #endregion
 
         // DirectX
@@ -37,34 +73,22 @@ namespace GGXXACPROverlay.GGXXACPR
         public static readonly nint Direct3D9DevicePointer = *(nint*)(Memory.BaseAddress + Offsets.DIRECT3D9_DEVICE);
         public static readonly nint GraphicsHookBreakPointAddress = Memory.BaseAddress + Offsets.GRAPHICS_HOOK_BREAKPOINT;
 
-        private const int COMMAND_GRAB_RANGE_LOOKUP_TABLE_SIZE = 27;
-
-        #region Struct Field Offsets
-        // TODO Clean this up
-        // Projectils Arr (Entity Arr)
-        private const nint ENTITY_ARR_HEAD_TAIL_PTR = 0x006D27A8;
-        private const nint ENTITY_ARR_HEAD_PTR = 0x006D27A8 + 0x04;
-        private const nint ENTITY_ARR_TAIL_PTR = 0x006D27A8 + 0x08;
-        private const nint ENTITY_LIST_PTR = 0x006D137C;
-        private const int ENTITY_ARRAY_SIZE = 32; // Not a game thing, just a lookup limit
-        // Projectile Struct Offsets (Similar to Player)
-        private const int PROJECTILE_BACK_PTR_OFFSET = 0x04;
-        private const int PROJECTILE_NEXT_PTR_OFFSET = 0x08;
-        private const int PROJECTILE_PARENT_PTR_OFFSET = 0x20;
-        private const int PROJECTILE_PARENT_FLAG_OFFSET = 0x28;
-        #endregion
-
         /// <summary>
         /// Dereferences and returns a snapshot of the player 1 struct. If null, will return a dummy struct with default values.
         /// </summary>
-        public static Player Player1 => *_Player1 is null ? default : **_Player1;
-        private static readonly Player** _Player1 = (Player**)(Memory.BaseAddress + Offsets.PLAYER_1_PTR);
+        public static Player Player1 => new(*_Player1);
+        private static readonly BaseEntityRaw** _Player1 = (BaseEntityRaw**)(Memory.BaseAddress + Offsets.PLAYER_1_PTR);
         /// <summary>
         /// Dereferences and returns a snapshot of the player 2 struct. If null, will return a dummy struct with default values.
         /// </summary>
-        public static Player Player2 => *_Player2 is null ? default : **_Player2;
-        private static readonly Player** _Player2 = (Player**)(Memory.BaseAddress + Offsets.PLAYER_2_PTR);
-        public static readonly Entity* EntityList = (Entity*)*_Player1;
+        public static Player Player2 => new(*_Player2);
+        private static readonly BaseEntityRaw** _Player2 = (BaseEntityRaw**)(Memory.BaseAddress + Offsets.PLAYER_2_PTR);
+        /// <summary>
+        /// The fields Entity.Prev and Entity.Next form a circular doubly-linked list. This dummy entity is a root node for this list.
+        /// </summary>
+        public static Entity RootEntity => new(_RootEntity);
+        private static readonly BaseEntityRaw* _RootEntity = (BaseEntityRaw*)(Memory.BaseAddress + Offsets.ENTITY_ARR_HEAD_TAIL_PTR);
+
         /// <summary>
         /// Dereferences and returns a snapshot of the camera struct.
         /// </summary>
@@ -74,107 +98,106 @@ namespace GGXXACPROverlay.GGXXACPR
         private static readonly int* _viewHeight = (int*)(Memory.BaseAddress + Offsets.VIEW_HEIGHT);
         private static readonly int* _viewWidth = (int*)(Memory.BaseAddress + Offsets.VIEW_WIDTH);
 
-        public static readonly ThrowDetection ThrowFlags = *(ThrowDetection*)(Memory.BaseAddress + Offsets.GLOBAL_THROW_FLAGS);
-        public static readonly int CommandThrowIDP1 = *(int*)(Memory.BaseAddress + Offsets.COMMAND_GRAB_ID);
-        public static readonly int CommandThrowIDP2 = *(int*)(Memory.BaseAddress + Offsets.COMMAND_GRAB_ID + sizeof(int));
+        /// <summary>
+        /// Dereferences and returns a snapshot of the throw flags struct.
+        /// </summary>
+        public static ThrowDetection ThrowFlags => Enum.IsDefined(typeof(ThrowDetection), *_throwFlags) ?
+            (ThrowDetection)(*_throwFlags) : ThrowDetection.None;
+        private static readonly byte* _throwFlags = (byte*)(Memory.BaseAddress + Offsets.GLOBAL_THROW_FLAGS);
+        public static readonly int CommandThrowIDP1 = *(int*)(Memory.BaseAddress + Offsets.COMMAND_GRAB_ID_P1);
+        public static readonly int CommandThrowIDP2 = *(int*)(Memory.BaseAddress + Offsets.COMMAND_GRAB_ID_P2);
         /// <summary>
         /// Index with CommandThrowIDP1 or CommandThrowIDP2
         /// </summary>
-        public static readonly int* CommandThrowRangeArr = (int*)(Memory.BaseAddress + Offsets.COMMAND_GRAB_RANGE_LOOKUP_TABLE);
-        /// <summary>
-        /// 0=AC, 1=+R
-        /// </summary>
-        public static readonly GameVersion* GameVersion = (GameVersion*)(Memory.BaseAddress + Offsets.GAME_VER_FLAG);
+        public static readonly short* CommandThrowRangeArr = (short*)(Memory.BaseAddress + Offsets.COMMAND_GRAB_RANGE_LOOKUP_TABLE);
+        public static GameVersion GameVersion => Enum.IsDefined(typeof(GameVersion), *_gameVersion) ?
+            (GameVersion)(*_gameVersion) : GameVersion.PLUS_R;
+        private static readonly int* _gameVersion = (int*)(Memory.BaseAddress + Offsets.GAME_VER_FLAG);
+        public static bool IsPlusR => GameVersion == GameVersion.PLUS_R;
+        public static bool IsAccentCore => GameVersion == GameVersion.AC;
         public static readonly byte* InGameFlag = (byte*)(Memory.BaseAddress + Offsets.IN_GAME_FLAG);
+        public static bool ShouldRender => *InGameFlag != 0;
         public static readonly int* PauseState = (int*)(Memory.BaseAddress + Offsets.GLOBAL_PAUSE_VAR);
         public static readonly int* ReplaySimState = (int*)(Memory.BaseAddress + Offsets.GLOBAL_REPLAY_SIMULATE);
-
 
         private static readonly delegate* unmanaged[Cdecl]<int, int, float, byte, float, int> _RenderText =
             (delegate* unmanaged[Cdecl]<int, int, float, byte, float, int>)(Memory.BaseAddress + Offsets.RENDER_TEXT);
 
+        /// <summary>
+        /// Wrapper method that attempts to invoke native GGXXACPR function.
+        /// </summary>
         public static unsafe int RenderText(string text, int xPos, int yPos, byte alpha)
         {
             var utf8Bytes = Encoding.Convert(Encoding.Default, Encoding.UTF8, Encoding.Default.GetBytes(text.ToUpper()));
             fixed (byte* pText = &utf8Bytes[0])
             {
-                Hooks.CustomCallingConventionParameters(0, (uint)pText, 0);
+                Hooks.Util.CustomCallingConventionParameters(0, (uint)pText, 0);
                 return _RenderText(xPos, yPos, 365f, alpha, 1f);
             }
         }
 
         private static readonly Hitbox[] _hitboxBuffer = new Hitbox[100];
+        public static Span<Hitbox> GetHitboxes(BoxId type, Player p)
+            => GetHitboxes([type, BoxId.USE_EXTRA], p);
+        public static Span<Hitbox> GetHitboxes(BoxId type, Entity e)
+            => GetHitboxes([type, BoxId.USE_EXTRA], e);
         public static Span<Hitbox> GetHitboxes(BoxId[] types, Player p)
+            => GetHitboxes(types, p.NativePointer);
+        public static Span<Hitbox> GetHitboxes(BoxId[] types, Entity e)
+            => GetHitboxes(types, e.NativePointer);
+        private static Span<Hitbox> GetHitboxes(BoxId[] types, BaseEntityRaw* e)
         {
-            if (p.HitboxSet is null || p.Extra is null) return [];
+            if (e is null || e->HitboxSet is null) return [];
 
-            var pExtra = *p.Extra;
+            PlayerExtra pExtra = e->Extra is null ? default : *e->Extra;
 
-            int hbBuffIndex = 0;
-            for (int i = 0; i < p.BoxCount; i++)
+            int bufferIndex = 0;
+            for (int i = 0; i < e->BoxCount; i++)
             {
-                if (types.Contains(p.HitboxSet[i].BoxTypeId))
+                if (types.Contains((BoxId)e->HitboxSet[i].BoxTypeId))
                 {
                     // hurtbox discard checks
-                    if (p.HitboxSet[i].BoxTypeId == BoxId.HURT && (
-                        p.Status.HasFlag(ActionState.DisableHurtboxes) ||
-                        p.Status.HasFlag(ActionState.StrikeInvuln) ||
+                    if (e->HitboxSet[i].BoxTypeId == (ushort)BoxId.HURT && (
+                        e->Status == (uint)ActionState.DisableHurtboxes ||
+                        e->Status == (uint)ActionState.StrikeInvuln ||
                         pExtra.InvulnCounter > 0))
                         continue;
 
                     // hitbox discard checks
-                    if (p.HitboxSet[i].BoxTypeId == BoxId.HIT &&
-                        p.Status.HasFlag(ActionState.DisableHitboxes) &&
-                        !(p.HitstopCounter > 0))
+                    if (e->HitboxSet[i].BoxTypeId == (ushort)BoxId.HIT &&
+                        e->Status == (uint)ActionState.DisableHitboxes &&
+                        e->HitstopCounter <= 0)
                         continue;
 
 
-                    if (p.HitboxSet[i].BoxTypeId == BoxId.USE_EXTRA)
+                    if (e->HitboxSet[i].BoxTypeId == (ushort)BoxId.USE_EXTRA)
                     {
-                        if (p.HitboxExtraSet is not null && types.Contains(p.HitboxExtraSet[i].BoxTypeId))
-                            _hitboxBuffer[hbBuffIndex++] = p.HitboxExtraSet[i];
+                        if (e->HitboxExtraSet is not null && types.Contains((BoxId)e->HitboxExtraSet[i].BoxTypeId))
+                            _hitboxBuffer[bufferIndex++] = e->HitboxExtraSet[i];
                     }
                     else
                     {
-                        _hitboxBuffer[hbBuffIndex++] = p.HitboxSet[i];
+                        _hitboxBuffer[bufferIndex++] = e->HitboxSet[i];
                     }
                 }
             }
 
-            return _hitboxBuffer.AsSpan(0, hbBuffIndex);
-        }
-
-        public static bool ShouldRender()
-        {
-            return *InGameFlag != 0;
-        }
-
-        public static Rect GetThrowBox(Player p) // Take in pushbox as arg?
-        {
-            throw new NotImplementedException();
+            return _hitboxBuffer.AsSpan(0, bufferIndex);
         }
 
         public static Rect GetCLRect(Player p)
         {
-            if (p.HitParam is null || p.HitParam->CLScale == -1) return default;
+            if (p.HitParam.CLScale == -1) return default;
 
-            byte CLCounter;
-            if (p.PlayerIndex == 0 && Player2.Extra is not null)
-            {
-                CLCounter = Player2.Extra->CleanHitCounter;
-            }
-            else if (p.PlayerIndex == 1 && Player1.Extra is not null)
-            {
-                CLCounter = Player1.Extra->CleanHitCounter;
-            }
-            else { return default; }
+            Player opponent = p.PlayerIndex == 0 ? Player2 : Player1;
+            byte CLCounter = opponent.Extra.CleanHitCounter;
 
             // If player has just hit a clean hit, draw the CLRect as it was before it shrunk.
             if (IsInCLHitstop(p)) CLCounter--;
 
-            HitParam hp = *p.HitParam;
+            HitParam hp = p.HitParam;
 
-            float halfWidth = hp.CLBaseWidth  - (hp.CLScale * CLCounter);
+            float halfWidth = hp.CLBaseWidth - (hp.CLScale * CLCounter);
             float halfHeight = hp.CLBaseHeight - (hp.CLScale * CLCounter);
             halfWidth = halfWidth >= 1.0f ? halfWidth : 1.0f;
             halfHeight = halfHeight >= 1.0f ? halfHeight : 1.0f;
@@ -196,106 +219,145 @@ namespace GGXXACPROverlay.GGXXACPR
         /// </summary>
         /// <param name="p">Target player</param>
         /// <returns></returns>
-        private static bool IsInCLHitstop (Player p)
+        private static bool IsInCLHitstop(Player p)
         {
             // TODO: find a better method. Worst case, hook CL detection function to save result.
-            if (p.HitstopCounter > 30) _clMemory[p.PlayerIndex] = true;
-            if (p.HitstopCounter == 0) _clMemory[p.PlayerIndex] = false;
+            if (p.HitstopCounter > 30) return _clMemory[p.PlayerIndex] = true;
+            if (p.HitstopCounter == 0) return _clMemory[p.PlayerIndex] = false;
 
             return _clMemory[p.PlayerIndex];
         }
 
-        //public static Hitbox GetThrowBox(GameState state, Player p)
-        //{
-        //    if (p.Status.IsAirborne)
-        //    {
-        //        short horizontalRange;
-        //        if (state.GlobalFlags.GameVersionFlag == GameVersion.PLUS_R)
-        //        {
-        //            horizontalRange = AirThrowRangesPlusR[(int)p.CharId];
-        //        }
-        //        else
-        //        {
-        //            horizontalRange = AirThrowRangesAC[(int)p.CharId];
-        //        }
-        //        short upperBound = AirThrowUpperBounds[(int)p.CharId];
-        //        short lowerBound = AirThrowLowerBounds[(int)p.CharId];
+#region Throw Boxes
+        private static readonly short* AirThrowRangesPR    = (short*)(Memory.BaseAddress + Offsets.PLUSR_AIR_THROW_HORIZONTAL_RANGE_ARRAY);
+        private static readonly short* AirThrowRangesAC    = (short*)(Memory.BaseAddress + Offsets.AC_AIR_THROW_HORIZONTAL_RANGE_ARRAY);
+        private static readonly short* AirThrowRangesUpper = (short*)(Memory.BaseAddress + Offsets.AIR_THROW_UPPER_RANGE_ARRAY);
+        private static readonly short* AirThrowRangesLower = (short*)(Memory.BaseAddress + Offsets.AIR_THROW_LOWER_RANGE_ARRAY);
+        private static readonly short* GroundThrowRangesPR = (short*)(Memory.BaseAddress + Offsets.PLUSR_GROUND_THROW_RANGE_ARRAY);
+        private static readonly short* GroundThrowRangesAC = (short*)(Memory.BaseAddress + Offsets.AC_GROUND_THROW_RANGE_ARRAY);
 
-        //        return new Hitbox()
-        //        {
-        //            XOffset = (short)(p.PushBox.XOffset - horizontalRange / 100),
-        //            YOffset = (short)(p.PushBox.YOffset + p.PushBox.Height + upperBound / 100),
-        //            Width = (short)(p.PushBox.Width + horizontalRange / 50),
-        //            Height = (short)((lowerBound - upperBound) / 100),
-        //        };
-        //    }
-        //    else
-        //    {
-        //        short range;
-        //        if (state.GlobalFlags.GameVersionFlag == GameVersion.PLUS_R)
-        //        {
-        //            range = GroundThrowRangesPlusR[(int)p.CharId];
-        //        }
-        //        else
-        //        {
-        //            range = GroundThrowRangesAC[(int)p.CharId];
-        //        }
+        public static bool GetCommandGrabBox(Player p, Rect pushbox, out Rect rect)
+        {
+            rect = default;
+            if (p.Mark == 0 || !MoveData.IsActiveByMark(p.CharId, p.ActionId)) return false;
 
-        //        return new Hitbox()
-        //        {
-        //            //XOffset = (short)(p.PushBox.XOffset - range / 100),
-        //            //YOffset = p.PushBox.YOffset,
-        //            //Width   = (short)(p.PushBox.Width + range / 50),
-        //            //Height  = p.PushBox.Height,
-        //        };
-        //    }
-        //}
+            int cmdThrowID = MoveData.GetCommandGrabId(p.CharId, p.ActionId);
+            int cmdThrowRange = CommandThrowRangeArr[cmdThrowID];
 
+            rect = new Rect(
+                pushbox.X - cmdThrowRange,
+                pushbox.Y,
+                pushbox.Width + cmdThrowRange * 2,
+                pushbox.Height
+            );
+
+            return true;
+        }
+        public static Rect GetGrabBox(Player p) => GetGrabBox(p, GetPushBox(p));
+        public static Rect GetGrabBox(Player p, Rect pushbox)
+        {
+            float x, y, width, height;
+            if (p.Status.HasFlag(ActionState.IsAirborne))
+            {
+                short* rangeArray = IsPlusR ? AirThrowRangesPR : AirThrowRangesAC;
+                short range = rangeArray[(int)p.CharId];
+
+                short upperBound = AirThrowRangesUpper[(int)p.CharId];
+                short lowerBound = AirThrowRangesLower[(int)p.CharId];
+
+                x = pushbox.X - range;
+                y = pushbox.Y + upperBound;
+                width = pushbox.Width + range * 2;
+                height = lowerBound - upperBound;
+            }
+            else
+            {
+                short* rangeArray = IsPlusR ? GroundThrowRangesPR : GroundThrowRangesAC;
+
+                short range = rangeArray[(int)p.CharId];
+
+                x = pushbox.X - range;
+                y = pushbox.Y;
+                width = pushbox.Width + range * 2;
+                height = pushbox.Height;
+            }
+
+            return new Rect(x, y, width, height);
+        }
+
+        public static bool IsThrowActive(Player p)
+        {
+            return !p.CommandFlags.HasFlag(CommandState.DisableThrow) &&
+                (ThrowFlags.HasFlag(ThrowDetection.Player1ThrowSuccess) && p.PlayerIndex == 0 ||
+                ThrowFlags.HasFlag(ThrowDetection.Player2ThrowSuccess) && p.PlayerIndex == 1);
+        }
+        public static bool IsCommandThrowActive(Player p)
+        {
+            return p.Mark != 0 && MoveData.IsActiveByMark(p.CharId, p.ActionId);
+        }
+        #endregion
+
+        #region Push Box
+        private static readonly int* PushboxOffsetP1 = (int*)(Memory.BaseAddress + Offsets.PUSHBOX_P1_JUMP_OFFSET);
+        private static readonly int* PushboxOffsetP2 = (int*)(Memory.BaseAddress + Offsets.PUSHBOX_P2_JUMP_OFFSET);
+        private static readonly short* PushBoxAirWidthRanges       = (short*)(Memory.BaseAddress + Offsets.PUSHBOX_AIR_WIDTH_ARRAY);
+        private static readonly short* PushBoxAirHeightRanges      = (short*)(Memory.BaseAddress + Offsets.PUSHBOX_AIR_HEIGHT_ARRAY);
+        private static readonly short* PushBoxCrouchWidthRanges    = (short*)(Memory.BaseAddress + Offsets.PUSHBOX_CROUCHING_WIDTH_ARRAY);
+        private static readonly short* PushBoxCrouchHeightRanges   = (short*)(Memory.BaseAddress + Offsets.PUSHBOX_CROUCHING_HEIGHT_ARRAY);
+        private static readonly short* PushBoxStandingWidthRanges  = (short*)(Memory.BaseAddress + Offsets.PUSHBOX_STANDING_WIDTH_ARRAY);
+        private static readonly short* PushBoxStandingHeightRanges = (short*)(Memory.BaseAddress + Offsets.PUSHBOX_STANDING_HEIGHT_ARRAY);
         /// <summary>
         /// Returns a Rectangle representing the given player's pushbox.
         /// </summary>
         /// <param name="p">A specified player struct</param>
         /// <returns>A Rectangle representing the pushbox</returns>
-        private static Rect GetPushBox(Player p)
+        public static Rect GetPushBox(Player p)
         {
+            short charIndex = (short)p.CharId;
             int x = 0, y = 0, halfWidth = 0, height = 0;
             if (p.Status.HasFlag(ActionState.IsAirborne))
             {
+                // Jump offset is given as positive/up (opposite of GGXXACPR world coordinates) and it is given as a final Y position.
+                // To help reuse more of the hitbox render pipeline, we're converting the the jump offset to a player relative offset.
                 if (p.PlayerIndex == 0)
                 {
-                    y = *(int*)(Memory.BaseAddress + Offsets.PUSHBOX_P1_JUMP_OFFSET) + p.YPos;
+                    y = *PushboxOffsetP1 * -1 - p.YPos;
                 }
                 else if (p.PlayerIndex == 1)
                 {
-                    y = *(int*)(Memory.BaseAddress + Offsets.PUSHBOX_P2_JUMP_OFFSET) + p.YPos;
+                    y = *PushboxOffsetP2 * -1 - p.YPos;
                 }
+
+                halfWidth = PushBoxAirWidthRanges[charIndex];
+                height = PushBoxAirHeightRanges[charIndex];
             }
             else if (p.Status.HasFlag(ActionState.IsCrouching))
             {
-                halfWidth = ((short*)(Memory.BaseAddress + Offsets.PUSHBOX_CROUCHING_WIDTH_ARRAY))[(short)p.CharId];
-                height = ((short*)(Memory.BaseAddress + Offsets.PUSHBOX_CROUCHING_HEIGHT_ARRAY))[(short)p.CharId];
+                halfWidth = PushBoxCrouchWidthRanges[charIndex];
+                height = PushBoxCrouchHeightRanges[charIndex];
             }
-            else if (p.Status.HasFlag(ActionState.IsPushboxType1))
+            else if (p.Status.HasFlag(ActionState.Wakeup))
             {
-                halfWidth = ((short*)(Memory.BaseAddress + Offsets.PUSHBOX_AIR_WIDTH_ARRAY))[(short)p.CharId];
-                height = ((short*)(Memory.BaseAddress + Offsets.PUSHBOX_STANDING_HEIGHT_ARRAY))[(short)p.CharId];
+                halfWidth = PushBoxAirWidthRanges[charIndex];
+                height = PushBoxStandingHeightRanges[charIndex];
             }
             else // standing
             {
-                halfWidth = ((short*)(Memory.BaseAddress + Offsets.PUSHBOX_STANDING_WIDTH_ARRAY))[(short)p.CharId];
-                height = ((short*)(Memory.BaseAddress + Offsets.PUSHBOX_STANDING_HEIGHT_ARRAY))[(short)p.CharId];
+                halfWidth = PushBoxStandingWidthRanges[charIndex];
+                height = PushBoxStandingHeightRanges[charIndex];
             }
-            
+
             if (FindFirstPushBoxAdjustment(p, out Hitbox pushAdjust))
             {
                 x = pushAdjust.XOffset * 100;
-                halfWidth = pushAdjust.Width * 100;
+                halfWidth = pushAdjust.Width * 100 / 2;
             }
             else
             {
-                x = halfWidth;
+                x = -halfWidth;
             }
 
+            // see BRIDGET_SHOOT_ACT_ID comment
             if (p.CharId == CharacterID.BRIDGET && p.ActionId == BRIDGET_SHOOT_ACT_ID)
             {
                 y += BRIDGET_SHOOT_PUSHBOX_ADJUST;
@@ -303,115 +365,71 @@ namespace GGXXACPROverlay.GGXXACPR
             }
 
             return new Rect(
-                -x,
-                -(y + height),
+                x,
+                y - height,
                 halfWidth * 2,
                 height
             );
         }
 
+        /// <summary>
+        /// Finds the first pushbox adjustment box (box type 3) in the given player's current box set.
+        /// </summary>
+        /// <param name="p">The player struct</param>
+        /// <param name="pushAdjust">The pushbox adjust struct. Default struct if none found.</param>
+        /// <returns>Whether a pushadjust box was found</returns>
         private static bool FindFirstPushBoxAdjustment(Player p, out Hitbox pushAdjust)
         {
             pushAdjust = default;
-            if (p.HitboxSet is null) return false;
+            Span<Hitbox> hitboxes = p.HitboxSet;
+            if (hitboxes.Length == 0) return false;
 
-            Hitbox* pIndex = p.HitboxSet;
             for (int i = 0; i < p.BoxCount; i++)
             {
-                if (pIndex[i].BoxTypeId == BoxId.PUSH)
+                if (hitboxes[i].BoxTypeId == (ushort)BoxId.PUSH)
                 {
-                    pushAdjust = pIndex[i];
+                    pushAdjust = hitboxes[i];
                     return true;
                 }
             }
 
             return false;
         }
+#endregion
 
-        //private static Hitbox GetPushBox(ushort charId, ActionStateFlags status, ushort actId, int yPos, Hitbox[] boxSet)
-        //{
-        //    int yOffset = 0;
-        //    short[] widthArr;
-        //    short[] heightArr;
-        //    if (status.IsAirborne)
-        //    {
-        //        widthArr = PushBoxAirWidths;
-        //        heightArr = PushBoxAirHeights;
-        //        // Special offsets for pushbox collision checks
-        //        if (status.IsPlayer1)
-        //        {
-        //            yOffset = BitConverter.ToInt32(Memory.ReadMemoryPlusBaseOffset(PUSHBOX_P1_JUMP_OFFSET_ADDRESS, sizeof(int))) + yPos;
-        //        }
-        //        else if (status.IsPlayer2)
-        //        {
-        //            yOffset = BitConverter.ToInt32(Memory.ReadMemoryPlusBaseOffset(PUSHBOX_P2_JUMP_OFFSET_ADDRESS, sizeof(int))) + yPos;
-        //        }
-        //    }
-        //    else if (status.IsCrouching)
-        //    {
-        //        widthArr = PushBoxCrouchingWidths;
-        //        heightArr = PushBoxCrouchingHeights;
-        //    }
-        //    else if (status.IsPushboxType1)
-        //    {
-        //        // Not really sure what state this is. Adapting the draw logic from another project.
-        //        widthArr = PushBoxAirWidths;
-        //        heightArr = PushBoxStandingHeights;
-        //    }
-        //    else    // IsStanding
-        //    {
-        //        widthArr = PushBoxStandingWidths;
-        //        heightArr = PushBoxStandingHeights;
-        //    }
+        /// <summary>
+        /// Helper logic for FrameMeter. Returns whether the given player has any active hitboxes.
+        /// </summary>
+        public static bool HasActiveFrame(Player p)
+        {
+            Span<Hitbox> hitboxes = p.HitboxSet;
+            Span<Hitbox> hitboxesExtra = p.HitboxExtraSet;
 
-        //    short w = widthArr[charId];
-        //    short h = heightArr[charId];
+            if (hitboxes.Length == 0 || p.Status.HasFlag(ActionState.DisableHitboxes))
+                return false;
 
-        //    var pushBoxOverrides = boxSet.Where(b => b.BoxTypeId == BoxId.PUSH);
+            for (int i = 0; i < hitboxes.Length; i++)
+            {
+                if (hitboxes[i].BoxTypeId == (ushort)BoxId.HIT ||
+                        (hitboxes[i].BoxTypeId == (ushort)BoxId.USE_EXTRA &&
+                        hitboxesExtra.Length >= i &&
+                        hitboxesExtra[i].BoxTypeId == (ushort)BoxId.HIT))
+                {
+                    return true;
+                }
+            }
 
-        //    if (pushBoxOverrides.Any())
-        //    {
-        //        return new Hitbox()
-        //        {
-        //            XOffset = pushBoxOverrides.First().XOffset,
-        //            YOffset = (short)((h + yOffset) / -100),
-        //            Width   = pushBoxOverrides.First().Width,
-        //            Height  = (short)(h / 100)
-        //        };
-        //    }
-        //    else if (charId == (int)CharacterID.BRIDGET && actId == BRIDGET_SHOOT_ACT_ID)
-        //    {
-        //        return new Hitbox()
-        //        {
-        //            XOffset = (short)(w / -100),
-        //            YOffset = (short)((h + yOffset + BRIDGET_SHOOT_PUSHBOX_ADJUST) / -100),
-        //            Width   = (short)(w / 100 * 2),
-        //            Height  = (short)((h + BRIDGET_SHOOT_PUSHBOX_ADJUST) / 100)
-        //        };
-        //    }
-        //    else
-        //    {
-        //        return new Hitbox()
-        //        {
-        //            XOffset = (short)(w / -100),
-        //            YOffset = (short)((h + yOffset) / -100),
-        //            Width = (short)(w / 100 * 2),
-        //            Height = (short)(h / 100)
-        //        };
-        //    }
-        //}
+            return MoveData.IsActiveByMark(p.CharId, p.ActionId) && p.Mark == 1;
+        }
 
-        // TODO:
-        //public readonly bool HasActiveFrame(Player p) =>
-        //    p.HitboxSet.Where(hb => hb.BoxTypeId == BoxId.HIT).Any() && !p.Status.HasFlag(ActionStateE.DisableHitboxes) ||
-        //    Mark == 1 && MoveData.IsActiveByMark(p.CharId, p.ActionId);
-
+#region Rendering Helpers
         /// <summary>
         /// Returns a matrix transform for aligning hitbox model coordinates to a player in world coordinates.
         /// </summary>
-        /// <param name="p"></param>
-        /// <returns></returns>
-        public static Matrix4x4 GetModelTransform(Player p)
+
+        public static Matrix4x4 GetModelTransform(Entity e) => GetModelTransform(e.NativePointer);
+        public static Matrix4x4 GetModelTransform(Player p) => GetModelTransform(p.NativePointer);
+        private static Matrix4x4 GetModelTransform(BaseEntityRaw* e)
         {
             Matrix4x4 matrix = Matrix4x4.Identity;
 
@@ -419,18 +437,37 @@ namespace GGXXACPROverlay.GGXXACPR
             matrix *= Matrix4x4.CreateScale(100f, 100f, 1f);
 
             // Flip if facing right
-            if (p.IsFacingRight == 1)
+            if (e->IsFacingRight == 1)
             {
                 matrix *= Matrix4x4.CreateScale(-1f, 1f, 1f);
             }
 
             // Player scale var (given as a short * 1000)
-            if (p.ScaleX > 0 || p.ScaleY > 0)
+            if (e->ScaleX > 0 || e->ScaleY > 0)
             {
                 // If either scale value is -1, it should copy the value of the other
-                float scaleY = (p.ScaleY < 0 ? p.ScaleX : p.ScaleY) / 1000f;
-                float scaleX = (p.ScaleX < 0 ? p.ScaleY : p.ScaleX) / 1000f;
+                float scaleY = (e->ScaleY < 0 ? e->ScaleX : e->ScaleY) / 1000f;
+                float scaleX = (e->ScaleX < 0 ? e->ScaleY : e->ScaleX) / 1000f;
                 matrix *= Matrix4x4.CreateScale(scaleX, scaleY, 1f);
+            }
+
+            // Player origin translation
+            matrix *= Matrix4x4.CreateTranslation(e->XPos, e->YPos, 0f);
+
+            return matrix;
+        }
+
+        /// <summary>
+        /// Returns a matrix transform for aligning pushboxes and grabboxes to player positions.
+        /// </summary>
+        public static Matrix4x4 GetPlayerTransform(Player p)
+        {
+            Matrix4x4 matrix = Matrix4x4.Identity;
+
+            // Flip if facing right
+            if (p.IsFacingRight == 1)
+            {
+                matrix *= Matrix4x4.CreateScale(-1f, 1f, 1f);
             }
 
             // Player origin translation
@@ -439,15 +476,13 @@ namespace GGXXACPROverlay.GGXXACPR
             return matrix;
         }
 
-        public static Matrix4x4 GetModelTransform(Entity e)
-        {
-            return GetModelTransform(*(Player*)&e);
-        }
-
         public static Matrix4x4 GetProjectionTransform() => GetProjectionTransform(Camera);
         public static Matrix4x4 GetProjectionTransform(Camera c)
         {
             Matrix4x4 matrix = Matrix4x4.Identity;
+
+            // Translation correction
+            matrix *= Matrix4x4.CreateTranslation(new Vector3(-50.0f, -50.0f, 0.0f));
 
             // Projection
             float cameraBottom = c.CameraHeight + (c.Height / 12f);
@@ -466,6 +501,17 @@ namespace GGXXACPROverlay.GGXXACPR
             return matrix;
         }
 
+        /// <summary>
+        /// Used as the scissor rect for clipping
+        /// </summary>
+        public static Vortice.Direct3D9.Rect GetGameRegion()
+        {
+            int gameScreenHeight = *_viewHeight;
+            int gameScreenWidth = gameScreenHeight * 4 / 3;
+            int sideBarLength = (*_viewWidth - gameScreenWidth) / 2;
+
+            return new (sideBarLength, 0, sideBarLength + gameScreenWidth, gameScreenHeight);
+        }
 
         public static float WorldCoorPerGamePixel() => WorldCoorPerGamePixel(Camera);
         public static float WorldCoorPerGamePixel(Camera c)
@@ -478,6 +524,6 @@ namespace GGXXACPROverlay.GGXXACPR
         {
             return c.Height * 1.0f / (*_viewHeight);
         }
-
+#endregion
     }
 }
