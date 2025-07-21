@@ -17,8 +17,8 @@ namespace GGXXACPROverlay
         public static D3DCOLOR_ARGB Grab { get; private set; }          = new(0x80FF00FF);
         public static D3DCOLOR_ARGB CLHitbox { get; private set; }      = new(0x80FF8000);
         public static D3DCOLOR_ARGB PivotCrossColor { get; private set; } = new(0xFF800080);
-        public static float PivotCrossSize { get; private set; }        = 10.0f;
-        public static float PivotCrossThickness { get; private set; }   = 2.0f;
+        public static float PivotCrossSize { get; private set; }        = 15.0f;
+        public static float PivotCrossThickness { get; private set; }   = 3.0f;
         public static float HitboxBorderThickness { get; private set; } = 2.0f;
         public static bool WidescreenClipping { get; private set; }     = true;
         public static bool HideP1 { get; set; }                         = false;
@@ -29,13 +29,13 @@ namespace GGXXACPROverlay
         // Pivot, CleanHit, Hit, Hurt, Grab, Push
         public static DrawOperation[] DrawOrder { get; private set; } = [
             DrawOperation.Push,     // back
-            DrawOperation.Grab,
             DrawOperation.Hurt,
             DrawOperation.Hit,
             DrawOperation.CleanHit,
+            DrawOperation.Grab,
             DrawOperation.Pivot     // front
         ];
-        public static bool DisplayHSDMeter { get; set; } = false;
+        public static bool DisplayHSDMeter { get; set; } = true;
         public static bool IgnoreDisableHitboxFlag { get; private set; } = false;
 
         public static Dictionary<string, Dictionary<string, string>> Sections { get; } = [];
