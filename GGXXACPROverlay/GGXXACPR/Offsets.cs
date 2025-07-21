@@ -12,9 +12,14 @@
         public const nint MESSAGE_LOOP_END = 0x222413;
         public const nint PRESENT_CALL_INSTRUCTION = 0x2271D8;
         public const nint GRAPHICS_HOOK_BREAKPOINT = 0x2271DA;
+        public const nint PEEK_MESSAGE_FUNCTION_POINTER = 0x3BD348;
+        public const nint MESSAGE_LOOP_REL_JMP_OFFSET_BYTE_ADDR = 0x222414;
 
         // Hack Addresses
         public const nint FIX_BACKGROUND_STATE_INSTRUCTION = 0X21C363;
+        // 0 = not paused, 1 or 2 = paused (not sure the difference between 1 and 2)
+        // enum BackgroundState
+        public const nint BACKGROUND_STATE = 0x6D6420;
 
         // DirectX
         public const nint DIRECT3D9_DEVICE = 0x710580;
@@ -54,16 +59,15 @@
         public const nint COMMAND_GRAB_ID_P1 = 0x6D6384;
         public const nint COMMAND_GRAB_ID_P2 = 0x6D6388;
         public const nint COMMAND_GRAB_RANGE_LOOKUP_TABLE = 0x572110;
-
-        #region global data (structless afaik)
         // one byte [P1Throwable, P2Throwable, P1ThrowActive P2ThrowActive]
-        public const nint GLOBAL_THROW_FLAGS = 0x0D5D7C;
+        public const nint GLOBAL_THROW_FLAGS = 0x6D5D7C;
+
+        // Pause Menus
+        public const nint TRAINING_MODE_PAUSE_STATE = 0x7109E4;
+        public const nint TRAINING_MODE_PAUSE_DISPLAY = 0x6CBD20;
+
+        // Replay
         // 1 = normal, 0 = do not simulate, -1 = rewinding (stays at 0 for frame stepping)
         public const nint GLOBAL_REPLAY_SIMULATE = 0x7D5788;
-        // 0 = not paused, 1 or 2 = paused (not sure the difference between 1 and 2)
-        public const nint GLOBAL_PAUSE_VAR = 0x7109E4;
-        // enum BackgroundState
-        public const nint BACKGROUND_STATE = 0x6D6420;
-        #endregion
     }
 }

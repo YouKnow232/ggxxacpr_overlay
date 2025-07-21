@@ -28,18 +28,10 @@ namespace GGXXACPROverlay
             public readonly int Y = y;
         }
 
-        public static readonly ColorRectangle ComboTimeMeter =
-            new ColorRectangle(-0.95f, 0.1f, 0.05f, 0.4f);
-        public static readonly ColorRectangle UntechTimeMeter =
-            new ColorRectangle(-0.85f, 0.1f, 0.05f, 0.4f, 0xFF00FFFF);
-
 
         private static readonly ColorRectangle[] _colorRectangleBuffer = new ColorRectangle[100];
-        private static readonly Comparison<Hitbox> _hitboxSorter = new((hb1, hb2) => (short)hb2.BoxTypeId - (short)hb1.BoxTypeId);
         public static Span<ColorRectangle> GetHitboxPrimitives(Span<Hitbox> boxes)
         {
-            boxes.Sort(_hitboxSorter);
-
             for (int i = 0; i < boxes.Length; i++) Convert(boxes[i], out _colorRectangleBuffer[i]);
 
             return _colorRectangleBuffer.AsSpan(0, boxes.Length);
@@ -56,7 +48,6 @@ namespace GGXXACPROverlay
         public static ColorRectangle GetCLHitBox(Player p)
             => new ColorRectangle(GGXXACPR.GGXXACPR.GetCLRect(p), Settings.CLHitbox);
 
-        
         /// <summary>
         /// Expresses the character origin point (pivot) as two rectangles forming a cross.
         /// </summary>

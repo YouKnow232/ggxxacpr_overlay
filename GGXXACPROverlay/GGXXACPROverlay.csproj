@@ -11,7 +11,7 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <IncludeSymbolsInSingleFile>True</IncludeSymbolsInSingleFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>$(VersionPrefix)2.0-develop$(VersionSuffix)</Version>
+    <Version>$(VersionPrefix)2.0.0-alpha$(VersionSuffix)</Version>
     <PackageProjectUrl>https://github.com/YouKnow232/ggxxacpr_overlay</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/YouKnow232/ggxxacpr_overlay</RepositoryUrl>
@@ -22,19 +22,19 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <IsAotCompatible>False</IsAotCompatible>
+    <IsAotCompatible>True</IsAotCompatible>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
-    <IsAotCompatible>False</IsAotCompatible>
+    <IsAotCompatible>True</IsAotCompatible>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <IsAotCompatible>False</IsAotCompatible>
+    <IsAotCompatible>True</IsAotCompatible>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-    <IsAotCompatible>False</IsAotCompatible>
+    <IsAotCompatible>True</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>

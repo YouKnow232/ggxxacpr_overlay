@@ -77,84 +77,11 @@ namespace GGXXACPRInjector
 
             foreach (string dep in _dependencies)
             {
-                Inject(dep, lpStartAddress);
+                if (!Inject(dep, lpStartAddress)) return false;
                 Thread.Sleep(30);   // Wait for dll to initalize
             }
-            Inject(_dllDir, lpStartAddress);
 
-            //// Allocate memory for the injectee file name
-            //uint dllNameLength = (uint)(_dllDir.Length + 1 * Marshal.SizeOf<char>());
-
-            //void* allocMemAddress = PInvoke.VirtualAllocEx(
-            //    _procHandle,
-            //    (void*)nint.Zero,
-            //    dllNameLength,
-            //    VIRTUAL_ALLOCATION_TYPE.MEM_COMMIT | VIRTUAL_ALLOCATION_TYPE.MEM_RESERVE,
-            //    PAGE_PROTECTION_FLAGS.PAGE_READWRITE);
-
-            //if (allocMemAddress == null)
-            //{
-            //    int errCode = Marshal.GetLastPInvokeError();
-            //    Console.Error.WriteLine($"VirtualAllocEx failed: Error Code {errCode}");
-            //    return false;
-            //}
-
-            //// Write the dll's filename into process memory
-            //nuint bytesWritten;
-            //byte[] buffer = Encoding.Default.GetBytes(_dllDir);
-            //BOOL success;
-            //fixed (byte* bufferPtr = &buffer[0])
-            //{
-            //    success = PInvoke.WriteProcessMemory(
-            //        _procHandle,
-            //        allocMemAddress,
-            //        bufferPtr,
-            //        dllNameLength,
-            //        &bytesWritten);
-            //}
-
-            //if (!success)
-            //{
-            //    int errCode = Marshal.GetLastPInvokeError();
-            //    Console.Error.WriteLine($"WriteProcessMemory failed: Error Code {errCode}");
-            //    return false;
-            //}
-
-            //// Create a remote thread in the target process that begins execution at LoadLibraryA
-            ////  with a string pointer parameter to the dll file name previously written in memory
-            //void* lpThreadParameter = (void*)loadLibraryAddr.Value;
-            //LPTHREAD_START_ROUTINE lpStartAddress = Marshal.GetDelegateForFunctionPointer<LPTHREAD_START_ROUTINE>(loadLibraryAddr.Value);
-            //SafeFileHandle remoteThreadHandle = PInvoke.CreateRemoteThread(_procHandle, null, 0, lpStartAddress, allocMemAddress, 0, null);
-            //if (remoteThreadHandle == null)
-            //{
-            //    int errCode = Marshal.GetLastPInvokeError();
-            //    Console.Error.WriteLine($"CreateRemoteThread failed: Error Code {errCode}");
-            //    PInvoke.VirtualFreeEx(_procHandle, allocMemAddress, 0, VIRTUAL_FREE_TYPE.MEM_RELEASE);
-            //    return false;
-            //}
-
-            //var waitEvent = PInvoke.WaitForSingleObject(remoteThreadHandle, _timeout);
-            //if (waitEvent != WAIT_EVENT.WAIT_OBJECT_0)
-            //{
-            //    Console.WriteLine($"Remote thread failed. Return event: {waitEvent}");
-            //    PInvoke.VirtualFreeEx(_procHandle, allocMemAddress, 0, VIRTUAL_FREE_TYPE.MEM_RELEASE);
-            //    return false;
-            //}
-            //PInvoke.GetExitCodeThread(remoteThreadHandle, out bootstrapperHandle);
-            //remoteThreadHandle.Close();
-
-            //if (bootstrapperHandle == 0)
-            //{
-            //    Console.Error.WriteLine($"Inject failed. Remote LoadLibrary returned 0.");
-            //    PInvoke.VirtualFreeEx(_procHandle, allocMemAddress, 0, VIRTUAL_FREE_TYPE.MEM_RELEASE);
-            //    return false;
-            //}
-
-            //// release allocated memory
-            //PInvoke.VirtualFreeEx(_procHandle, allocMemAddress, 0, VIRTUAL_FREE_TYPE.MEM_RELEASE);
-
-            Console.WriteLine("Overlay injected");
-            return true;
+            return Inject(_dllDir, lpStartAddress);
         }
 
         private unsafe bool Inject(string path, LPTHREAD_START_ROUTINE loadlibraryDelegate)

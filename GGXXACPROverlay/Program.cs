@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Windows.Win32;
 
 namespace GGXXACPROverlay
 {
@@ -14,10 +15,8 @@ namespace GGXXACPROverlay
                 Settings.WriteDefault();
             }
 
-            // DEBUG: allocate new console window.
             Debug.DebugStatements = Settings.Get("Debug", "ShowDebugStatements", true);
-            // Console is attached in bootstrapper right now.
-            //if (Settings.Get("Debug", "DisplayConsole", true)) PInvoke.AllocConsole();
+            if (Settings.Get("Debug", "DisplayConsole", false)) PInvoke.AllocConsole();
             Debug.Log("DLL Attached!");
 
             //// Keyboard Hook

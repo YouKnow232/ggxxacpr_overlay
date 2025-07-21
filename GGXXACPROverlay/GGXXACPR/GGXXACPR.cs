@@ -101,8 +101,7 @@ namespace GGXXACPROverlay.GGXXACPR
         /// <summary>
         /// Dereferences and returns a snapshot of the throw flags struct.
         /// </summary>
-        public static ThrowDetection ThrowFlags => Enum.IsDefined(typeof(ThrowDetection), *_throwFlags) ?
-            (ThrowDetection)(*_throwFlags) : ThrowDetection.None;
+        public static ThrowDetection ThrowFlags => (ThrowDetection)(*_throwFlags);
         private static readonly byte* _throwFlags = (byte*)(Memory.BaseAddress + Offsets.GLOBAL_THROW_FLAGS);
         public static readonly int CommandThrowIDP1 = *(int*)(Memory.BaseAddress + Offsets.COMMAND_GRAB_ID_P1);
         public static readonly int CommandThrowIDP2 = *(int*)(Memory.BaseAddress + Offsets.COMMAND_GRAB_ID_P2);
@@ -115,10 +114,13 @@ namespace GGXXACPROverlay.GGXXACPR
         private static readonly int* _gameVersion = (int*)(Memory.BaseAddress + Offsets.GAME_VER_FLAG);
         public static bool IsPlusR => GameVersion == GameVersion.PLUS_R;
         public static bool IsAccentCore => GameVersion == GameVersion.AC;
-        public static readonly byte* InGameFlag = (byte*)(Memory.BaseAddress + Offsets.IN_GAME_FLAG);
-        public static bool ShouldRender => *InGameFlag != 0;
-        public static readonly int* PauseState = (int*)(Memory.BaseAddress + Offsets.GLOBAL_PAUSE_VAR);
+        public static bool IsInGame => *_inGameFlag != 0;
+        public static readonly byte* _inGameFlag = (byte*)(Memory.BaseAddress + Offsets.IN_GAME_FLAG);
+        public static bool ShouldRender => *_inGameFlag != 0 && !(*TrainingPauseDisplay == 1 && *TrainingPauseState != 0);
+        public static readonly int* TrainingPauseState = (int*)(Memory.BaseAddress + Offsets.TRAINING_MODE_PAUSE_STATE);
+        public static readonly int* TrainingPauseDisplay = (int*)(Memory.BaseAddress + Offsets.TRAINING_MODE_PAUSE_DISPLAY);
         public static readonly int* ReplaySimState = (int*)(Memory.BaseAddress + Offsets.GLOBAL_REPLAY_SIMULATE);
+        public static readonly int* BackgroundState = (int*)(Memory.BaseAddress + Offsets.BACKGROUND_STATE);
 
         private static readonly delegate* unmanaged[Cdecl]<int, int, float, byte, float, int> _RenderText =
             (delegate* unmanaged[Cdecl]<int, int, float, byte, float, int>)(Memory.BaseAddress + Offsets.RENDER_TEXT);
@@ -158,14 +160,14 @@ namespace GGXXACPROverlay.GGXXACPR
                 {
                     // hurtbox discard checks
                     if (e->HitboxSet[i].BoxTypeId == (ushort)BoxId.HURT && (
-                        e->Status == (uint)ActionState.DisableHurtboxes ||
-                        e->Status == (uint)ActionState.StrikeInvuln ||
+                        (e->Status & (uint)ActionState.DisableHurtboxes) > 0 ||
+                        (e->Status & (uint)ActionState.StrikeInvuln) > 0 ||
                         pExtra.InvulnCounter > 0))
                         continue;
 
                     // hitbox discard checks
                     if (e->HitboxSet[i].BoxTypeId == (ushort)BoxId.HIT &&
-                        e->Status == (uint)ActionState.DisableHitboxes &&
+                        ((e->Status & (uint)ActionState.DisableHitboxes) > 0 && !Settings.IgnoreDisableHitboxFlag) &&
                         e->HitstopCounter <= 0)
                         continue;
 
@@ -190,6 +192,8 @@ namespace GGXXACPROverlay.GGXXACPR
             if (p.HitParam.CLScale == -1) return default;
 
             Player opponent = p.PlayerIndex == 0 ? Player2 : Player1;
+            if (!opponent.IsValid) return default;
+
             byte CLCounter = opponent.Extra.CleanHitCounter;
 
             // If player has just hit a clean hit, draw the CLRect as it was before it shrunk.
@@ -204,7 +208,7 @@ namespace GGXXACPROverlay.GGXXACPR
 
             return new Rect(
                 hp.CLCenterX - halfWidth,
-                (hp.CLCenterY - halfHeight) + CLEAN_HIT_Y_OFFSET,
+                hp.CLCenterY - halfHeight + CLEAN_HIT_Y_OFFSET,
                 halfWidth * 2,
                 halfHeight * 2
             );
@@ -228,7 +232,7 @@ namespace GGXXACPROverlay.GGXXACPR
             return _clMemory[p.PlayerIndex];
         }
 
-#region Throw Boxes
+        #region Throw Boxes
         private static readonly short* AirThrowRangesPR    = (short*)(Memory.BaseAddress + Offsets.PLUSR_AIR_THROW_HORIZONTAL_RANGE_ARRAY);
         private static readonly short* AirThrowRangesAC    = (short*)(Memory.BaseAddress + Offsets.AC_AIR_THROW_HORIZONTAL_RANGE_ARRAY);
         private static readonly short* AirThrowRangesUpper = (short*)(Memory.BaseAddress + Offsets.AIR_THROW_UPPER_RANGE_ARRAY);
@@ -266,7 +270,7 @@ namespace GGXXACPROverlay.GGXXACPR
                 short lowerBound = AirThrowRangesLower[(int)p.CharId];
 
                 x = pushbox.X - range;
-                y = pushbox.Y + upperBound;
+                y = pushbox.Y + upperBound + pushbox.Height;
                 width = pushbox.Width + range * 2;
                 height = lowerBound - upperBound;
             }
@@ -287,9 +291,13 @@ namespace GGXXACPROverlay.GGXXACPR
 
         public static bool IsThrowActive(Player p)
         {
+            Player opponent = p.PlayerIndex == 0 ? Player2 : Player1;
+            if (!opponent.IsValid) return false;
+
             return !p.CommandFlags.HasFlag(CommandState.DisableThrow) &&
                 (ThrowFlags.HasFlag(ThrowDetection.Player1ThrowSuccess) && p.PlayerIndex == 0 ||
-                ThrowFlags.HasFlag(ThrowDetection.Player2ThrowSuccess) && p.PlayerIndex == 1);
+                ThrowFlags.HasFlag(ThrowDetection.Player2ThrowSuccess) && p.PlayerIndex == 1) &&
+                opponent.Status.HasFlag(ActionState.IsInHitstun);
         }
         public static bool IsCommandThrowActive(Player p)
         {
@@ -495,10 +503,14 @@ namespace GGXXACPROverlay.GGXXACPR
                 1
             );
 
-            // Widescreen correction
-            matrix *= Matrix4x4.CreateScale((c.Width * (*_viewHeight)) * 1.0f / (c.Height * (*_viewWidth)), 1.0f, 1.0f);
+            matrix *= GetWidescreenCorrectionTransform(c);
 
             return matrix;
+        }
+        public static Matrix4x4 GetWidescreenCorrectionTransform() => GetWidescreenCorrectionTransform(Camera);
+        public static Matrix4x4 GetWidescreenCorrectionTransform(Camera c)
+        {
+            return Matrix4x4.CreateScale(4 * (*_viewHeight) * 1.0f / (3 * (*_viewWidth)), 1.0f, 1.0f);
         }
 
         /// <summary>

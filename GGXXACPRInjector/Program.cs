@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
 
 namespace GGXXACPRInjector
 {
@@ -6,16 +6,27 @@ namespace GGXXACPRInjector
     {
         private const string targetProcessName = "GGXXACPR_Win";
         private const string injectee = "GGXXACPROverlay.Bootstrapper.dll";
+        private const string overlay = "GGXXACPROverlay.dll";
         private const string injecteeDependency = "nethost.dll";
 
         static void Main(string[] args)
         {
             // AppDomain.CurrentDomain.ProcessExit += new EventHandler(Eject);
-
-            Console.WriteLine($"Current directory: {Path.GetFullPath("./")}");
-
             Console.WriteLine("== GGXXACPROverlay Injector ==");
-            Console.WriteLine("Version: v0.0.1-alpha");
+            Console.WriteLine("Injector Version: v1.0.0");
+            try
+            {
+                FileVersionInfo overlayVersion = FileVersionInfo.GetVersionInfo(overlay);
+                Console.WriteLine($"Overlay Version: v{overlayVersion.ProductVersion}");
+            }
+            catch (FileNotFoundException)
+            {
+                Console.WriteLine("\nCouldn't find GGXXACPROverlay.dll in current directory!");
+                Console.WriteLine("Make sure you're running this injector from the mod directory\n");
+                Console.WriteLine("Press any key to close this window...");
+                _ = Console.ReadKey(true);
+                return;
+            }
             Console.WriteLine();
 
             bool injected = false;
@@ -26,12 +37,17 @@ namespace GGXXACPRInjector
                 {
                     Injector injector = new Injector(targetProcessName, Path.GetFullPath(injectee), [Path.GetFullPath(injecteeDependency)]);
                     injected = injector.Inject();
+
+                    if (injected)
+                        Console.WriteLine("Overlay injected!\n");
+                    else
+                        Console.WriteLine("Overlay failed to inject.\n");
                 }
                 else
                 {
                     Console.WriteLine("This overlay requries a .NET runtime installation, but a compatible version wasn't detected.");
-                    Console.WriteLine("Please install the x86 version from Microsoft here:");
-                    Console.WriteLine("https://builds.dotnet.microsoft.com/dotnet/Runtime/9.0.6/dotnet-runtime-9.0.6-win-x86.exe");
+                    Console.WriteLine("Please install the x86 version for console apps from Microsoft here:");
+                    Console.WriteLine("https://dotnet.microsoft.com/en-us/download/dotnet/9.0/runtime");
                 }
             }
             catch (Exception ex)

@@ -8,6 +8,7 @@ namespace GGXXACPROverlay
         public static Overlay? Instance { get; private set; }
 
         private readonly Graphics _graphics;
+        private readonly GraphicsResources _resources;
 
         private delegate void DrawDelegate(Player p1, Player p2, Camera cam);
         private readonly DrawDelegate? DrawFunctions;
@@ -15,6 +16,7 @@ namespace GGXXACPROverlay
         public Overlay(Graphics graphics)
         {
             _graphics = graphics;
+            _resources = new GraphicsResources();
             Instance = this;
 
             var DrawOpMap = new Dictionary<DrawOperation, DrawDelegate>()
@@ -44,6 +46,8 @@ namespace GGXXACPROverlay
             var p2 = GGXXACPR.GGXXACPR.Player2;
             var cam = GGXXACPR.GGXXACPR.Camera;
 
+            if (!p1.IsValid || !p2.IsValid) return;
+
             _graphics.BeginScene();
             if (Settings.WidescreenClipping) _graphics.SetScissorRect(GGXXACPR.GGXXACPR.GetGameRegion());
 
@@ -66,12 +70,12 @@ namespace GGXXACPROverlay
         private unsafe void RenderComboTimeMeter(Player p)
         {
             _graphics.SetDeviceContext(GraphicsContext.ComboTime, p.Extra.ComboTime);
-            _graphics.DrawRectangles(Drawing.ComboTimeMeter);
+            _graphics.DrawRectangles(_resources.ComboTimeMeter, GGXXACPR.GGXXACPR.GetWidescreenCorrectionTransform());
         }
         private unsafe void RenderUntechTimeMeter(Player p)
         {
             _graphics.SetDeviceContext(GraphicsContext.Meter, p.Extra.UntechTimer + 1, 60.0f);
-            _graphics.DrawRectangles(Drawing.UntechTimeMeter);
+            _graphics.DrawRectangles(_resources.UntechTimeMeter, GGXXACPR.GGXXACPR.GetWidescreenCorrectionTransform());
         }
 
         private void RenderPlayerBoxes(Player p, Camera cam, BoxId boxType)
@@ -92,10 +96,13 @@ namespace GGXXACPROverlay
         {
             _graphics.SetDeviceContext(GraphicsContext.Hitbox);
             Entity Root = GGXXACPR.GGXXACPR.RootEntity;
+            if (!Root.IsValid) return;
+
             Entity iEntity = Root.Next;
 
             while (!iEntity.Equals(Root))
             {
+                if (!iEntity.IsValid) return;
                 if (iEntity.PlayerIndex == playerIndexFilter)
                 {
                     Matrix4x4 transform = GGXXACPR.GGXXACPR.GetModelTransform(iEntity) * GGXXACPR.GGXXACPR.GetProjectionTransform(cam);
@@ -112,7 +119,7 @@ namespace GGXXACPROverlay
         {
             _graphics.SetDeviceContext(GraphicsContext.Pivot);
             _graphics.DrawRectangles(
-                Drawing.GetPivot(p, GGXXACPR.GGXXACPR.WorldCoorPerGamePixel(cam)),
+                Drawing.GetPivot(p, GGXXACPR.GGXXACPR.WorldCoorPerViewPixel(cam)),
                 GGXXACPR.GGXXACPR.GetProjectionTransform(cam));
         }
 

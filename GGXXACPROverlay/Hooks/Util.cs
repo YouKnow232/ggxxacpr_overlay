@@ -169,7 +169,7 @@ namespace GGXXACPROverlay.Hooks
             int hookCallOffset = (int)hookAddress - ((int)trampolineAddress + preambleAssembly.Length + RELATIVE_JUMP_INSTRUCTION_SIZE);
             byte[] hookCallAssembly = [RELATIVE_CALL_OP_CODE, ..BitConverter.GetBytes(hookCallOffset)];
             Debug.Log($"Hook address: 0x{hookAddress:X8}");
-            int returnJumpOffset = (int)returnAddress - (int)trampolineAddress + (int)bytesWritten;
+            int returnJumpOffset = (int)returnAddress - ((int)trampolineAddress + (int)bytesWritten);
             byte[] returnJumpOffsetBytes = BitConverter.GetBytes(returnJumpOffset);
 
             byte[] trampolineBody = [.. originalBytes];
@@ -222,20 +222,16 @@ namespace GGXXACPROverlay.Hooks
         /// <returns>Overwritten bytes</returns>
         public static unsafe byte[] Patch(nint patchAddress, byte[] payload)
         {
-            bool success = PInvoke.VirtualProtect((void*)patchAddress, RELATIVE_JUMP_INSTRUCTION_SIZE, PAGE_PROTECTION_FLAGS.PAGE_EXECUTE_READWRITE, out var oldProtect);
+            bool success = PInvoke.VirtualProtect((void*)patchAddress, (nuint)payload.Length, PAGE_PROTECTION_FLAGS.PAGE_EXECUTE_READWRITE, out var oldProtect);
             if (!success) throw new COMException($"Virtual Protect failed at address 0x{patchAddress:X8}", Marshal.GetLastSystemError());
 
-            Debug.Log("VirtualProtect set to execute read/write");
-            byte[] originalBytes = new byte[RELATIVE_JUMP_INSTRUCTION_SIZE];
+            byte[] originalBytes = new byte[payload.Length];
 
-            Marshal.Copy(patchAddress, originalBytes, 0, RELATIVE_JUMP_INSTRUCTION_SIZE);
-            Debug.Log("Recording original bytes");
-            Marshal.Copy(payload, 0, patchAddress, RELATIVE_JUMP_INSTRUCTION_SIZE);
-            Debug.Log("patching payload");
+            Marshal.Copy(patchAddress, originalBytes, 0, payload.Length);
+            Marshal.Copy(payload, 0, patchAddress, payload.Length);
 
-            success = PInvoke.VirtualProtect((void*)patchAddress, RELATIVE_JUMP_INSTRUCTION_SIZE, oldProtect, out _);
+            success = PInvoke.VirtualProtect((void*)patchAddress, (nuint)payload.Length, oldProtect, out _);
             if (!success) throw new COMException($"Virtual Protect failed at address 0x{patchAddress:X8}", Marshal.GetLastSystemError());
-            Debug.Log("VirtualProtect reverted");
             return originalBytes;
         }
 
@@ -249,7 +245,7 @@ namespace GGXXACPROverlay.Hooks
             Debug.Log("Pausing Main Thread");
             foreach (var region in memoryRegions)
             {
-                Debug.Log($"Region start: 0x{region.Start:X8} | end: 0x{region.End:X8}");
+                Debug.Log($"Region start: 0x{region.Start.Value:X8} | end: 0x{region.End.Value:X8}");
             }
 
             const int timeout = 1000;
@@ -290,7 +286,7 @@ namespace GGXXACPROverlay.Hooks
             sw.Stop();
             if (sw.ElapsedMilliseconds > timeout) throw new TimeoutException("Could not find a safe stopping point for the main thread");
 
-            Debug.Log($"Thread suspen count: {suspendCount}");
+            Debug.Log($"Thread suspend count: {suspendCount}");
             return hMainThread;
         }
 

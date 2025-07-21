@@ -8,7 +8,7 @@ namespace GGXXACPROverlay.Hooks
 
     // NOTE: Redo detour code. Need to call into the shim
 
-    internal unsafe class DetourTrampolineHook : DisposableHook
+    internal unsafe class GraphicsDetourHook : DisposableHook
     {
         private const int PATCH_SIZE = 5;
 
@@ -24,15 +24,13 @@ namespace GGXXACPROverlay.Hooks
         private readonly byte[] _originalBytes;
         private nint _trampolineAddress;
         private nuint _trampolineSize;
-        private delegate* unmanaged[Stdcall]<void*, void*, void*, void*, void*, int> _trampolineDelegate;
 
 
-        public DetourTrampolineHook(nint targetAddress, Action<nint> hookBodyDelegate)
+        public GraphicsDetourHook(nint targetAddress, Action<nint> hookBodyDelegate)
         {
             _targetAddress = targetAddress;
             _hookBodyDelegate = hookBodyDelegate ?? throw new ArgumentNullException(nameof(hookBodyDelegate));
             D3D9Present graphicsHookDelegate = GraphicsHook;
-            RuntimeHelpers.PrepareDelegate(graphicsHookDelegate);
             _hookDelegateHandle = GCHandle.Alloc(graphicsHookDelegate);
             _nativeHookPtr = Marshal.GetFunctionPointerForDelegate(graphicsHookDelegate);
             _workingMemoryRegion = (int)_targetAddress..((int)_targetAddress + PATCH_SIZE);
@@ -54,7 +52,7 @@ namespace GGXXACPROverlay.Hooks
 
             _ = Util.PatchHookDetour(_targetAddress, _trampolineAddress);
             Debug.Log($"Detour written at: 0x{_targetAddress:X8}");
-            Debug.Log($"Hook address: 0x{_nativeHookPtr:X8}");
+            Debug.Log($"Graphics hook function ptr: 0x{_nativeHookPtr:X8}");
 
             uint suspendCount = PInvoke.ResumeThread(hMainThread);
             Debug.Log($"Thread suspend count: {suspendCount}");
@@ -63,31 +61,6 @@ namespace GGXXACPROverlay.Hooks
 
             _isInstalled = true;
         }
-
-        //public override void Install()
-        //{
-        //    if (_isInstalled) throw new InvalidOperationException($"Hook already installed: {this}");
-
-        //    Debug.Log($"Installing hook at address: 0x{_targetAddress:X8}");
-
-        //    Marshal.Copy(_targetAddress, _originalBytes, 0, PATCH_SIZE);
-
-        //    using SafeHandle hMainThread = Util.SafelyPauseMainThread(_workingMemoryRegion);
-        //    _trampolineAddress = Util.WriteTrampoline(_targetAddress + PATCH_SIZE, _originalBytes, out _trampolineSize);
-        //    Debug.Log($"Trampoline function written at: 0x{_trampolineAddress:X8}");
-        //    _trampolineDelegate = (delegate* unmanaged[Stdcall]<void*, void*, void*, void*, void*, int>)_trampolineAddress;
-
-        //    _ = Util.PatchHookDetour(_targetAddress, _nativeHookPtr);
-        //    Debug.Log($"Detour written at: 0x{_targetAddress:X8}");
-        //    Debug.Log($"Hook address: 0x{_nativeHookPtr:X8}");
-
-        //    uint suspendCount = PInvoke.ResumeThread(hMainThread);
-        //    Debug.Log($"Thread suspend count: {suspendCount}");
-        //    if (suspendCount == uint.MaxValue) throw new COMException("Failed to resume main thread", Marshal.GetLastSystemError());
-        //    if (suspendCount != 1) Debug.Log($"Suspend count expected to be 1 but was {suspendCount}");
-
-        //    _isInstalled = true;
-        //}
 
         public override void Uninstall()
         {
@@ -102,16 +75,17 @@ namespace GGXXACPROverlay.Hooks
                 Debug.Log($"Thread suspend count: {suspendCount}");
             }
 
-            _trampolineDelegate = (delegate* unmanaged[Stdcall]<void*, void*, void*, void*, void*, int>)0;
             PInvoke.VirtualFree((void*)_trampolineAddress, _trampolineSize, Windows.Win32.System.Memory.VIRTUAL_FREE_TYPE.MEM_RELEASE);
 
             _isInstalled = false;
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
         private int GraphicsHook(void* d3d9Device, void* pSourceRect, void* pDestRect, void* hDestWindowOverride, void* pDirtyRegion)
         {
+            //GC.Collect();
+            //GC.WaitForPendingFinalizers();
+
             if (pSourceRect is not null || pDestRect is not null || hDestWindowOverride is not null || pDirtyRegion is not null)
             {
                 Debug.Log("[DEBUG] Unexpected parameters passed to Hook!");
@@ -129,13 +103,6 @@ namespace GGXXACPROverlay.Hooks
             }
 
             return 0;
-            //if (_trampolineDelegate is null)
-            //{
-            //    Debug.Log("Graphics Hook was called before graphics trampoline was initailzied!");
-            //    return 0;
-            //}
-
-            //return _trampolineDelegate(d3d9Device, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
         }
 
         private bool _disposed = false;
@@ -154,7 +121,7 @@ namespace GGXXACPROverlay.Hooks
             _disposed = true;
         }
 
-        ~DetourTrampolineHook()
+        ~GraphicsDetourHook()
         {
             Debug.Log("Hook instance finalized");
             if (IsInstalled)

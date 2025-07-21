@@ -32,11 +32,8 @@ namespace GGXXACPROverlay.GGXXACPR
             public int moveId;  // custom identifier
         }
 
-        private static readonly List<MoveDataEntry> _rawMoveData = ReadRawMoveData();
-        private static readonly Lookup<CharIdActIdKey, MoveDataEntry> _actIdToMoveIds =
-            (Lookup<CharIdActIdKey, MoveDataEntry>)_rawMoveData.ToLookup(
-                moveData => new CharIdActIdKey(moveData.charId, moveData.actId)
-            );
+        // TODO: Will be needed for FrameMeter
+        // private static readonly Lookup<CharIdActIdKey, MoveDataEntry> _actIdToMoveIds = ReadRawMoveDataToLookup();
 
         // (charId, actId)
         private static readonly CommandGrabData[] _activeByMarkCommandGrabs = [
@@ -60,7 +57,7 @@ namespace GGXXACPROverlay.GGXXACPR
             new(CharacterID.ABA,       0x11B, 26), // Unknown (Unused Air keygrab?) actId 283, cmdGrabId 26
         ];
 
-        private static List<MoveDataEntry> ReadRawMoveData()
+        private static Lookup<CharIdActIdKey, MoveDataEntry> ReadRawMoveDataToLookup()
         {
             List<MoveDataEntry> output = [];
 
@@ -102,41 +99,37 @@ namespace GGXXACPROverlay.GGXXACPR
                 else throw;
             }
 
-            return output;
+            return (Lookup<CharIdActIdKey, MoveDataEntry>)output.ToLookup(
+                moveData => new CharIdActIdKey(moveData.charId, moveData.actId)
+            );
         }
 
-        //private static Lookup<CharIdActIdKey, MoveDataEntry> CreateMoveDataLookup(List<MoveDataEntry> rawData)
-        //{
-        //    return (Lookup<CharIdActIdKey, MoveDataEntry>)rawData.ToLookup(
-        //        moveData => new CharIdActIdKey(moveData.charId, moveData.actId)
-        //    );
-        //}
-
+        // TODO: Will be needed for FrameMeter
         /// <summary>
         /// Returns true if both actIds are played in the same move and actId1 comes before actId2 in a multi-act move.
         /// </summary>
         /// <param name="charId">Character Id</param>
         /// <param name="actId1">first actId</param>
         /// <param name="actId2">second actId</param>
-        public static bool IsPrevAnimSameMove(CharacterID charId, int actId1, int actId2)
-        {
-            var key1 = new CharIdActIdKey(charId, actId1);
-            var key2 = new CharIdActIdKey(charId, actId2);
-            if (_actIdToMoveIds.Contains(key1) && _actIdToMoveIds.Contains(key2))
-            {
-                IEnumerable<MoveDataEntry> data1 = _actIdToMoveIds[key1];
-                IEnumerable<MoveDataEntry> data2 = _actIdToMoveIds[key2];
+        //public static bool IsPrevAnimSameMove(CharacterID charId, int actId1, int actId2)
+        //{
+        //    var key1 = new CharIdActIdKey(charId, actId1);
+        //    var key2 = new CharIdActIdKey(charId, actId2);
+        //    if (_actIdToMoveIds.Contains(key1) && _actIdToMoveIds.Contains(key2))
+        //    {
+        //        IEnumerable<MoveDataEntry> data1 = _actIdToMoveIds[key1];
+        //        IEnumerable<MoveDataEntry> data2 = _actIdToMoveIds[key2];
 
-                foreach (var data in data1)
-                {
-                    if (data2.Any(mde => mde.moveId == data.moveId && mde.sequenceIndex > data.sequenceIndex))
-                    {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
+        //        foreach (var data in data1)
+        //        {
+        //            if (data2.Any(mde => mde.moveId == data.moveId && mde.sequenceIndex > data.sequenceIndex))
+        //            {
+        //                return true;
+        //            }
+        //        }
+        //    }
+        //    return false;
+        //}
 
         /// <summary>
         /// Returns true if the given character's move is a command grab that is active when Player.Mark == 1.

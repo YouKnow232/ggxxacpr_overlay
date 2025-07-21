@@ -28,9 +28,7 @@ namespace GGXXACPROverlay
         private IDirect3DDevice9 _device;
 
         private IDirect3DVertexBuffer9? vertex3PositionColorVB;
-        private IDirect3DVertexBuffer9? vertex4PositionColorVB;
         private IDirect3DVertexDeclaration9? vertex3PositionColorVD;
-        private IDirect3DVertexDeclaration9? vertex4PositionColorVD;
 
         private IDirect3DVertexShader9? hitboxVS;
         private IDirect3DPixelShader9? hitboxPS;
@@ -150,9 +148,7 @@ namespace GGXXACPROverlay
         private void CompileCustomShaders()
         {
             byte[] hitboxShaderSource = ReadShaderSource("GGXXACPROverlay.Shaders.HitboxShader.hlsl");
-            Debug.Log($"shaderSource length: {hitboxShaderSource.Length}");
             byte[] comboTimeShaderSource = ReadShaderSource("GGXXACPROverlay.Shaders.ComboTimeMeter.hlsl");
-            Debug.Log($"ComboTime meter shader length: {comboTimeShaderSource.Length}");
 
             hitboxVS = AddVertexShaderFromSource(_device, hitboxShaderSource, "HitboxVS");
             hitboxPS = AddPixelShaderFromSource(_device, hitboxShaderSource, "HitboxPS");
@@ -170,25 +166,11 @@ namespace GGXXACPROverlay
                 Usage.None, 0, Pool.Managed
             );
 
-            // Vert4 Buffer
-            vertex4PositionColorVB = _device.CreateVertexBuffer(
-                RECTANGLE_LIMIT * Vertex4PositionColor.SizeInBytes * VERTEX_PER_RECTANGLE,
-                Usage.None, 0, Pool.Managed
-            );
-
             // Vertex3PositionColor Vertex Declaration
             vertex3PositionColorVD = _device.CreateVertexDeclaration([
                 new VertexElement(0, Vertex3PositionColor.PositionOffset, DeclarationType.Float3, DeclarationMethod.Default, DeclarationUsage.Position),
                 new VertexElement(0, Vertex3PositionColor.ColorOffset, DeclarationType.Color, DeclarationMethod.Default, DeclarationUsage.Color),
                 new VertexElement(0, Vertex3PositionColor.UVOffset, DeclarationType.Float2, DeclarationMethod.Default, DeclarationUsage.TextureCoordinate),
-                VertexElement.VertexDeclarationEnd
-            ]);
-
-            // Vertex4PositionColor Vertex Declaration
-            vertex4PositionColorVD = _device.CreateVertexDeclaration([
-                new VertexElement(0, Vertex4PositionColor.PositionOffset, DeclarationType.Float4, DeclarationMethod.Default, DeclarationUsage.Position),
-                new VertexElement(0, Vertex4PositionColor.ColorOffset, DeclarationType.Color, DeclarationMethod.Default, DeclarationUsage.Color),
-                new VertexElement(0, Vertex4PositionColor.UVOffset, DeclarationType.Float2, DeclarationMethod.Default, DeclarationUsage.TextureCoordinate),
                 VertexElement.VertexDeclarationEnd
             ]);
         }
@@ -198,7 +180,6 @@ namespace GGXXACPROverlay
 
         public void SetScissorRect(Rect clip) => _device.ScissorRect = clip;
 
-        // TODO: Fatal errors happening here ??
         private static readonly float[] _screenSizeUniform = new float[4];
         private static readonly float[] _borderThicknessUniform = new float[4];
         private static readonly float[] _miscShaderUniformBuffer = new float[4];
@@ -251,9 +232,6 @@ namespace GGXXACPROverlay
                     SetDeviceContext_MeterVertexShader();
                     _device.PixelShader = meterPS;
                     break;
-                case GraphicsContext.HUD:
-                    // TODO
-                    break;
             }
         }
         private void SetDeviceContext_Alpha()
@@ -272,17 +250,16 @@ namespace GGXXACPROverlay
         }
         private void SetDeviceContext_MeterVertexShader()
         {
-            _device.SetStreamSource(0, vertex4PositionColorVB, 0, Vertex4PositionColor.SizeInBytes);
-            _device.VertexDeclaration = vertex4PositionColorVD;
-            _device.SetVertexShaderConstant(0, _screenSizeUniform);
+            _device.SetStreamSource(0, vertex3PositionColorVB, 0, Vertex3PositionColor.SizeInBytes);
+            _device.VertexDeclaration = vertex3PositionColorVD;
+            _device.SetVertexShaderConstant(4, _screenSizeUniform);
             _device.VertexShader = meterVS;
-            _device.SetPixelShaderConstant(1, _miscShaderUniformBuffer);
+            _device.SetPixelShaderConstant(5, _miscShaderUniformBuffer);
         }
 
-        // preallocated buffer
+        // preallocated buffers
         private static readonly ColorRectangle[] _singleRectBuffer = new ColorRectangle[1];
         private static readonly Vertex3PositionColor[] _v3pcBuffer = new Vertex3PositionColor[RECTANGLE_LIMIT * VERTEX_PER_RECTANGLE];
-        private static readonly Vertex4PositionColor[] _v4pcBuffer = new Vertex4PositionColor[RECTANGLE_LIMIT * VERTEX_PER_RECTANGLE];
         public void DrawRectangles(Span<ColorRectangle> rectangleList, Matrix4x4 transform)
         {
             uint numRectangles = (uint)rectangleList.Length;
@@ -309,21 +286,7 @@ namespace GGXXACPROverlay
         }
         public void DrawRectangles(Span<ColorRectangle> rectangleList)
         {
-            uint numRectangles = (uint)rectangleList.Length;
-
-            if (_device == null || vertex4PositionColorVB == null || numRectangles > RECTANGLE_LIMIT || numRectangles == 0) return;
-
-            Span<Vertex4PositionColor> vertSpan = _v4pcBuffer.AsSpan(0, (int)(numRectangles * VERTEX_PER_RECTANGLE));
-            LoadVerticesToBuffer(rectangleList, vertSpan);
-            var bufferLock = vertex4PositionColorVB.Lock<byte>(
-                0,
-                Vertex4PositionColor.SizeInBytes * numRectangles * VERTEX_PER_RECTANGLE,
-                LockFlags.Discard
-            );
-            MemoryMarshal.AsBytes(vertSpan).CopyTo(bufferLock);
-            vertex4PositionColorVB.Unlock();
-
-            _device.DrawPrimitive(PrimitiveType.TriangleList, 0, numRectangles * 2);
+            DrawRectangles(rectangleList, Matrix4x4.Identity);
         }
         public void DrawRectangles(ColorRectangle rectangle)
         {
@@ -353,28 +316,6 @@ namespace GGXXACPROverlay
                     new Vector3(cRectangles[i].rectangle.Right, cRectangles[i].rectangle.Bottom, 1f), cRectangles[i].color, new Vector2(1, 1));
             }
         }
-        private static void LoadVerticesToBuffer(Span<ColorRectangle> cRectangles, Span<Vertex4PositionColor> outBuffer)
-        {
-            if (outBuffer.Length < cRectangles.Length * 6)
-                throw new ArgumentException("Output buffer too small when converting ColorRectangles to Vertex3PositionColor");
-
-            int index = 0;
-            for (int i = 0; i < cRectangles.Length; i++)
-            {
-                outBuffer[index++] = new Vertex4PositionColor(
-                    new Vector4(cRectangles[i].rectangle.Left, cRectangles[i].rectangle.Top, 1f, 1f), cRectangles[i].color, new Vector2(0, 0));
-                outBuffer[index++] = new Vertex4PositionColor(
-                    new Vector4(cRectangles[i].rectangle.Right, cRectangles[i].rectangle.Top, 1f, 1f), cRectangles[i].color, new Vector2(1, 0));
-                outBuffer[index++] = new Vertex4PositionColor(
-                    new Vector4(cRectangles[i].rectangle.Left, cRectangles[i].rectangle.Bottom, 1f, 1f), cRectangles[i].color, new Vector2(0, 1));
-                outBuffer[index++] = new Vertex4PositionColor(
-                    new Vector4(cRectangles[i].rectangle.Left, cRectangles[i].rectangle.Bottom, 1f, 1f), cRectangles[i].color, new Vector2(0, 1));
-                outBuffer[index++] = new Vertex4PositionColor(
-                    new Vector4(cRectangles[i].rectangle.Right, cRectangles[i].rectangle.Top, 1f, 1f), cRectangles[i].color, new Vector2(1, 0));
-                outBuffer[index++] = new Vertex4PositionColor(
-                    new Vector4(cRectangles[i].rectangle.Right, cRectangles[i].rectangle.Bottom, 1f, 1f), cRectangles[i].color, new Vector2(1, 1));
-            }
-        }
 
         private bool _disposed = false;
         public void Dispose()
@@ -390,8 +331,6 @@ namespace GGXXACPROverlay
             {
                 vertex3PositionColorVB?.Release();
                 vertex3PositionColorVD?.Release();
-                vertex4PositionColorVB?.Release();
-                vertex4PositionColorVD?.Release();
                 hitboxVS?.Release();
                 hitboxPS?.Release();
                 meterVS?.Release();

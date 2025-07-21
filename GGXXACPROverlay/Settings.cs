@@ -6,11 +6,11 @@ namespace GGXXACPROverlay
 {
     internal static class Settings
     {
-        private const string path = "OverlaySettings.ini";
+        private const string path = "GGXXACPROverlay\\OverlaySettings.ini";
         private const string defaultSettingsResource = "GGXXACPROverlay.OverlaySettings.ini";
 
-        public static bool DisplayBoxes { get; private set; }           = true;
-        public static D3DCOLOR_ARGB Default { get; private set; }       = new(0xFF0000u);
+        public static bool DisplayBoxes { get; set; }                   = true;
+        public static D3DCOLOR_ARGB Default { get; private set; }       = new(0x00FF0000);
         public static D3DCOLOR_ARGB Hitbox { get; private set; }        = new(0x80FF0000);
         public static D3DCOLOR_ARGB Hurtbox { get; private set; }       = new(0x8000FF00);
         public static D3DCOLOR_ARGB Push { get; private set; }          = new(0x8000FFFF);
@@ -21,9 +21,9 @@ namespace GGXXACPROverlay
         public static float PivotCrossThickness { get; private set; }   = 2.0f;
         public static float HitboxBorderThickness { get; private set; } = 2.0f;
         public static bool WidescreenClipping { get; private set; }     = true;
-        public static bool HideP1 { get; private set; }                 = false;
-        public static bool HideP2 { get; private set; }                 = false;
-        public static bool AlwaysDrawThrowRange { get; private set; }   = false;
+        public static bool HideP1 { get; set; }                         = false;
+        public static bool HideP2 { get; set; }                         = false;
+        public static bool AlwaysDrawThrowRange { get; set; }           = false;
 
         public static readonly BoxId[] BoxDrawList = [BoxId.HIT, BoxId.HURT, BoxId.USE_EXTRA];
         // Pivot, CleanHit, Hit, Hurt, Grab, Push
@@ -35,7 +35,8 @@ namespace GGXXACPROverlay
             DrawOperation.CleanHit,
             DrawOperation.Pivot     // front
         ];
-        public static bool DisplayHSDMeter { get; private set; } = false;
+        public static bool DisplayHSDMeter { get; set; } = false;
+        public static bool IgnoreDisableHitboxFlag { get; private set; } = false;
 
         public static Dictionary<string, Dictionary<string, string>> Sections { get; } = [];
 
@@ -84,7 +85,7 @@ namespace GGXXACPROverlay
                 }
             }
 
-            // Cacheing settings that are checked at least once per frame
+            // Caching settings that are checked at least once per frame
             DisplayBoxes = Get("Hitboxes", "Display", DisplayBoxes);
             Hitbox   = new(Get("Hitboxes.Palette", "Color_Hitbox", Hitbox.ARGB));
             Hurtbox  = new(Get("Hitboxes.Palette", "Color_Hurtbox", Hurtbox.ARGB));
@@ -102,6 +103,7 @@ namespace GGXXACPROverlay
             AlwaysDrawThrowRange    = Get("Hitboxes", "AlwaysDrawThrowRange", AlwaysDrawThrowRange);
             DrawOrder               = Get("Hitboxes", "DrawOrder", DrawOrder);
             DisplayHSDMeter         = Get("Misc", "DisplayHSDMeter", DisplayHSDMeter);
+            IgnoreDisableHitboxFlag = Get("Fun", "IgnoreDisableHitboxFlag", IgnoreDisableHitboxFlag);
             return true;
         }
 

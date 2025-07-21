@@ -18,3 +18,4 @@ CreateToolhelp32Snapshot
 Thread32First
 GetProcAddress
 FreeConsole
+PeekMessageW

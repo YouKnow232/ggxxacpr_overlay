@@ -1,5 +1,4 @@
-﻿using System.Reflection.Metadata.Ecma335;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace GGXXACPROverlay.GGXXACPR
 {
@@ -18,10 +17,12 @@ namespace GGXXACPROverlay.GGXXACPR
         Player1Throwable            = 1 << 3,
         Player1CommandThrowSuccess  = 1 << 4,
         Player2CommandThrowSuccess  = 1 << 5,
+        Unknown7                    = 1 << 6,
+        Unknown8                    = 1 << 7,
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 0xA4)]
-    public readonly struct Camera
+    public readonly ref struct Camera
     {
         [FieldOffset(0x00)] public readonly float PlayerXDiff;
         [FieldOffset(0x04)] public readonly float PlayerYDiff;
@@ -145,9 +146,10 @@ namespace GGXXACPROverlay.GGXXACPR
 
         public Player(BaseEntityRaw* entity)
         {
-            if (entity is null) throw new ArgumentNullException(nameof(entity));
             NativePointer = entity;
         }
+
+        public bool IsValid => NativePointer is not null;
 
         public CharacterID CharId => (CharacterID)NativePointer->Id;
         public byte IsFacingRight => NativePointer->IsFacingRight;
@@ -216,9 +218,10 @@ namespace GGXXACPROverlay.GGXXACPR
 
         public Entity(BaseEntityRaw* entity)
         {
-            if (entity is null) throw new ArgumentNullException(nameof(entity));
             NativePointer = entity;
         }
+
+        public bool IsValid => NativePointer is not null;
 
         public ushort Id => NativePointer->Id;
         public byte IsFacingRight => NativePointer->IsFacingRight;
@@ -244,7 +247,7 @@ namespace GGXXACPROverlay.GGXXACPR
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 0x148)]
-    public readonly struct PlayerExtra
+    public readonly ref struct PlayerExtra
     {
         [FieldOffset(0x000)] public readonly short Tension;
         [FieldOffset(0x002)] public readonly byte ExtraHitstun;
@@ -264,7 +267,7 @@ namespace GGXXACPROverlay.GGXXACPR
         /// <summary>
         /// Information about how this player should interact with the wall/ground while in hitstun.
         /// </summary>
-        [FieldOffset(0x0AC)] public readonly HitstunState HitstunFlags;
+        [FieldOffset(0x0AC)] public readonly uint HitstunFlags;
         /// <summary>
         /// Number of frames this player has been in hitstun
         /// </summary>
@@ -284,7 +287,7 @@ namespace GGXXACPROverlay.GGXXACPR
 
 
     [StructLayout(LayoutKind.Explicit, Size = 0x5C)]
-    public readonly struct HitParam
+    public readonly ref struct HitParam
     {
         [FieldOffset(0x48)] public readonly short CLCenterX;
         [FieldOffset(0x4A)] public readonly short CLCenterY;

@@ -20,14 +20,15 @@ struct MeterVSData
     float2 vTexCoor : TEXCOORD0;
 };
 
-uniform float2 viewPort : register(c0);
+uniform float4x4 transform : register(c0);
+uniform float2 viewPort : register(c4);
 
 // Simple pass-through
 MeterVSData MeterVS(MeterVSData input)
 {
     MeterVSData output;
     
-    output.vPosition = input.vPosition;
+    output.vPosition = mul(input.vPosition, transform);
     // D3D9 Half-pixel offset correction
     output.vPosition.xy -= float2(0.5, 0.5) * output.vPosition.w / viewPort;
     output.vColor = input.vColor;
@@ -42,7 +43,7 @@ struct ComboTimePSInput
 };
 
 // x = value | y = max value
-uniform float2 meterParams : register(c1);
+uniform float2 meterParams : register(c5);
 
 float4 ComboTimePS(ComboTimePSInput input) : COLOR
 {
