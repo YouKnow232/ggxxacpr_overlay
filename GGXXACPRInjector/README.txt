@@ -1,5 +1,5 @@
 ﻿=== GGXXACPR Overlay ===
-version: v2.0.0-Alpha-1-CL
+version: v2.0.0-Alpha-2-HSD
 
 Overlay for Guilty Gear XX Accent Core Plus R
 Steam Release, product version: v1.2.0.0
