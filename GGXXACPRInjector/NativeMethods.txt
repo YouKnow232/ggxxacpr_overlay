@@ -1,0 +1,11 @@
+﻿OpenProcess
+GetModuleHandle
+GetProcAddress
+VirtualAllocEx
+VirtualFreeEx
+WriteProcessMemory
+CreateRemoteThread
+GetExitCodeThread
+WaitForSingleObject
+ReadProcessMemory
+LoadLibraryEx

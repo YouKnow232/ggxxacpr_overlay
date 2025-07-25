@@ -1,73 +1,47 @@
-﻿using GameOverlay;
-using System.Reflection;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using Windows.Win32;
 
 namespace GGXXACPROverlay
 {
-    internal class Program
+    public static class Program
     {
-        static void Main()
+        [UnmanagedCallersOnly(EntryPoint = "Main", CallConvs = [typeof(CallConvStdcall)])]
+        public static unsafe uint Main(nint args, int argsSize)
         {
-            // Version
-            Console.WriteLine($"GGXXACPR Overlay v{Assembly.GetEntryAssembly()?.GetName().Version}\n");
+            // Ensures GC is initialized
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
 
-            Console.WriteLine(Constants.CONSOLE_BETA_WARNING);
-            Console.WriteLine(Constants.CONSOLE_NETPLAY_NOTICE);
-            Console.WriteLine(Constants.CONSOLE_KNOWN_ISSUES);
-
-            TimerService.EnableHighPrecisionTimers();
-
-            try
+            if (!Settings.Load())
             {
-                using var overlay = new Overlay();
-                overlay.Run();
-                Console.WriteLine(Constants.CONSOLE_CONTROLS);
-
-                ConsoleKey? key = null;
-                Stream inputStream = Console.OpenStandardInput();
-                while (overlay.IsRunning())
-                {
-                    if (Console.KeyAvailable) key = Console.ReadKey(true).Key;
-                    switch (key)
-                    {
-                        case ConsoleKey.NumPad1:
-                        case ConsoleKey.D1:
-                            overlay.ToggleHitboxOverlay();
-                            break;
-                        case ConsoleKey.NumPad2:
-                        case ConsoleKey.D2:
-                            overlay.ToggleThrowRangeDisplay();
-                            break;
-                        case ConsoleKey.NumPad3:
-                        case ConsoleKey.D3:
-                            overlay.ToggleFrameMeter();
-                            break;
-                        case ConsoleKey.NumPad4:
-                        case ConsoleKey.D4:
-                            overlay.ToggleDisplayLegend();
-                            break;
-                        case ConsoleKey.NumPad5:
-                        case ConsoleKey.D5:
-                            overlay.ToggleRecordHitstop();
-                            break;
-                        case ConsoleKey.NumPad6:
-                        case ConsoleKey.D6:
-                            overlay.ToggleRecordSuperFlash();
-                            break;
-                        case ConsoleKey.Q:
-                            overlay.Dispose();
-                            break;
-                    }
-                    key = null;
-
-                    Thread.Sleep(30);
-                }
+                Debug.Log("Couldn't load OverlaySettings.ini. Creating default ini.");
+                Settings.WriteDefault();
             }
-            catch (InvalidOperationException e)
-            {
-                Console.WriteLine(e.Message + "\n");
-                Console.WriteLine(Constants.CONSOLE_EXIT_PROMPT);
-                Console.ReadKey(true);
-            }
+
+            Debug.DebugStatements = Settings.Get("Debug", "ShowDebugStatements", true);
+            if (Settings.Get("Debug", "DisplayConsole", false)) PInvoke.AllocConsole();
+            Debug.Log("DLL Attached!");
+
+            Hooks.HookInstaller.InstallHooks();
+
+            return 0;
+        }
+
+        [UnmanagedCallersOnly(EntryPoint = "DetachAndUnload", CallConvs = [typeof(CallConvStdcall)])]
+        public static unsafe uint DetachAndUnload(nint _, int __)
+        {
+            Debug.Log("[ERROR] DetachAndUnload not implemented");
+            return 1;
+
+            //Debug.Log("DetachAndUnload called!");
+            //Hooks.UninstallHooks();
+            //Thread.Sleep(100);  // Wait for VException Handler to execute
+            //Overlay.Instance?.Dispose();
+            //PInvoke.FreeConsole();
+
+            ////PInvoke.FreeLibraryAndExitThread(_module, 0);
+            //return 1;   // Make compiler happy
         }
     }
 }

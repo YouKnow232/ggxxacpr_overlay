@@ -1,14 +1,26 @@
-﻿namespace GGXXACPROverlay.GGXXACPR
+﻿using System.Buffers;
+using System.Numerics;
+using System.Text;
+using Vortice.Mathematics;
+
+namespace GGXXACPROverlay.GGXXACPR
 {
-    public static class GGXXACPR
+    /// <summary>
+    /// Exposes game data. Handles dereferencing as well as some slightly higher level
+    /// functions for visualization.
+    /// </summary>
+    public static unsafe class GGXXACPR
     {
         public const int SCREEN_HEIGHT_PIXELS = 480;
         public const int SCREEN_WIDTH_PIXELS = 640;
         public const int SCREEN_GROUND_PIXEL_OFFSET = 40;
         public const int NUMBER_OF_CHARACTERS = 25;
 
-        public const nint IN_GAME_FLAG = 0x007101F4;
-        public const nint GAME_VER_FLAG = 0x006D0538;   // 0=AC, 1=+R
+        #region HSD
+        // See HSD function at GGXXACPR_Win.exe+132570
+        public static readonly int[] HSD_BREAK_POINTS = [0, 180, 300, 420, 600, 860];
+        public static readonly float[] HSD_PENALTIES = [0.0f, 0.95f, 0.9f, 0.8f, 0.7f, 0.6f];
+        #endregion
 
         #region Special case constants
         // Exception to the ActionStatusFlags.IsPlayer1/2 flag. Dizzy bubble is flagged as the opponent's entity while attackable by Dizzy.
@@ -18,569 +30,513 @@
         public const int AXL_TENHOU_SEKI_UPPER_ACT_ID = 188;
         public const int AXL_TENHOU_SEKI_LOWER_ACT_ID = 189;
         public const int DIZZY_EX_NECRO_UNLEASHED_ACT_ID = 247;
-        // This move has a special pushbox adjustment
+        /// <summary>
+        /// This move has a special pushbox adjustment (see GGXXACPR_Win.exe+14BDE9 ~ +14BE0D)
+        /// </summary>
         public const int BRIDGET_SHOOT_ACT_ID = 134;
         public const int BRIDGET_SHOOT_PUSHBOX_ADJUST = 7000;
+        // Slide head uses a grounded status check for hit detection instead of a hitbox
+        //  The frame meter will check for this act id to see if it should mark the frame as an active frame
+        public const int SLIDE_HEAD_ACT_ID = 181;
         // For whatever reason, this throw range is hardcoded and not in the array with everything else
         public const int SPECIAL_CASE_COMMAND_THROW_ID = 0x19;
         public const int SPECIAL_CASE_COMMAND_THROW_RANGE = 11000; // GGXXACPR_Win.exe+12054F
+        // 170 unit offset hardcoded into CL function (see GGXXACPR_Win.exe+132129)
+        public const int CLEAN_HIT_Y_OFFSET = 170;
         #endregion
 
-        private const nint CAMERA_ADDR = 0x006D5CD4;
-        private const nint PLAYER_1_PTR_ADDR = 0x006D1378;
-        private const nint PLAYER_2_PTR_ADDR = 0x006D4C84;
-        private static readonly nint[] PLAYER_PTR_ADDRS = [PLAYER_1_PTR_ADDR, PLAYER_2_PTR_ADDR];
+        #region Range Checks
+        public const int ROBO_KY_MAT_ID = 0x62; // Lot of overlap on entity IDs
+        public const int ROBO_KY_MAT_COLLISION_RANGE = 13200;   // GGXXACPR_Win.exe+382AE7
 
-        private static readonly nint[] PUSHBOX_ADDRESSES =
-        [
-            0x00573154, 0x00573B38, // Crouching width/height
-            0x00573B6C, 0x00571E6C, // (??) width/height
-            0x00571564, 0x00571E6C, // Standing width/height
-            0x00573B6C, 0x00573BA0, // Airborne width/height
-        ];
+        public const int TESTAMENT_HITOMI_ID = 0x50;
+        public const int TESTAMENT_HITOMI_ACTIVATION_RANGE_AC = 7000;   // GGXXACPR_Win.exe+246BA8
+        public const int TESTAMENT_HITOMI_ACTIVATION_RANGE_PR = 5500;   // GGXXACPR_Win.exe+246BA1
 
-        private const nint PUSHBOX_STANDING_WIDTH_ARRAY = 0x00571564;
-        private const nint PUSHBOX_STANDING_HEIGHT_ARRAY = 0x00571E6C;
-        private const nint PUSHBOX_CROUCHING_WIDTH_ARRAY = 0x00573154;
-        private const nint PUSHBOX_CROUCHING_HEIGHT_ARRAY = 0x00573B38;
-        private const nint PUSHBOX_AIR_WIDTH_ARRAY = 0x00573B6C;
-        private const nint PUSHBOX_AIR_HEIGHT_ARRAY = 0x00573BA0;
+        // Checked against PUSHBOX_EDGE_DISTANCE so visual is pushbox + 10000 unit halfwidth
+        public const int FAUST_HACK_N_SLASH_RANGE = 10000;  // GGXXACPR_Win.exe+292DFF
+        public const int FUAST_HACK_N_SLASH_FAIL_ACT_ID = 190;
+        public const int FUAST_HACK_N_SLASH_UNBLOCKABLE_ACT_ID = 122;
 
-        // Y offset values for Airborne pushboxes (Almost always equal to abs(YPos)+4000 except for Kliff)
-        private const nint PUSHBOX_P1_JUMP_OFFSET_ADDRESS = 0x006D6378;
-        private const nint PUSHBOX_P2_JUMP_OFFSET_ADDRESS = 0x006D637C;
-
-        // short arr, index with CharId*2
-        // TODO
-        private const nint PLUSR_GROUND_THROW_RANGE_ARRAY = 0x0057005C;
-        private const nint AC_GROUND_THROW_RANGE_ARRAY = 0x0056FF6C;
-        private const nint PLUSR_AIR_THROW_HORIZONTAL_RANGE_ARRAY = 0x005708DC;
-        private const nint AC_AIR_THROW_HORIZONTAL_RANGE_ARRAY = 0x00570174;
-        private const nint AIR_THROW_LOWER_RANGE_ARRAY = 0x005709B4;
-        private const nint AIR_THROW_UPPER_RANGE_ARRAY = 0x00570A8C;
-
-        #region global data (structless afaik)
-        // one byte [P1Throwable, P2Throwable, P1ThrowActive P2ThrowActive]
-        private const nint GLOBAL_THROW_FLAGS_ADDR = 0x006D5D7C;
-        private const nint COMMAND_GRAB_ID_ADDR = 0x006D6384;
-        private const nint COMMAND_GRAB_RANGE_LOOKUP_TABLE = 0x00572110;
-        private const int COMMAND_GRAB_RANGE_LOOKUP_TABLE_SIZE = 27;
-        // 1 = normal, 0 = do not simulate, -1 = rewinding (stays at 0 for frame stepping)
-        private const nint GLOBAL_REPLAY_SIMULATE_ADDR = 0x007D5788;
-        // 0 = not paused, 1 or 2 = paused (not sure the difference between 1 and 2)
-        private const nint GLOBAL_PAUSE_VAR_ADDR = 0x007109E4;
+        public const int FUAST_FOOD_ID = 0x2B;
+        public const int FUAST_DONUT_PICKUP_ACT_ID = 18;
+        public const int FUAST_CHOCOLATE_PICKUP_ACT_ID = 19;
+        public const int FUAST_CHIKUWA_PICKUP_ACT_ID = 53;
+        // GGXXACPR_Win.exe+28DE55 (Donut range)
+        // GGXXACPR_Win.exe+28E2AD (Chocolate range)
+        // GGXXACPR_Win.exe+28C571 (Chikuwa range)
+        public const int FAUST_FOOD_PICKUP_RANGE = 4800;    // All 4800
         #endregion
 
-        #region Struct Field Offsets
-        // Player Struct Offsets
-        private const int IS_FACING_RIGHT_OFFSET = 0x02;
-        private const int STATUS_OFFSET = 0x0C;
-        private const int BUFFER_FLAGS_OFFSET = 0x12;
-        private const int ACT_ID_OFFSET = 0x18;
-        private const int ANIMATION_FRAME_OFFSET = 0x1C;
-        private const int PLAYER_INDEX_OFFSET = 0x27;
-        private const int GUARD_FLAGS_OFFSET = 0x2A;
-        private const int PLAYER_EXTRA_PTR_OFFSET = 0X2C;
-        private const int ATTACK_FLAGS_OFFSET = 0x34;
-        private const int COMMAND_FLAGS_OFFSET = 0X38;
-        private const int CORE_X_OFFSET = 0x4C;
-        private const int CORE_Y_OFFSET = 0x4E;
-        private const int SCALE_X_OFFSET = 0x50;
-        private const int SCALE_Y_OFFSET= 0x52;
-        private const int HITBOX_LIST_OFFSET = 0x54;
-        private const int HITBOX_LIST_LENGTH_OFFSET = 0x84;
-        private const int HITBOX_ITERATION_VAR_OFFSET = 0x85;
-        private const int XPOS_OFFSET = 0xB0;
-        private const int YPOS_OFFSET = 0xB4;
-        private const int HITSTOP_TIMER_OFFSET = 0xFD;
-        private const int MARK_OFFSET = 0xFF;
-        // Projectils Arr (Entity Arr)
-        private const nint ENTITY_ARR_HEAD_TAIL_PTR = 0x006D27A8;
-        private const nint ENTITY_ARR_HEAD_PTR = 0x006D27A8 + 0x04;
-        private const nint ENTITY_ARR_TAIL_PTR = 0x006D27A8 + 0x08;
-        private const nint ENTITY_LIST_PTR = 0x006D137C;
-        private const int ENTITY_ARRAY_SIZE = 32; // Not a game thing, just a lookup limit
-        // Projectile Struct Offsets (Similar to Player)
-        private const int PROJECTILE_BACK_PTR_OFFSET = 0x04;
-        private const int PROJECTILE_NEXT_PTR_OFFSET = 0x08;
-        private const int PROJECTILE_PARENT_PTR_OFFSET = 0x20;
-        private const int PROJECTILE_PARENT_FLAG_OFFSET = 0x28;
-        // Player Extra Struct Offsets
-        private const int PLAYER_EXTRA_THROW_PROTECTION_TIMER_OFFSET = 0x18;
-        private const int PLAYER_EXTRA_INVULN_COUNTER_OFFSET = 0x2A;
-        private const int PLAYER_EXTRA_RC_TIME_OFFSET = 0x32;
-        private const int PLAYER_EXTRA_JAM_PARRY_TIME_OFFSET = 0x90;
-        private const int PLAYER_EXTRA_COMBO_TIME_OFFSET = 0xF6;
-        private const int PLAYER_EXTRA_SLASH_BACK_TIME_OFFSET = 0x010B;
-        // Camera Struct Offsets
-        private const int CAMERA_X_CENTER_OFFSET = 0x10;
-        private const int CAMERA_BOTTOM_EDGE_OFFSET = 0x14;
-        private const int CAMERA_LEFT_EDGE_OFFSET = 0x20;
-        private const int CAMERA_WIDTH_OFFSET = 0x28;
-        private const int CAMERA_HEIGHT_OFFSET = 0x2C;
-        private const int CAMERA_ZOOM_OFFSET = 0x44;
-        private const int CAMERA_STRUCT_BUFFER = 0x48;
-        #endregion
+        // DirectX
+        // Dereferencing pointer at class init since pointer is not expected to change
+        public static readonly nint Direct3D9DevicePointer = *(nint*)(Memory.BaseAddress + Offsets.DIRECT3D9_DEVICE);
+        public static readonly nint GraphicsHookBreakPointAddress = Memory.BaseAddress + Offsets.GRAPHICS_HOOK_BREAKPOINT;
 
-        // Buffer sizes
-        private const int ENTITY_STRUCT_BUFFER = 0x130;
-        private const int PLAYER_EXTRA_STRUCT_BUFFER = 0x148;
-        private const int HITBOX_ARRAY_STEP = 0x0C;
+        /// <summary>
+        /// Dereferences and returns a snapshot of the player 1 struct. If null, will return a dummy struct with default values.
+        /// </summary>
+        public static Player Player1 => new(*_Player1);
+        private static readonly BaseEntityRaw** _Player1 = (BaseEntityRaw**)(Memory.BaseAddress + Offsets.PLAYER_1_PTR);
+        /// <summary>
+        /// Dereferences and returns a snapshot of the player 2 struct. If null, will return a dummy struct with default values.
+        /// </summary>
+        public static Player Player2 => new(*_Player2);
+        private static readonly BaseEntityRaw** _Player2 = (BaseEntityRaw**)(Memory.BaseAddress + Offsets.PLAYER_2_PTR);
+        /// <summary>
+        /// The fields Entity.Prev and Entity.Next form a circular doubly-linked list. This dummy entity is a root node for this list.
+        /// </summary>
+        public static Entity RootEntity => new(_RootEntity);
+        private static readonly BaseEntityRaw* _RootEntity = (BaseEntityRaw*)(Memory.BaseAddress + Offsets.ENTITY_ARR_HEAD_TAIL_PTR);
 
-        #region Cached Properties
-        // Caches
-        private static nint _playerPointerCache = nint.Zero;
-        private static short[] _pushBoxStandingWidths = [];
-        private static short[] _pushBoxStandingHeights = [];
-        private static short[] _pushBoxCrouchingWidths = [];
-        private static short[] _pushBoxCrouchingHeights = [];
-        private static short[] _pushBoxAirWidths = [];
-        private static short[] _pushBoxAirHeights = [];
-        private static short[] _cmdGrabRangeArray = [];
-        private static short[] _groundThrowRangesPlusR = [];
-        private static short[] _groundThrowRangesAC = [];
-        private static short[] _airThrowRangesPlusR = [];
-        private static short[] _airThrowRangesAC = [];
-        private static short[] _airThrowUpperBounds = [];
-        private static short[] _airThrowLowerBounds = [];
-        private static nint Player1Pointer {
-            get
+        /// <summary>
+        /// Dereferences and returns a snapshot of the camera struct.
+        /// </summary>
+        public static Camera Camera => *_camera;
+        private static readonly Camera* _camera = (Camera*)(Memory.BaseAddress + Offsets.CAMERA);
+
+        private static readonly int* _viewHeight = (int*)(Memory.BaseAddress + Offsets.VIEW_HEIGHT);
+        private static readonly int* _viewWidth = (int*)(Memory.BaseAddress + Offsets.VIEW_WIDTH);
+
+        /// <summary>
+        /// Dereferences and returns a snapshot of the throw flags struct.
+        /// </summary>
+        public static ThrowDetection ThrowFlags => (ThrowDetection)(*_throwFlags);
+        private static readonly byte* _throwFlags = (byte*)(Memory.BaseAddress + Offsets.GLOBAL_THROW_FLAGS);
+        public static readonly int CommandThrowIDP1 = *(int*)(Memory.BaseAddress + Offsets.COMMAND_GRAB_ID_P1);
+        public static readonly int CommandThrowIDP2 = *(int*)(Memory.BaseAddress + Offsets.COMMAND_GRAB_ID_P2);
+        /// <summary>
+        /// Index with CommandThrowIDP1 or CommandThrowIDP2
+        /// </summary>
+        public static readonly short* CommandThrowRangeArr = (short*)(Memory.BaseAddress + Offsets.COMMAND_GRAB_RANGE_LOOKUP_TABLE);
+        public static GameVersion GameVersion => Enum.IsDefined(typeof(GameVersion), *_gameVersion) ?
+            (GameVersion)(*_gameVersion) : GameVersion.PLUS_R;
+        private static readonly int* _gameVersion = (int*)(Memory.BaseAddress + Offsets.GAME_VER_FLAG);
+        public static bool IsPlusR => GameVersion == GameVersion.PLUS_R;
+        public static bool IsAccentCore => GameVersion == GameVersion.AC;
+        public static bool IsInGame => *_inGameFlag != 0;
+        public static readonly byte* _inGameFlag = (byte*)(Memory.BaseAddress + Offsets.IN_GAME_FLAG);
+        public static bool ShouldRender => *_inGameFlag != 0 && !(*TrainingPauseDisplay == 1 && *TrainingPauseState != 0);
+        public static readonly int* TrainingPauseState = (int*)(Memory.BaseAddress + Offsets.TRAINING_MODE_PAUSE_STATE);
+        public static readonly int* TrainingPauseDisplay = (int*)(Memory.BaseAddress + Offsets.TRAINING_MODE_PAUSE_DISPLAY);
+        public static readonly int* ReplaySimState = (int*)(Memory.BaseAddress + Offsets.GLOBAL_REPLAY_SIMULATE);
+        public static readonly int* BackgroundState = (int*)(Memory.BaseAddress + Offsets.BACKGROUND_STATE);
+
+        private static readonly delegate* unmanaged[Cdecl]<int, int, float, byte, float, int> _RenderText =
+            (delegate* unmanaged[Cdecl]<int, int, float, byte, float, int>)(Memory.BaseAddress + Offsets.RENDER_TEXT);
+
+        /// <summary>
+        /// Wrapper method that attempts to invoke native GGXXACPR function.
+        /// </summary>
+        public static unsafe int RenderText(string text, int xPos, int yPos, byte alpha)
+        {
+            var utf8Bytes = Encoding.Convert(Encoding.Default, Encoding.UTF8, Encoding.Default.GetBytes(text.ToUpper()));
+            fixed (byte* pText = &utf8Bytes[0])
             {
-                if (_playerPointerCache == nint.Zero)
-                {
-                    _playerPointerCache = DereferencePointer(PLAYER_1_PTR_ADDR);
-                }
-                return _playerPointerCache;
-            }
-        }
-        private static nint Player2Pointer
-        {
-            get { return Player1Pointer + ENTITY_STRUCT_BUFFER; }
-        }
-        private static short[] CommandGrabRanges
-        {
-            get
-            {
-                if (_cmdGrabRangeArray.Length == 0)
-                {
-                    var data = Memory.ReadMemoryPlusBaseOffset(COMMAND_GRAB_RANGE_LOOKUP_TABLE,
-                        sizeof(short) * COMMAND_GRAB_RANGE_LOOKUP_TABLE_SIZE);
-                    if (data.Length == 0) return [];
-
-                    _cmdGrabRangeArray = data.Chunk(sizeof(short)).Select(chunk => BitConverter.ToInt16(chunk)).ToArray();
-                }
-
-                return _cmdGrabRangeArray;
-            }
-        }
-        private static short[] PushBoxStandingWidths { get => CharacterWORDArrayCacheAccessor(ref _pushBoxStandingWidths, PUSHBOX_STANDING_WIDTH_ARRAY); }
-        private static short[] PushBoxStandingHeights { get => CharacterWORDArrayCacheAccessor(ref _pushBoxStandingHeights, PUSHBOX_STANDING_HEIGHT_ARRAY); }
-        private static short[] PushBoxCrouchingWidths { get => CharacterWORDArrayCacheAccessor(ref _pushBoxCrouchingWidths, PUSHBOX_CROUCHING_WIDTH_ARRAY); }
-        private static short[] PushBoxCrouchingHeights { get => CharacterWORDArrayCacheAccessor(ref _pushBoxCrouchingHeights, PUSHBOX_CROUCHING_HEIGHT_ARRAY); }
-        private static short[] PushBoxAirWidths { get => CharacterWORDArrayCacheAccessor(ref _pushBoxAirWidths, PUSHBOX_AIR_WIDTH_ARRAY); }
-        private static short[] PushBoxAirHeights { get => CharacterWORDArrayCacheAccessor(ref _pushBoxAirHeights, PUSHBOX_AIR_HEIGHT_ARRAY); }
-        private static short[] GroundThrowRangesPlusR { get => CharacterWORDArrayCacheAccessor(ref _groundThrowRangesPlusR, PLUSR_GROUND_THROW_RANGE_ARRAY); }
-        private static short[] GroundThrowRangesAC { get => CharacterWORDArrayCacheAccessor(ref _groundThrowRangesAC, AC_GROUND_THROW_RANGE_ARRAY); }
-        private static short[] AirThrowRangesPlusR { get => CharacterWORDArrayCacheAccessor(ref _airThrowRangesPlusR, PLUSR_AIR_THROW_HORIZONTAL_RANGE_ARRAY); }
-        private static short[] AirThrowRangesAC { get => CharacterWORDArrayCacheAccessor(ref _airThrowRangesAC, AC_AIR_THROW_HORIZONTAL_RANGE_ARRAY); }
-        private static short[] AirThrowUpperBounds { get => CharacterWORDArrayCacheAccessor(ref _airThrowUpperBounds, AIR_THROW_UPPER_RANGE_ARRAY); }
-        private static short[] AirThrowLowerBounds { get => CharacterWORDArrayCacheAccessor(ref _airThrowLowerBounds, AIR_THROW_LOWER_RANGE_ARRAY); }
-        private static short[] CharacterWORDArrayCacheAccessor(ref short[] cache, nint targetAddress)
-        {
-            if (cache.Length == 0)
-            {
-                var data = Memory.ReadMemoryPlusBaseOffset(targetAddress,
-                    sizeof(short) * (NUMBER_OF_CHARACTERS + 1));
-                if (data.Length == 0) return [];
-
-                cache = data.Chunk(sizeof(short)).Select(chunk => BitConverter.ToInt16(chunk)).ToArray();
-            }
-
-            return cache;
-        }
-        #endregion
-
-        private static nint DereferencePointer(nint pointer)
-        {
-            byte[] data = Memory.ReadMemoryPlusBaseOffset(pointer, sizeof(int));
-            if ( data.Length == 0 ) { return nint.Zero; }
-            return BitConverter.ToInt32(data);
-        }
-
-        public static bool ShouldRender()
-        {
-            byte[] data = Memory.ReadMemoryPlusBaseOffset(IN_GAME_FLAG, sizeof(byte));
-            if (data.Length == 0) { Memory.HandleSystemError("In-game flag read error"); }
-
-            return data[0] == 1;
-        }
-
-        public static short LookUpCommandGrabRange(int cmdGrabId)
-        {
-            if (CommandGrabRanges.Length == 0) { return 0; }
-
-            return CommandGrabRanges[cmdGrabId];
-        }
-
-        public static Hitbox GetThrowBox(GameState state, Player p)
-        {
-            if (p.Status.IsAirborne)
-            {
-                short horizontalRange;
-                if (state.GlobalFlags.GameVersionFlag == GameVersion.PLUS_R)
-                {
-                    horizontalRange = AirThrowRangesPlusR[(int)p.CharId];
-                }
-                else
-                {
-                    horizontalRange = AirThrowRangesAC[(int)p.CharId];
-                }
-                short upperBound = AirThrowUpperBounds[(int)p.CharId];
-                short lowerBound = AirThrowLowerBounds[(int)p.CharId];
-
-                return new Hitbox()
-                {
-                    XOffset = (short)(p.PushBox.XOffset - horizontalRange / 100),
-                    YOffset = (short)(p.PushBox.YOffset + p.PushBox.Height + upperBound / 100),
-                    Width   = (short)(p.PushBox.Width + horizontalRange / 50),
-                    Height  = (short)((lowerBound - upperBound) / 100),
-                };
-            }
-            else
-            {
-                short range;
-                if (state.GlobalFlags.GameVersionFlag == GameVersion.PLUS_R)
-                {
-                    range = GroundThrowRangesPlusR[(int)p.CharId];
-                }
-                else
-                {
-                    range = GroundThrowRangesAC[(int)p.CharId];
-                }
-
-                return new Hitbox()
-                {
-                    XOffset = (short)(p.PushBox.XOffset - range / 100),
-                    YOffset = p.PushBox.YOffset,
-                    Width   = (short)(p.PushBox.Width + range / 50),
-                    Height  = p.PushBox.Height,
-                };
+                Hooks.Util.CustomCallingConventionParameters(0, (uint)pText, 0);
+                return _RenderText(xPos, yPos, 365f, alpha, 1f);
             }
         }
 
-        public static GameState GetGameState()
+        //private static readonly Hitbox[] _hitboxBuffer = new Hitbox[100];
+        public static RentedArraySlice<Hitbox> GetHitboxes(BoxId type, Player p)
+            => GetHitboxes([type, BoxId.USE_EXTRA], p);
+        public static RentedArraySlice<Hitbox>GetHitboxes(BoxId type, Entity e)
+            => GetHitboxes([type, BoxId.USE_EXTRA], e);
+        public static RentedArraySlice<Hitbox> GetHitboxes(BoxId[] types, Player p)
+            => GetHitboxes(types, p.NativePointer);
+        public static RentedArraySlice<Hitbox> GetHitboxes(BoxId[] types, Entity e)
+            => GetHitboxes(types, e.NativePointer);
+        private static RentedArraySlice<Hitbox> GetHitboxes(BoxId[] types, BaseEntityRaw* e)
         {
-            return new GameState(
-                GetPlayerStruct(Player1Pointer),
-                GetPlayerStruct(Player2Pointer),
-                GetCameraStruct(),
-                GetEntities(),
-                GetGlobals()
+            if (e is null || e->HitboxSet is null) return new([]);
+
+            Hitbox[] temp = ArrayPool<Hitbox>.Shared.Rent(128);
+            PlayerExtra pExtra = e->Extra is null ? default : *e->Extra;
+
+            int bufferIndex = 0;
+            for (int i = 0; i < e->BoxCount; i++)
+            {
+                if (types.Contains((BoxId)e->HitboxSet[i].BoxTypeId))
+                {
+                    // hurtbox discard checks
+                    if (e->HitboxSet[i].BoxTypeId == (ushort)BoxId.HURT && (
+                        (e->Status & (uint)ActionState.DisableHurtboxes) > 0 ||
+                        (e->Status & (uint)ActionState.StrikeInvuln) > 0 ||
+                        pExtra.InvulnCounter > 0))
+                        continue;
+
+                    // hitbox discard checks
+                    if (e->HitboxSet[i].BoxTypeId == (ushort)BoxId.HIT &&
+                        ((e->Status & (uint)ActionState.DisableHitboxes) > 0 && !Settings.IgnoreDisableHitboxFlag) &&
+                        e->HitstopCounter <= 0)
+                        continue;
+
+
+                    if (e->HitboxSet[i].BoxTypeId == (ushort)BoxId.USE_EXTRA)
+                    {
+                        if (e->HitboxExtraSet is not null && types.Contains((BoxId)e->HitboxExtraSet[i].BoxTypeId))
+                            temp[bufferIndex++] = e->HitboxExtraSet[i];
+                    }
+                    else
+                    {
+                        temp[bufferIndex++] = e->HitboxSet[i];
+                    }
+                }
+            }
+
+            return new(temp, 0, bufferIndex);
+        }
+
+        public static Rect GetCLRect(Player p)
+        {
+            if (p.HitParam.CLScale == -1) return default;
+
+            Player opponent = p.PlayerIndex == 0 ? Player2 : Player1;
+            if (!opponent.IsValid) return default;
+
+            byte CLCounter = opponent.Extra.CleanHitCounter;
+
+            // If player has just hit a clean hit, draw the CLRect as it was before it shrunk.
+            if (IsInCLHitstop(p)) CLCounter--;
+
+            HitParam hp = p.HitParam;
+
+            float halfWidth = hp.CLBaseWidth - (hp.CLScale * CLCounter);
+            float halfHeight = hp.CLBaseHeight - (hp.CLScale * CLCounter);
+            halfWidth = halfWidth >= 1.0f ? halfWidth : 1.0f;
+            halfHeight = halfHeight >= 1.0f ? halfHeight : 1.0f;
+
+            return new Rect(
+                hp.CLCenterX - halfWidth,
+                hp.CLCenterY - halfHeight + CLEAN_HIT_Y_OFFSET,
+                halfWidth * 2,
+                halfHeight * 2
             );
         }
 
-        private static GlobalFlags GetGlobals()
+
+        // TODO: remove stateful workaround. Anything stateful will not work in replay mode or online
+        private static readonly bool[] _clMemory = [false, false];
+        /// <summary>
+        /// I can't find a good way to detect clean hit hitstun, so I'm just going to look at player hitstop.
+        /// There is a flag set in `Player.Extra.HitstunFlags` for CL but it is cleared by the time the graphics hook runs.
+        /// </summary>
+        /// <param name="p">Target player</param>
+        /// <returns></returns>
+        private static bool IsInCLHitstop(Player p)
         {
-            byte[] data;
+            // TODO: find a better method. Worst case, hook CL detection function to save result.
+            if (p.HitstopCounter > 30) return _clMemory[p.PlayerIndex] = true;
+            if (p.HitstopCounter == 0) return _clMemory[p.PlayerIndex] = false;
 
-            ThrowFlags throwFlags = new();
-            data = Memory.ReadMemoryPlusBaseOffset(GLOBAL_THROW_FLAGS_ADDR, 1);
-            if (data.Length != 0) {
-                throwFlags = new ThrowFlags(data[0]);
-            }
-
-            int p1CommandThrowId = 0;
-            int p2CommandThrowId = 0;
-            data = Memory.ReadMemoryPlusBaseOffset(COMMAND_GRAB_ID_ADDR, sizeof(int) * 2);
-            if (data.Length != 0)
-            {
-                p1CommandThrowId = BitConverter.ToInt32(data);
-                p2CommandThrowId = BitConverter.ToInt32(data, sizeof(int));
-            }
-
-            data = Memory.ReadMemoryPlusBaseOffset(COMMAND_GRAB_RANGE_LOOKUP_TABLE + p1CommandThrowId*2, sizeof(short));
-            int p1CommandThrowRange = 0;
-            if (data.Length != 0)
-            {
-                p1CommandThrowRange = BitConverter.ToInt16(data);
-            }
-            data = Memory.ReadMemoryPlusBaseOffset(COMMAND_GRAB_RANGE_LOOKUP_TABLE + p2CommandThrowId * 2, sizeof(short));
-            int p2CommandThrowRange = 0;
-            if (data.Length != 0)
-            {
-                p2CommandThrowRange = BitConverter.ToInt16(data);
-            }
-
-            GameVersion gameVer = GameVersion.PLUS_R;
-            data = Memory.ReadMemoryPlusBaseOffset(GAME_VER_FLAG, sizeof(int));
-            if (data.Length != 0)
-            {
-                gameVer = (GameVersion)BitConverter.ToInt32(data);
-            }
-
-            int pauseVar = 0;
-            data = Memory.ReadMemoryPlusBaseOffset(GLOBAL_PAUSE_VAR_ADDR, sizeof(int));
-            if (data.Length != 0)
-            {
-                pauseVar = BitConverter.ToInt32(data);
-            }
-
-            int replaySim = 0;
-            data = Memory.ReadMemoryPlusBaseOffset(GLOBAL_REPLAY_SIMULATE_ADDR, sizeof(int));
-            if (data.Length != 0)
-            {
-                replaySim = BitConverter.ToInt32(data);
-            }
-
-            return new()
-            {
-                ThrowFlags            = throwFlags,
-                P1ActiveCommandGrabId = p1CommandThrowId,
-                P2ActiveCommandGrabId = p2CommandThrowId,
-                P1CommandGrabRange    = p1CommandThrowRange,
-                P2CommandGrabRange    = p2CommandThrowRange,
-                GameVersionFlag       = gameVer,
-                PauseState1           = pauseVar,
-                ReplaySimState        = replaySim,
-            };
+            return _clMemory[p.PlayerIndex];
         }
 
-        private static Camera GetCameraStruct()
-        {
-            byte[] data = Memory.ReadMemoryPlusBaseOffset(CAMERA_ADDR, CAMERA_STRUCT_BUFFER);
-            if (data.Length == 0) { return new(); }
+        #region Throw Boxes
+        private static readonly short* AirThrowRangesPR    = (short*)(Memory.BaseAddress + Offsets.PLUSR_AIR_THROW_HORIZONTAL_RANGE_ARRAY);
+        private static readonly short* AirThrowRangesAC    = (short*)(Memory.BaseAddress + Offsets.AC_AIR_THROW_HORIZONTAL_RANGE_ARRAY);
+        private static readonly short* AirThrowRangesUpper = (short*)(Memory.BaseAddress + Offsets.AIR_THROW_UPPER_RANGE_ARRAY);
+        private static readonly short* AirThrowRangesLower = (short*)(Memory.BaseAddress + Offsets.AIR_THROW_LOWER_RANGE_ARRAY);
+        private static readonly short* GroundThrowRangesPR = (short*)(Memory.BaseAddress + Offsets.PLUSR_GROUND_THROW_RANGE_ARRAY);
+        private static readonly short* GroundThrowRangesAC = (short*)(Memory.BaseAddress + Offsets.AC_GROUND_THROW_RANGE_ARRAY);
 
-            return new()
-            {
-                CenterXPos = BitConverter.ToInt32(data, CAMERA_X_CENTER_OFFSET),
-                BottomEdge = BitConverter.ToInt32(data, CAMERA_BOTTOM_EDGE_OFFSET),
-                LeftEdge   = BitConverter.ToInt32(data, CAMERA_LEFT_EDGE_OFFSET),
-                Width      = BitConverter.ToInt32(data, CAMERA_WIDTH_OFFSET),
-                Height     = BitConverter.ToInt32(data, CAMERA_HEIGHT_OFFSET),
-                Zoom       = BitConverter.ToSingle(data, CAMERA_ZOOM_OFFSET)
-            };
+        public static bool GetCommandGrabBox(Player p, Rect pushbox, out Rect rect)
+        {
+            rect = default;
+            if (p.Mark == 0 || !MoveData.IsActiveByMark(p.CharId, p.ActionId)) return false;
+
+            int cmdThrowID = MoveData.GetCommandGrabId(p.CharId, p.ActionId);
+            int cmdThrowRange = CommandThrowRangeArr[cmdThrowID];
+
+            rect = new Rect(
+                pushbox.X - cmdThrowRange,
+                pushbox.Y,
+                pushbox.Width + cmdThrowRange * 2,
+                pushbox.Height
+            );
+
+            return true;
         }
-
-        private static Player GetPlayerStruct(nint playerPtr)
+        public static Rect GetGrabBox(Player p) => GetGrabBox(p, GetPushBox(p));
+        public static Rect GetGrabBox(Player p, Rect pushbox)
         {
-            if (playerPtr == nint.Zero) { return new(); }
-
-            byte[] data = Memory.ReadMemory(playerPtr, ENTITY_STRUCT_BUFFER);
-            if (data.Length == 0) {
-                _playerPointerCache = nint.Zero;
-                return new();
-            }
-            var boxCount = data[HITBOX_LIST_LENGTH_OFFSET];
-
-            nint playerExtraPtr = (nint)BitConverter.ToUInt32(data, PLAYER_EXTRA_PTR_OFFSET);
-            nint hitboxArrayPtr = (nint)BitConverter.ToUInt32(data, HITBOX_LIST_OFFSET);
-
-            PlayerExtra extra = new();
-            if (playerExtraPtr != 0) { extra = GetPlayerExtra(playerExtraPtr); }
-            Hitbox[] boxSet = [];
-            if (hitboxArrayPtr != 0) { boxSet = GetHitboxes(hitboxArrayPtr, boxCount); }
-            var charId = (CharacterID)BitConverter.ToUInt16(data);
-            var status = BitConverter.ToUInt32(data, STATUS_OFFSET);
-            var actId = BitConverter.ToUInt16(data, ACT_ID_OFFSET);
-            var yPos = BitConverter.ToInt32(data, YPOS_OFFSET);
-
-            var pushBox = GetPushBox((ushort)charId, status, actId, yPos, boxSet);
-
-            return new()
+            float x, y, width, height;
+            if (p.Status.HasFlag(ActionState.IsAirborne))
             {
-                CharId           = charId,
-                IsFacingRight    = data[IS_FACING_RIGHT_OFFSET] == 1,
-                Status           = status,
-                BufferFlags      = BitConverter.ToUInt16(data, BUFFER_FLAGS_OFFSET),
-                ActionId         = actId,
-                AnimationCounter = BitConverter.ToUInt16(data, ANIMATION_FRAME_OFFSET),
-                PlayerIndex      = data[PLAYER_INDEX_OFFSET],
-                GuardFlags       = BitConverter.ToUInt16(data, GUARD_FLAGS_OFFSET),
-                Extra            = extra,
-                AttackFlags      = BitConverter.ToUInt32(data, ATTACK_FLAGS_OFFSET),
-                CommandFlags     = BitConverter.ToUInt16(data, COMMAND_FLAGS_OFFSET),
-                CoreX            = BitConverter.ToInt16(data, CORE_X_OFFSET),
-                CoreY            = BitConverter.ToInt16(data, CORE_Y_OFFSET),
-                ScaleX           = BitConverter.ToInt16(data, SCALE_X_OFFSET),
-                ScaleY           = BitConverter.ToInt16(data, SCALE_Y_OFFSET),
-                HitboxSet        = boxSet,
-                BoxCount         = boxCount,
-                BoxIter          = data[HITBOX_ITERATION_VAR_OFFSET],
-                XPos             = BitConverter.ToInt32(data, XPOS_OFFSET),
-                YPos             = yPos,
-                HitstopCounter   = data[HITSTOP_TIMER_OFFSET],
-                Mark             = data[MARK_OFFSET],
-                PushBox          = pushBox
-            };
-        }
+                short* rangeArray = IsPlusR ? AirThrowRangesPR : AirThrowRangesAC;
+                short range = rangeArray[(int)p.CharId];
 
-        private static PlayerExtra GetPlayerExtra(nint playerExtraPtr)
-        {
-            byte[] data = Memory.ReadMemory(playerExtraPtr, PLAYER_EXTRA_STRUCT_BUFFER);
-            if (data.Length == 0) { return new(); }
+                short upperBound = AirThrowRangesUpper[(int)p.CharId];
+                short lowerBound = AirThrowRangesLower[(int)p.CharId];
 
-            return new()
-            {
-                ThrowProtectionTimer = BitConverter.ToInt16(data, PLAYER_EXTRA_THROW_PROTECTION_TIMER_OFFSET),
-                InvulnCounter        = data[PLAYER_EXTRA_INVULN_COUNTER_OFFSET],
-                RCTime               = data[PLAYER_EXTRA_RC_TIME_OFFSET],
-                JamParryTime         = data[PLAYER_EXTRA_JAM_PARRY_TIME_OFFSET],
-                ComboTime            = BitConverter.ToInt16(data, PLAYER_EXTRA_COMBO_TIME_OFFSET),
-                SBTime               = data[PLAYER_EXTRA_SLASH_BACK_TIME_OFFSET]
-            };
-        }
-
-        private static Hitbox GetPushBox(ushort charId, ActionStateFlags status, ushort actId, int yPos, Hitbox[] boxSet)
-        {
-            int yOffset = 0;
-            short[] widthArr;
-            short[] heightArr;
-            if (status.IsAirborne)
-            {
-                widthArr = PushBoxAirWidths;
-                heightArr = PushBoxAirHeights;
-                // Special offsets for pushbox collision checks
-                if (status.IsPlayer1)
-                {
-                    yOffset = BitConverter.ToInt32(Memory.ReadMemoryPlusBaseOffset(PUSHBOX_P1_JUMP_OFFSET_ADDRESS, sizeof(int))) + yPos;
-                }
-                else if (status.IsPlayer2)
-                {
-                    yOffset = BitConverter.ToInt32(Memory.ReadMemoryPlusBaseOffset(PUSHBOX_P2_JUMP_OFFSET_ADDRESS, sizeof(int))) + yPos;
-                }
-            }
-            else if (status.IsCrouching)
-            {
-                widthArr = PushBoxCrouchingWidths;
-                heightArr = PushBoxCrouchingHeights;
-            }
-            else if (status.IsPushboxType1)
-            {
-                // Not really sure what state this is. Adapting the draw logic from another project.
-                widthArr = PushBoxAirWidths;
-                heightArr = PushBoxStandingHeights;
-            }
-            else    // IsStanding
-            {
-                widthArr = PushBoxStandingWidths;
-                heightArr = PushBoxStandingHeights;
-            }
-
-            short w = widthArr[charId];
-            short h = heightArr[charId];
-
-            var pushBoxOverrides = boxSet.Where(b => b.BoxTypeId == BoxId.PUSH);
-
-            if (pushBoxOverrides.Any())
-            {
-                return new Hitbox()
-                {
-                    XOffset = pushBoxOverrides.First().XOffset,
-                    YOffset = (short)((h + yOffset) / -100),
-                    Width   = pushBoxOverrides.First().Width,
-                    Height  = (short)(h / 100)
-                };
-            }
-            else if (charId == (int)CharacterID.BRIDGET && actId == BRIDGET_SHOOT_ACT_ID)
-            {
-                return new Hitbox()
-                {
-                    XOffset = (short)(w / -100),
-                    YOffset = (short)((h + yOffset + BRIDGET_SHOOT_PUSHBOX_ADJUST) / -100),
-                    Width   = (short)(w / 100 * 2),
-                    Height  = (short)((h + BRIDGET_SHOOT_PUSHBOX_ADJUST) / 100)
-                };
+                x = pushbox.X - range;
+                y = pushbox.Y + upperBound + pushbox.Height;
+                width = pushbox.Width + range * 2;
+                height = lowerBound - upperBound;
             }
             else
             {
-                return new Hitbox()
+                short* rangeArray = IsPlusR ? GroundThrowRangesPR : GroundThrowRangesAC;
+
+                short range = rangeArray[(int)p.CharId];
+
+                x = pushbox.X - range;
+                y = pushbox.Y;
+                width = pushbox.Width + range * 2;
+                height = pushbox.Height;
+            }
+
+            return new Rect(x, y, width, height);
+        }
+
+        public static bool IsThrowActive(Player p)
+        {
+            Player opponent = p.PlayerIndex == 0 ? Player2 : Player1;
+            if (!opponent.IsValid) return false;
+
+            return !p.CommandFlags.HasFlag(CommandState.DisableThrow) &&
+                (ThrowFlags.HasFlag(ThrowDetection.Player1ThrowSuccess) && p.PlayerIndex == 0 ||
+                ThrowFlags.HasFlag(ThrowDetection.Player2ThrowSuccess) && p.PlayerIndex == 1) &&
+                opponent.Status.HasFlag(ActionState.IsInHitstun);
+        }
+        public static bool IsCommandThrowActive(Player p)
+        {
+            return p.Mark != 0 && MoveData.IsActiveByMark(p.CharId, p.ActionId);
+        }
+        #endregion
+
+        #region Push Box
+        private static readonly int* PushboxOffsetP1 = (int*)(Memory.BaseAddress + Offsets.PUSHBOX_P1_JUMP_OFFSET);
+        private static readonly int* PushboxOffsetP2 = (int*)(Memory.BaseAddress + Offsets.PUSHBOX_P2_JUMP_OFFSET);
+        private static readonly short* PushBoxAirWidthRanges       = (short*)(Memory.BaseAddress + Offsets.PUSHBOX_AIR_WIDTH_ARRAY);
+        private static readonly short* PushBoxAirHeightRanges      = (short*)(Memory.BaseAddress + Offsets.PUSHBOX_AIR_HEIGHT_ARRAY);
+        private static readonly short* PushBoxCrouchWidthRanges    = (short*)(Memory.BaseAddress + Offsets.PUSHBOX_CROUCHING_WIDTH_ARRAY);
+        private static readonly short* PushBoxCrouchHeightRanges   = (short*)(Memory.BaseAddress + Offsets.PUSHBOX_CROUCHING_HEIGHT_ARRAY);
+        private static readonly short* PushBoxStandingWidthRanges  = (short*)(Memory.BaseAddress + Offsets.PUSHBOX_STANDING_WIDTH_ARRAY);
+        private static readonly short* PushBoxStandingHeightRanges = (short*)(Memory.BaseAddress + Offsets.PUSHBOX_STANDING_HEIGHT_ARRAY);
+        /// <summary>
+        /// Returns a Rectangle representing the given player's pushbox.
+        /// </summary>
+        /// <param name="p">A specified player struct</param>
+        /// <returns>A Rectangle representing the pushbox</returns>
+        public static Rect GetPushBox(Player p)
+        {
+            short charIndex = (short)p.CharId;
+            int x = 0, y = 0, halfWidth = 0, height = 0;
+            if (p.Status.HasFlag(ActionState.IsAirborne))
+            {
+                // Jump offset is given as positive/up (opposite of GGXXACPR world coordinates) and it is given as a final Y position.
+                // To help reuse more of the hitbox render pipeline, we're converting the the jump offset to a player relative offset.
+                if (p.PlayerIndex == 0)
                 {
-                    XOffset = (short)(w / -100),
-                    YOffset = (short)((h + yOffset) / -100),
-                    Width = (short)(w / 100 * 2),
-                    Height = (short)(h / 100)
-                };
+                    y = *PushboxOffsetP1 * -1 - p.YPos;
+                }
+                else if (p.PlayerIndex == 1)
+                {
+                    y = *PushboxOffsetP2 * -1 - p.YPos;
+                }
+
+                halfWidth = PushBoxAirWidthRanges[charIndex];
+                height = PushBoxAirHeightRanges[charIndex];
             }
-        }
-
-        private static Hitbox[] GetHitboxes(nint hitboxArrPtr, int numBoxes)
-        {
-            byte[] data = Memory.ReadMemory(hitboxArrPtr, numBoxes * HITBOX_ARRAY_STEP);
-            if (data.Length == 0) { return []; }
-            Hitbox[] output = new Hitbox[numBoxes];
-
-            for (int i = 0; i < numBoxes; i++)
+            else if (p.Status.HasFlag(ActionState.IsCrouching))
             {
-                Hitbox b = ByteArrToHitbox(data, i * HITBOX_ARRAY_STEP);
-                output[i] = b;
+                halfWidth = PushBoxCrouchWidthRanges[charIndex];
+                height = PushBoxCrouchHeightRanges[charIndex];
             }
-
-            return output;
-        }
-
-        private static Hitbox ByteArrToHitbox(byte[] data, int offset)
-        {
-            return new()
+            else if (p.Status.HasFlag(ActionState.Wakeup))
             {
-                XOffset   = BitConverter.ToInt16(data, offset),
-                YOffset   = BitConverter.ToInt16(data, offset + 0x02),
-                Width     = BitConverter.ToInt16(data, offset + 0x04),
-                Height    = BitConverter.ToInt16(data, offset + 0x06),
-                BoxTypeId = (BoxId)BitConverter.ToInt16(data, offset + 0x08),
-                BoxFlags  = BitConverter.ToInt16(data, offset + 0x0A)
-            };
-        }
-
-        private static Entity[] GetEntities()
-        {
-            Entity[] entityArray = ByteArrayToEntities(Memory.ReadMemory(Player1Pointer, ENTITY_STRUCT_BUFFER * ENTITY_ARRAY_SIZE));
-
-            return entityArray.Skip(2).Where(e => e.Id != 0).ToArray();
-        }
-
-        private static Entity[] ByteArrayToEntities(byte[] data)
-        {
-            int total = data.Length / ENTITY_STRUCT_BUFFER;
-            Entity[] output = new Entity[total];
-            for (int i = 0; i < total; i++)
+                halfWidth = PushBoxAirWidthRanges[charIndex];
+                height = PushBoxStandingHeightRanges[charIndex];
+            }
+            else // standing
             {
-                output[i] = ByteArrToEntity(data, ENTITY_STRUCT_BUFFER * i);
+                halfWidth = PushBoxStandingWidthRanges[charIndex];
+                height = PushBoxStandingHeightRanges[charIndex];
             }
 
-            return output;
-        }
-
-        private static Entity ByteArrToEntity(byte[] data, int offset)
-        {
-            if (data.Length == 0) { return new(); }
-            byte numBoxes = data[offset + HITBOX_LIST_LENGTH_OFFSET];
-            nint boxSetArr = (nint)BitConverter.ToUInt32(data, offset + HITBOX_LIST_OFFSET);
-            Hitbox[] hitboxes = [];
-            if (boxSetArr != nint.Zero)
+            if (FindFirstPushBoxAdjustment(p, out Hitbox pushAdjust))
             {
-                hitboxes = GetHitboxes(boxSetArr, numBoxes);
+                x = pushAdjust.XOffset * 100;
+                halfWidth = pushAdjust.Width * 100 / 2;
+            }
+            else
+            {
+                x = -halfWidth;
             }
 
-            return new()
+            // see BRIDGET_SHOOT_ACT_ID comment
+            if (p.CharId == CharacterID.BRIDGET && p.ActionId == BRIDGET_SHOOT_ACT_ID)
             {
-                Id              = BitConverter.ToUInt16(data, offset),
-                IsFacingRight   = data[offset + IS_FACING_RIGHT_OFFSET] == 1,
-                BackPtr         = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_BACK_PTR_OFFSET),
-                NextPtr         = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_NEXT_PTR_OFFSET),
-                Status          = BitConverter.ToUInt32(data, offset + STATUS_OFFSET),
-                ParentPtrRaw    = (nint)BitConverter.ToUInt32(data, offset + PROJECTILE_PARENT_PTR_OFFSET),
-                PlayerIndex     = data[offset + PLAYER_INDEX_OFFSET],
-                ParentFlag      = BitConverter.ToUInt16(data, offset + PROJECTILE_PARENT_FLAG_OFFSET),
-                CoreX           = BitConverter.ToInt16(data, CORE_X_OFFSET + offset),
-                CoreY           = BitConverter.ToInt16(data, CORE_Y_OFFSET + offset),
-                ScaleX          = BitConverter.ToInt16(data, SCALE_X_OFFSET + offset),
-                ScaleY          = BitConverter.ToInt16(data, SCALE_Y_OFFSET + offset),
-                HitboxSetPtr    = (nint)BitConverter.ToUInt32(data, offset + HITBOX_LIST_OFFSET),
-                HitboxSet       = hitboxes,
-                BoxCount        = numBoxes,
-                XPos            = BitConverter.ToInt32(data, offset + XPOS_OFFSET),
-                YPos            = BitConverter.ToInt32(data, offset + YPOS_OFFSET)
-            };
+                y += BRIDGET_SHOOT_PUSHBOX_ADJUST;
+                height += BRIDGET_SHOOT_PUSHBOX_ADJUST;
+            }
+
+            return new Rect(
+                x,
+                y - height,
+                halfWidth * 2,
+                height
+            );
         }
+
+        /// <summary>
+        /// Finds the first pushbox adjustment box (box type 3) in the given player's current box set.
+        /// </summary>
+        /// <param name="p">The player struct</param>
+        /// <param name="pushAdjust">The pushbox adjust struct. Default struct if none found.</param>
+        /// <returns>Whether a pushadjust box was found</returns>
+        private static bool FindFirstPushBoxAdjustment(Player p, out Hitbox pushAdjust)
+        {
+            pushAdjust = default;
+            Span<Hitbox> hitboxes = p.HitboxSet;
+            if (hitboxes.Length == 0) return false;
+
+            for (int i = 0; i < p.BoxCount; i++)
+            {
+                if (hitboxes[i].BoxTypeId == (ushort)BoxId.PUSH)
+                {
+                    pushAdjust = hitboxes[i];
+                    return true;
+                }
+            }
+
+            return false;
+        }
+#endregion
+
+        /// <summary>
+        /// Helper logic for FrameMeter. Returns whether the given player has any active hitboxes.
+        /// </summary>
+        public static bool HasActiveFrame(Player p)
+        {
+            Span<Hitbox> hitboxes = p.HitboxSet;
+            Span<Hitbox> hitboxesExtra = p.HitboxExtraSet;
+
+            if (hitboxes.Length == 0 || p.Status.HasFlag(ActionState.DisableHitboxes))
+                return false;
+
+            for (int i = 0; i < hitboxes.Length; i++)
+            {
+                if (hitboxes[i].BoxTypeId == (ushort)BoxId.HIT ||
+                        (hitboxes[i].BoxTypeId == (ushort)BoxId.USE_EXTRA &&
+                        hitboxesExtra.Length >= i &&
+                        hitboxesExtra[i].BoxTypeId == (ushort)BoxId.HIT))
+                {
+                    return true;
+                }
+            }
+
+            return MoveData.IsActiveByMark(p.CharId, p.ActionId) && p.Mark == 1;
+        }
+
+#region Rendering Helpers
+        /// <summary>
+        /// Returns a matrix transform for aligning hitbox model coordinates to a player in world coordinates.
+        /// </summary>
+
+        public static Matrix4x4 GetModelTransform(Entity e) => GetModelTransform(e.NativePointer);
+        public static Matrix4x4 GetModelTransform(Player p) => GetModelTransform(p.NativePointer);
+        private static Matrix4x4 GetModelTransform(BaseEntityRaw* e)
+        {
+            Matrix4x4 matrix = Matrix4x4.Identity;
+
+            // Scale hitbox coor to world coor
+            matrix *= Matrix4x4.CreateScale(100f, 100f, 1f);
+
+            // Flip if facing right
+            if (e->IsFacingRight == 1)
+            {
+                matrix *= Matrix4x4.CreateScale(-1f, 1f, 1f);
+            }
+
+            // Player scale var (given as a short * 1000)
+            if (e->ScaleX > 0 || e->ScaleY > 0)
+            {
+                // If either scale value is -1, it should copy the value of the other
+                float scaleY = (e->ScaleY < 0 ? e->ScaleX : e->ScaleY) / 1000f;
+                float scaleX = (e->ScaleX < 0 ? e->ScaleY : e->ScaleX) / 1000f;
+                matrix *= Matrix4x4.CreateScale(scaleX, scaleY, 1f);
+            }
+
+            // Player origin translation
+            matrix *= Matrix4x4.CreateTranslation(e->XPos, e->YPos, 0f);
+
+            return matrix;
+        }
+
+        /// <summary>
+        /// Returns a matrix transform for aligning pushboxes and grabboxes to player positions.
+        /// </summary>
+        public static Matrix4x4 GetPlayerTransform(Player p)
+        {
+            Matrix4x4 matrix = Matrix4x4.Identity;
+
+            // Flip if facing right
+            if (p.IsFacingRight == 1)
+            {
+                matrix *= Matrix4x4.CreateScale(-1f, 1f, 1f);
+            }
+
+            // Player origin translation
+            matrix *= Matrix4x4.CreateTranslation(p.XPos, p.YPos, 0f);
+
+            return matrix;
+        }
+
+        public static Matrix4x4 GetProjectionTransform() => GetProjectionTransform(Camera);
+        public static Matrix4x4 GetProjectionTransform(Camera c)
+        {
+            Matrix4x4 matrix = Matrix4x4.Identity;
+
+            // Translation correction
+            matrix *= Matrix4x4.CreateTranslation(new Vector3(-50.0f, -50.0f, 0.0f));
+
+            // Projection
+            float cameraBottom = c.CameraHeight + (c.Height / 12f);
+            matrix *= Matrix4x4.CreateOrthographicOffCenterLeftHanded(
+                c.LeftEdge,
+                c.LeftEdge + c.Width,
+                cameraBottom,
+                cameraBottom - c.Height,
+                0,
+                1
+            );
+
+            matrix *= GetWidescreenCorrectionTransform(c);
+
+            return matrix;
+        }
+        public static Matrix4x4 GetWidescreenCorrectionTransform() => GetWidescreenCorrectionTransform(Camera);
+        public static Matrix4x4 GetWidescreenCorrectionTransform(Camera c)
+        {
+            return Matrix4x4.CreateScale(4 * (*_viewHeight) * 1.0f / (3 * (*_viewWidth)), 1.0f, 1.0f);
+        }
+
+        /// <summary>
+        /// Used as the scissor rect for clipping
+        /// </summary>
+        public static Vortice.Direct3D9.Rect GetGameRegion()
+        {
+            int gameScreenHeight = *_viewHeight;
+            int gameScreenWidth = gameScreenHeight * 4 / 3;
+            int sideBarLength = (*_viewWidth - gameScreenWidth) / 2;
+
+            return new (sideBarLength, 0, sideBarLength + gameScreenWidth, gameScreenHeight);
+        }
+
+        public static float WorldCoorPerGamePixel() => WorldCoorPerGamePixel(Camera);
+        public static float WorldCoorPerGamePixel(Camera c)
+        {
+            return 100.0f / c.Zoom;
+        }
+
+        public static float WorldCoorPerViewPixel() => WorldCoorPerViewPixel(Camera);
+        public static float WorldCoorPerViewPixel(Camera c)
+        {
+            return c.Height * 1.0f / (*_viewHeight);
+        }
+#endregion
     }
 }

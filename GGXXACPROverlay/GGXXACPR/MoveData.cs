@@ -1,22 +1,25 @@
-﻿using System.Diagnostics;
-using System.Reflection;
+﻿using System.Reflection;
 
 namespace GGXXACPROverlay.GGXXACPR
 {
+    /// <summary>
+    /// Handles move data that has been packaged in-app because it can't easily be read directly from memory.
+    /// </summary>
     internal static class MoveData
     {
         private const int SPECIAL_CASE_COMMAND_THROW_ID = 0x19;
         private const int SPECIAL_CASE_COMMAND_THROW_RANGE = 11000; // GGXXACPR_Win.exe+12054F
+        private const string MoveDataFileName = "MoveData.csv";
 
         private readonly struct CharIdActIdKey(CharacterID charId, int actId)
         {
             public readonly CharacterID charId = charId;
-            public readonly int actId  = actId;
+            public readonly int actId = actId;
         }
         private readonly struct CommandGrabData(CharacterID charId, int actId, int cmdGrabId)
         {
-            public readonly CharacterID CharId    = charId;
-            public readonly int ActId     = actId;
+            public readonly CharacterID CharId = charId;
+            public readonly int ActId = actId;
             public readonly int CmdGrabId = cmdGrabId;
         }
         private struct MoveDataEntry
@@ -29,9 +32,8 @@ namespace GGXXACPROverlay.GGXXACPR
             public int moveId;  // custom identifier
         }
 
-        private static readonly string MoveDataFileName = "MoveData.csv";
-        private static readonly List<MoveDataEntry> rawMoveData = [];
-        private static readonly Lookup<CharIdActIdKey, MoveDataEntry> actIdToMoveIds;
+        // TODO: Will be needed for FrameMeter
+        // private static readonly Lookup<CharIdActIdKey, MoveDataEntry> _actIdToMoveIds = ReadRawMoveDataToLookup();
 
         // (charId, actId)
         private static readonly CommandGrabData[] _activeByMarkCommandGrabs = [
@@ -55,9 +57,10 @@ namespace GGXXACPROverlay.GGXXACPR
             new(CharacterID.ABA,       0x11B, 26), // Unknown (Unused Air keygrab?) actId 283, cmdGrabId 26
         ];
 
-        static MoveData()
+        private static Lookup<CharIdActIdKey, MoveDataEntry> ReadRawMoveDataToLookup()
         {
-            string[] rows = [];
+            List<MoveDataEntry> output = [];
+
             TextReader reader;
             try
             {
@@ -69,79 +72,87 @@ namespace GGXXACPROverlay.GGXXACPR
                 reader.ReadLine();  // Skip column headers
                 string? line = reader.ReadLine();
                 string[] values;
-                while (line != null)
+                while (line is not null)
                 {
                     values = line.Split(",", StringSplitOptions.TrimEntries);
                     if (values.Length < 6) { throw new InvalidDataException($"Move Data did not have the required amount of columns:\n\t{line}"); }
-                    rawMoveData.Add(new MoveDataEntry()
+                    output.Add(new MoveDataEntry()
                     {
-                        charId          = (CharacterID)int.Parse(values[0]),
-                        actId           = int.Parse(values[1]),
-                        sequenceIndex   = int.Parse(values[2]),
-                        moveInput       = values[3],
-                        moveName        = values[4],
-                        moveId          = int.Parse(values[5])
+                        charId = (CharacterID)int.Parse(values[0]),
+                        actId = int.Parse(values[1]),
+                        sequenceIndex = int.Parse(values[2]),
+                        moveInput = values[3],
+                        moveName = values[4],
+                        moveId = int.Parse(values[5])
                     });
                     line = reader.ReadLine();
                 }
 
-                Debug.WriteLine("Move Data loaded successfully.");
+                Debug.Log("Move Data loaded successfully.");
             }
             catch (Exception e)
             {
                 if (e is FileNotFoundException || e is IOException || e is UnauthorizedAccessException)
                 {
-                    Console.WriteLine($"Could not find {MoveDataFileName}, move startup will be incorrect.");
+                    Debug.Log($"Could not find {MoveDataFileName}, move startup will be incorrect.");
                 }
-                else
-                {
-                    throw;
-                }
+                else throw;
             }
 
-            actIdToMoveIds = (Lookup<CharIdActIdKey, MoveDataEntry>)rawMoveData.ToLookup(
+            return (Lookup<CharIdActIdKey, MoveDataEntry>)output.ToLookup(
                 moveData => new CharIdActIdKey(moveData.charId, moveData.actId)
             );
         }
 
+        // TODO: Will be needed for FrameMeter
         /// <summary>
         /// Returns true if both actIds are played in the same move and actId1 comes before actId2 in a multi-act move.
         /// </summary>
         /// <param name="charId">Character Id</param>
         /// <param name="actId1">first actId</param>
         /// <param name="actId2">second actId</param>
-        public static bool IsPrevAnimSameMove(CharacterID charId, int actId1, int actId2)
-        {
-            var key1 = new CharIdActIdKey(charId, actId1);
-            var key2 = new CharIdActIdKey(charId, actId2);
-            if (actIdToMoveIds.Contains(key1) && actIdToMoveIds.Contains(key2))
-            {
-                IEnumerable<MoveDataEntry> data1 = actIdToMoveIds[key1];
-                IEnumerable<MoveDataEntry> data2 = actIdToMoveIds[key2];
-                foreach (var data in data1)
-                {
-                    if (data2.Where(mde => mde.moveId == data.moveId && mde.sequenceIndex > data.sequenceIndex).Any())
-                    {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
+        //public static bool IsPrevAnimSameMove(CharacterID charId, int actId1, int actId2)
+        //{
+        //    var key1 = new CharIdActIdKey(charId, actId1);
+        //    var key2 = new CharIdActIdKey(charId, actId2);
+        //    if (_actIdToMoveIds.Contains(key1) && _actIdToMoveIds.Contains(key2))
+        //    {
+        //        IEnumerable<MoveDataEntry> data1 = _actIdToMoveIds[key1];
+        //        IEnumerable<MoveDataEntry> data2 = _actIdToMoveIds[key2];
 
+        //        foreach (var data in data1)
+        //        {
+        //            if (data2.Any(mde => mde.moveId == data.moveId && mde.sequenceIndex > data.sequenceIndex))
+        //            {
+        //                return true;
+        //            }
+        //        }
+        //    }
+        //    return false;
+        //}
+
+        /// <summary>
+        /// Returns true if the given character's move is a command grab that is active when Player.Mark == 1.
+        /// </summary>
         public static bool IsActiveByMark(CharacterID charId, int actId)
         {
-            return _activeByMarkCommandGrabs.Where(data => data.CharId == charId && data.ActId == actId).Any();
+            return _activeByMarkCommandGrabs.Any(data => data.CharId == charId && data.ActId == actId);
         }
 
-        public static int GetCommandGrabRange(CharacterID charId, int actId)
+        /// <summary>
+        /// Command grab IDs aren't always visible in memory during their active frames.
+        ///  So we're gonna have to look it up in this local cache
+        /// </summary>
+        /// <param name="charId"></param>
+        /// <param name="actId"></param>
+        /// <returns></returns>
+        public static int GetCommandGrabId(CharacterID charId, int actId)
         {
-            var cmdGrabId = _activeByMarkCommandGrabs.Where(
-                data => data.CharId == charId && data.ActId == actId).FirstOrDefault().CmdGrabId;
+            var cmdGrabId = _activeByMarkCommandGrabs.FirstOrDefault(
+                data => data.CharId == charId && data.ActId == actId).CmdGrabId;
 
-            if (cmdGrabId == SPECIAL_CASE_COMMAND_THROW_ID) { return SPECIAL_CASE_COMMAND_THROW_RANGE; }
-
-            return GGXXACPR.LookUpCommandGrabRange(cmdGrabId);
+            return cmdGrabId;
         }
+
     }
 }
