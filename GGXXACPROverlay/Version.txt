@@ -1,4 +1,4 @@
-#2.0.0-alpha-2-HSD
+#2.1.0
 - Added a hitstun decay and untech time meter
 - Added F1 - F7 hotkeys to toggle certain settings
 	- F5 and F6 control a new freeze frame and frame stepping feature
