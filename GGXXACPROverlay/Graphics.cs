@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -93,7 +94,6 @@ namespace GGXXACPROverlay
             Debug.Log();
         }
 
-        // TEMP
         public void UpdateDevice(nint nativePointer)
         {
             if (_device.NativePointer != nativePointer)
@@ -200,8 +200,8 @@ namespace GGXXACPROverlay
                 Debug.Log("D3D9 Device is in an invalid state");
                 return;
             }
+            if (args.Length > 4) throw new ArgumentException("args cannot be more than 4");
 
-            if (args.Length > 4) args = args[..4];
             _screenSizeUniform[0] = _device.Viewport.Width;
             _screenSizeUniform[1] = _device.Viewport.Height;
             _borderThicknessUniform[0] = Settings.HitboxBorderThickness;

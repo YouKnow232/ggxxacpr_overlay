@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Buffers;
+using System.Numerics;
 using System.Text;
 using Vortice.Mathematics;
 
@@ -38,7 +39,6 @@ namespace GGXXACPROverlay.GGXXACPR
         //  The frame meter will check for this act id to see if it should mark the frame as an active frame
         public const int SLIDE_HEAD_ACT_ID = 181;
         // For whatever reason, this throw range is hardcoded and not in the array with everything else
-        // TODO: test if this is necessary
         public const int SPECIAL_CASE_COMMAND_THROW_ID = 0x19;
         public const int SPECIAL_CASE_COMMAND_THROW_RANGE = 11000; // GGXXACPR_Win.exe+12054F
         // 170 unit offset hardcoded into CL function (see GGXXACPR_Win.exe+132129)
@@ -138,19 +138,20 @@ namespace GGXXACPROverlay.GGXXACPR
             }
         }
 
-        private static readonly Hitbox[] _hitboxBuffer = new Hitbox[100];
-        public static Span<Hitbox> GetHitboxes(BoxId type, Player p)
+        //private static readonly Hitbox[] _hitboxBuffer = new Hitbox[100];
+        public static RentedArraySlice<Hitbox> GetHitboxes(BoxId type, Player p)
             => GetHitboxes([type, BoxId.USE_EXTRA], p);
-        public static Span<Hitbox> GetHitboxes(BoxId type, Entity e)
+        public static RentedArraySlice<Hitbox>GetHitboxes(BoxId type, Entity e)
             => GetHitboxes([type, BoxId.USE_EXTRA], e);
-        public static Span<Hitbox> GetHitboxes(BoxId[] types, Player p)
+        public static RentedArraySlice<Hitbox> GetHitboxes(BoxId[] types, Player p)
             => GetHitboxes(types, p.NativePointer);
-        public static Span<Hitbox> GetHitboxes(BoxId[] types, Entity e)
+        public static RentedArraySlice<Hitbox> GetHitboxes(BoxId[] types, Entity e)
             => GetHitboxes(types, e.NativePointer);
-        private static Span<Hitbox> GetHitboxes(BoxId[] types, BaseEntityRaw* e)
+        private static RentedArraySlice<Hitbox> GetHitboxes(BoxId[] types, BaseEntityRaw* e)
         {
-            if (e is null || e->HitboxSet is null) return [];
+            if (e is null || e->HitboxSet is null) return new([]);
 
+            Hitbox[] temp = ArrayPool<Hitbox>.Shared.Rent(128);
             PlayerExtra pExtra = e->Extra is null ? default : *e->Extra;
 
             int bufferIndex = 0;
@@ -175,16 +176,16 @@ namespace GGXXACPROverlay.GGXXACPR
                     if (e->HitboxSet[i].BoxTypeId == (ushort)BoxId.USE_EXTRA)
                     {
                         if (e->HitboxExtraSet is not null && types.Contains((BoxId)e->HitboxExtraSet[i].BoxTypeId))
-                            _hitboxBuffer[bufferIndex++] = e->HitboxExtraSet[i];
+                            temp[bufferIndex++] = e->HitboxExtraSet[i];
                     }
                     else
                     {
-                        _hitboxBuffer[bufferIndex++] = e->HitboxSet[i];
+                        temp[bufferIndex++] = e->HitboxSet[i];
                     }
                 }
             }
 
-            return _hitboxBuffer.AsSpan(0, bufferIndex);
+            return new(temp, 0, bufferIndex);
         }
 
         public static Rect GetCLRect(Player p)

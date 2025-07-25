@@ -9,7 +9,6 @@ namespace GGXXACPROverlay
         public static ProcessThread MainThread { get; private set; }
 
 
-        // TODO: Performance concerns?
         static Memory()
         {
             Process = Process.GetCurrentProcess();

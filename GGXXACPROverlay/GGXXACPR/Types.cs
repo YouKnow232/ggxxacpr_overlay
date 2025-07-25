@@ -35,6 +35,7 @@ namespace GGXXACPROverlay.GGXXACPR
         [FieldOffset(0x44)] public readonly float Zoom;
     }
 
+    [StructLayout(LayoutKind.Sequential, Size = 0x0C)]
     public readonly struct Hitbox
     {
         public readonly short XOffset;

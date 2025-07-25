@@ -6,8 +6,6 @@ namespace GGXXACPROverlay.Hooks
 {
     // TODO: generalize this delegate entry point
 
-    // NOTE: Redo detour code. Need to call into the shim
-
     internal unsafe class GraphicsDetourHook : DisposableHook
     {
         private const int PATCH_SIZE = 5;
@@ -17,6 +15,7 @@ namespace GGXXACPROverlay.Hooks
 
         private readonly nint _targetAddress;
         private readonly Action<nint> _hookBodyDelegate;
+        private readonly GCHandle _hookBodyDelegateHandle;
         private readonly GCHandle _hookDelegateHandle;
         private readonly nint _nativeHookPtr;
 
@@ -30,6 +29,7 @@ namespace GGXXACPROverlay.Hooks
         {
             _targetAddress = targetAddress;
             _hookBodyDelegate = hookBodyDelegate ?? throw new ArgumentNullException(nameof(hookBodyDelegate));
+            _hookBodyDelegateHandle = GCHandle.Alloc(_hookBodyDelegate);
             D3D9Present graphicsHookDelegate = GraphicsHook;
             _hookDelegateHandle = GCHandle.Alloc(graphicsHookDelegate);
             _nativeHookPtr = Marshal.GetFunctionPointerForDelegate(graphicsHookDelegate);
@@ -83,9 +83,6 @@ namespace GGXXACPROverlay.Hooks
         [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
         private int GraphicsHook(void* d3d9Device, void* pSourceRect, void* pDestRect, void* hDestWindowOverride, void* pDirtyRegion)
         {
-            //GC.Collect();
-            //GC.WaitForPendingFinalizers();
-
             if (pSourceRect is not null || pDestRect is not null || hDestWindowOverride is not null || pDirtyRegion is not null)
             {
                 Debug.Log("[DEBUG] Unexpected parameters passed to Hook!");
@@ -114,6 +111,7 @@ namespace GGXXACPROverlay.Hooks
             if (disposing)
             {
                 // dispose managed
+                _hookBodyDelegateHandle.Free();
                 _hookDelegateHandle.Free();
             }
             // dispose unmanaged

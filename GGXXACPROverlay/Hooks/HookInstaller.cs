@@ -11,7 +11,6 @@ namespace GGXXACPROverlay.Hooks
     {
         private static GraphicsDetourHook? _graphicsHook;
         private static FunctionWrapperHook? _peekMessageHook;
-        private static GCHandle _d3d9PresentHookBodyGCHandle;
 
         public static void InstallHooks()
         {
@@ -25,15 +24,13 @@ namespace GGXXACPROverlay.Hooks
             }
                 
             RenderThreadTaskQueue.Enqueue(D3D9PresentHookSetup);
-            var _d3d9PresentHookBody = D3D9PresentHook;
-            _d3d9PresentHookBodyGCHandle = GCHandle.Alloc(_d3d9PresentHookBody);
-            _graphicsHook = new GraphicsDetourHook(GetD3D9PresentFuncPtr(), _d3d9PresentHookBody);
+            _graphicsHook = new GraphicsDetourHook(GetD3D9PresentFuncPtr(), D3D9PresentHook);
 
             Debug.Log("Installing Direct3D9.Present hook..");
             _graphicsHook.Install();
 
 
-            nint peekMessageWrapperPtr = (nint)(delegate* unmanaged[Stdcall]<void*, void*, uint, uint, uint, int>)&PeekMessageWrapper;
+            nint peekMessageWrapperPtr = (nint)(delegate* unmanaged[Stdcall]<MSG*, HWND, uint, uint, uint, int>)&PeekMessageWrapper;
             Debug.Log($"peekMessageWrapper hook function pointer: 0x{peekMessageWrapperPtr:X8}");
             _peekMessageHook = new FunctionWrapperHook(Memory.BaseAddress + Offsets.PEEK_MESSAGE_FUNCTION_POINTER, peekMessageWrapperPtr);
 
@@ -50,7 +47,6 @@ namespace GGXXACPROverlay.Hooks
         {
             _graphicsHook?.Uninstall();
             _peekMessageHook?.Uninstall();
-            _d3d9PresentHookBodyGCHandle.Free();
         }
 
         private static void D3D9PresentHookSetup(nint device)
@@ -107,18 +103,14 @@ namespace GGXXACPROverlay.Hooks
 
         private const uint WM_KEYDOWN = 0x0100;
         [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
-        private static int PeekMessageWrapper(void* lpMsg, void* hWnd, uint wMsgFilterMin, uint wMsgFilterMax, uint wRemoveMsg)
+        private static int PeekMessageWrapper(MSG* lpMsg, HWND hWnd, uint wMsgFilterMin, uint wMsgFilterMax, uint wRemoveMsg)
         {
-            //GC.Collect();
-            //GC.WaitForPendingFinalizers();
+            BOOL success = PInvoke.PeekMessage(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, (PEEK_MESSAGE_REMOVE_TYPE)wRemoveMsg);
 
-            MSG* msg = (MSG*)lpMsg;
-            BOOL success = PInvoke.PeekMessage(msg, new HWND(hWnd), wMsgFilterMin, wMsgFilterMax, (PEEK_MESSAGE_REMOVE_TYPE)wRemoveMsg);
-
-            if (success && msg is not null && msg->message == WM_KEYDOWN &&
-                 Enum.IsDefined(typeof(VirtualKeyCodes), (int)msg->wParam.Value))
+            if (success && lpMsg is not null && lpMsg->message == WM_KEYDOWN &&
+                 Enum.IsDefined(typeof(VirtualKeyCodes), (int)lpMsg->wParam.Value))
             {
-                Input.HandleKeyDownEvent(msg->lParam.Value, (VirtualKeyCodes)(int)msg->wParam.Value);
+                Input.HandleKeyDownEvent(lpMsg->lParam.Value, (VirtualKeyCodes)(int)lpMsg->wParam.Value);
             }
 
             return success.Value;

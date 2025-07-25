@@ -1,4 +1,5 @@
-﻿using GGXXACPROverlay.GGXXACPR;
+﻿using System.Buffers;
+using GGXXACPROverlay.GGXXACPR;
 using Vortice.Mathematics;
 
 // TODO: reevaluate preallocated buffers
@@ -29,15 +30,16 @@ namespace GGXXACPROverlay
         }
 
 
-        private static readonly ColorRectangle[] _colorRectangleBuffer = new ColorRectangle[100];
-        public static Span<ColorRectangle> GetHitboxPrimitives(Span<Hitbox> boxes)
+        public static RentedArraySlice<ColorRectangle> GetHitboxPrimitives(Span<Hitbox> boxes)
         {
-            for (int i = 0; i < boxes.Length; i++) Convert(boxes[i], out _colorRectangleBuffer[i]);
+            if (boxes.Length > 100) throw new ArgumentOutOfRangeException($"hitboxes exceeded buffer size of 100: {boxes.Length} boxes");
+            ColorRectangle[] temp = ArrayPool<ColorRectangle>.Shared.Rent(boxes.Length);
+            for (int i = 0; i < boxes.Length; i++) Convert(ref boxes[i], out temp[i]);
 
-            return _colorRectangleBuffer.AsSpan(0, boxes.Length);
+            return new(temp, 0, boxes.Length);
         }
 
-        private static void Convert(Hitbox h, out ColorRectangle output)
+        private static void Convert(ref Hitbox h, out ColorRectangle output)
         {
             var colorValue = Settings.Default;
             if (h.BoxTypeId == (ushort)BoxId.HIT) colorValue = Settings.Hitbox;
@@ -55,19 +57,20 @@ namespace GGXXACPROverlay
         /// <param name="p"></param>
         /// <param name="ratio"></param>
         /// <returns></returns>
-        public static Span<ColorRectangle> GetPivot(Player p, float ratio)
+        public static RentedArraySlice<ColorRectangle> GetPivot(Player p, float ratio)
         {
+            ColorRectangle[] temp = ArrayPool<ColorRectangle>.Shared.Rent(2);
             var halfSize = Settings.PivotCrossSize * ratio / 2.0f;
             var halfThickness = Settings.PivotCrossThickness * ratio / 2.0f;
 
-            _colorRectangleBuffer[0] = new ColorRectangle(
+            temp[0] = new ColorRectangle(
                 p.XPos - halfSize,
                 p.YPos - halfThickness,
                 halfSize * 2,
                 halfThickness * 2,
                 Settings.PivotCrossColor
             );
-            _colorRectangleBuffer[1] = new ColorRectangle(
+            temp[1] = new ColorRectangle(
                 p.XPos - halfThickness,
                 p.YPos - halfSize,
                 halfThickness * 2,
@@ -75,7 +78,7 @@ namespace GGXXACPROverlay
                 Settings.PivotCrossColor
             );
 
-            return _colorRectangleBuffer.AsSpan(0, 2);
+            return new(temp, 0, 2);
         }
 
         public static ColorRectangle GetPushboxPrimitives(Player p)
@@ -94,27 +97,27 @@ namespace GGXXACPROverlay
             return new ColorRectangle(cmdGrabBox, Settings.Grab);
         }
 
-        private static readonly ColorRectangle[] _pushGrabBuffer = new ColorRectangle[2];
-        public static Span<ColorRectangle> GetPushAndGrabPrimitives(Player p)
+        public static RentedArraySlice<ColorRectangle> GetPushAndGrabPrimitives(Player p)
         {
+            ColorRectangle[] temp = ArrayPool<ColorRectangle>.Shared.Rent(2);
             Rect push = GGXXACPR.GGXXACPR.GetPushBox(p);
-            _pushGrabBuffer[0] = new ColorRectangle(push, Settings.Push);
+            temp[0] = new ColorRectangle(push, Settings.Push);
             ThrowDetection throwFlags = GGXXACPR.GGXXACPR.ThrowFlags;
 
             if (GGXXACPR.GGXXACPR.GetCommandGrabBox(p, push, out Rect cmdGrab))
             {
-                _pushGrabBuffer[1] = new ColorRectangle(cmdGrab, Settings.Grab);
-                return _pushGrabBuffer.AsSpan();
+                temp[1] = new ColorRectangle(cmdGrab, Settings.Grab);
+                return new(temp);
             }
-            else if (p.PlayerIndex == 0 && throwFlags.HasFlag(ThrowDetection.Player1ThrowSuccess) ||    // TODO: throw recognition bug going on here
+            else if (p.PlayerIndex == 0 && throwFlags.HasFlag(ThrowDetection.Player1ThrowSuccess) ||
                      p.PlayerIndex == 1 && throwFlags.HasFlag(ThrowDetection.Player2ThrowSuccess))
             {
                 Rect grab = GGXXACPR.GGXXACPR.GetGrabBox(p, push);
-                _pushGrabBuffer[1] = new ColorRectangle(grab, Settings.Grab);
-                return _pushGrabBuffer.AsSpan();
+                temp[1] = new ColorRectangle(grab, Settings.Grab);
+                return new(temp);
             }
 
-            return _pushGrabBuffer.AsSpan(0, 1);
+            return new(temp, 0, 1);
         }
 
     //    private const int FRAME_METER_Y_ALT = 90;

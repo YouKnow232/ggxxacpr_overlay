@@ -1,32 +1,50 @@
 # GGXXACPROverlay
-Displays hitboxes ~~and a frame meter~~ (WIP) in a overlay for the Steam release of Guilty Gear XX Accent Core Plus R.
+Displays hitboxes ~~and a frame meter~~ (WIP) in an overlay for the Steam release of Guilty Gear XX Accent Core Plus R.
 
 ## How to Use
 1. Copy the GGXXACPROverlay folder to Plus R's folder. (..steamapps\common\Guilty Gear XX Accent Core Plus R\GGXXACPROverlay)
 2. Launch Plus R
 3. Launch GGXXACPRInjector.exe
-
-## Frame Meter Legend
-![#01b597](https://placehold.co/15x15/01b597/01b597.png) Startup / Counter Hit State <br>
-![#CB2B67](https://placehold.co/15x15/CB2B67/CB2B67.png) Active <br>
-![#006FBC](https://placehold.co/15x15/006FBC/006FBC.png) Recovery <br>
-![#C8C800](https://placehold.co/15x15/C8C800/C8C800.png) Blockstun / Hitstun <br>
-![#41F8FC](https://placehold.co/15x15/41F8FC/41F8FC.png) Movement <br>
-### Under Lines
-![#FFFF00](https://placehold.co/15x15/FFFF00/FFFF00.png) FRC <br>
-![#FF0000](https://placehold.co/15x15/FF0000/FF0000.png) Slash Back <br>
-![#FFFFFF](https://placehold.co/15x15/FFFFFF/FFFFFF.png) Full Invuln <br>
-![#FF7D00](https://placehold.co/15x15/FF7D00/FF7D00.png) Throw Invuln Only <br>
-![#007DFF](https://placehold.co/15x15/007DFF/007DFF.png) Strike Invuln Only <br>
-![#785000](https://placehold.co/15x15/785000/785000.png) Armor / Guardpoint / Parry<br>
+4. (Optional) Check README.txt and OverlaySettings.ini for additional information
 
 ## Known Issues
-### General
 - Frame Meter coming soon!
 - Issues with anti-virus software. Exclude the overlay folder from your anti-virus if you are having problems.
-- Crashes on rare occasions (Fatal CLR error). Please let me know if you get this consistently.
+- Incompatible with some overlays/mods (e.g. MSI Afterburner's overlay)
+
+## Build Instructions
+This project was built with Visual Studio 2022 v17.14.9 + .NET SDK v9.0.302
+
+GGXXACPROverlay.dll and its related files must be in the designated mod folder GGXXACPROverlay.
+There's a GameFolder publish profile you can configure to facilitate that. After that's built you can use the normal build & run workflow since
+GGXXACPRInjector doesn't need to know the file directory in order to inject bootstrapper dll. You just need to republish in order to reflect
+changes in the main GGXXACPROverlay.dll.
+
+### Dependencies
+This project requires an x86 installation of the .NET hosting api in order to host the runtime within the GGXXACPR_Win process.
+This should be bundled with a regular x64 .NET SDK installation.
+See DEV-README.txt
+
+### Steps
+1. Clone the repository
+```shell
+git clone https://github.com/YouKnow232/ggxxacpr_overlay.git
+```
+2. Open the .sln file in Visual Studio
+3. Configure C++ linker settings if needed (see DEV-README.txt)
+4. Right-click GGXXACPRInjector in the Solution Explorer -> Publish...
+5. Select FolderPublish.pubxml -> Publish
+6. Click "Navigate" in the green "publish succeeded" box
+
+## Project Architecture
+1. GGXXACPRInjector injects GGXXACPROverlay.Bootstrapper.dll
+2. Bootstrapper hosts .NET runtime, loads and calls GGXXACPROverlay.dll
+3. GGXXACPROverlay.dll installs hooks
+
 
 ## Special Thanks / References
 - Labreezy and contributors of [rev2-wakeup-tool](https://github.com/Labreezy/rev2-wakeup-tool)
 - odabugs and contributors of [kof-combo-hitboxes](https://github.com/odabugs/kof-combo-hitboxes)
-- TheLettuceClub and Ryn for +R reverse engineering knowledge [GGXXACPR_Framework](https://github.com/TheLettuceClub/GGXXACPR_Framework)
+- TheLettuceClub, Ryn for +R reverse engineering knowledge [GGXXACPR_Framework](https://github.com/TheLettuceClub/GGXXACPR_Framework)
+- DPScrub for frame stepping concept and for giving this overlay a home in [ACPR_IM](https://github.com/DPS-FGC/ACPR_IM)
+- Everyone who helped by raising issues and/or sharing their knowledge

@@ -1,6 +1,5 @@
 ﻿namespace GGXXACPROverlay.Hooks
 {
-    // TODO: extend safe handle?
     internal abstract class DisposableHook : IHook, IDisposable
     {
         public abstract bool IsInstalled { get; }

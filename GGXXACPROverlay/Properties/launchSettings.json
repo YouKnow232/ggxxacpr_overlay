@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "GGXXACPR_Win.exe": {
+      "commandName": "Executable",
+      "executablePath": "E:\\SteamLibrary\\steamapps\\common\\Guilty Gear XX Accent Core Plus R\\GGXXACPR_Win.exe",
+      "workingDirectory": "E:\\SteamLibrary\\steamapps\\common\\Guilty Gear XX Accent Core Plus R\\",
+      "environmentVariables": {
+        "DOTNET_HEAPVerify": "1"
+      },
+      "authenticationMode": "Windows",
+      "nativeDebugging": true
+    }
+  }
+}

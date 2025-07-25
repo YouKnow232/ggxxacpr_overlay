@@ -53,7 +53,7 @@ namespace GGXXACPROverlay.GGXXACPR
 
         public static unsafe void TogglePauseNoMenu()
         {
-            // TODO: check if training mode
+            // TODO: check if training mode?
 
             int* state = GGXXACPR.TrainingPauseState;
             int* display = GGXXACPR.TrainingPauseDisplay;
@@ -72,7 +72,7 @@ namespace GGXXACPROverlay.GGXXACPR
 
         public static unsafe void FrameStepFromPause()
         {
-            // TODO: check if training mode
+            // TODO: check if training mode?
 
             int* state = GGXXACPR.TrainingPauseState;
             int* display = GGXXACPR.TrainingPauseDisplay;

@@ -17,9 +17,7 @@
 
         // Hack Addresses
         public const nint FIX_BACKGROUND_STATE_INSTRUCTION = 0X21C363;
-        // 0 = not paused, 1 or 2 = paused (not sure the difference between 1 and 2)
-        // enum BackgroundState
-        public const nint BACKGROUND_STATE = 0x6D6420;
+        public const nint BACKGROUND_STATE = 0x6D6420;  // see enum BackgroundState
 
         // DirectX
         public const nint DIRECT3D9_DEVICE = 0x710580;
@@ -63,6 +61,7 @@
         public const nint GLOBAL_THROW_FLAGS = 0x6D5D7C;
 
         // Pause Menus
+        // 0 = not paused, 1 or 2 = paused (not sure the difference between 1 and 2)
         public const nint TRAINING_MODE_PAUSE_STATE = 0x7109E4;
         public const nint TRAINING_MODE_PAUSE_DISPLAY = 0x6CBD20;
 

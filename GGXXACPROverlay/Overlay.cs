@@ -1,4 +1,6 @@
-﻿using System.Numerics;
+﻿using System.Buffers;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using GGXXACPROverlay.GGXXACPR;
 
 namespace GGXXACPROverlay
@@ -36,11 +38,10 @@ namespace GGXXACPROverlay
         }
 
 
-        // TODO: Take device pointer as input? Something about thread safety issues when exposing it via the static Overlay instance.
         public void RenderFrame(nint devicePointer)
         {
             if (!GGXXACPR.GGXXACPR.ShouldRender) return;
-            _graphics.UpdateDevice(devicePointer);  // TEMP
+            _graphics.UpdateDevice(devicePointer);
 
             var p1 = GGXXACPR.GGXXACPR.Player1;
             var p2 = GGXXACPR.GGXXACPR.Player2;
@@ -54,7 +55,6 @@ namespace GGXXACPROverlay
             // TODO: Test this more
             //GGXXACPR.GGXXACPR.RenderText("TEST!", 212, 368, 0xFF);
 
-            // See constructor and Settings.DrawOrder
             if (Settings.DisplayBoxes) 
                 DrawFunctions?.Invoke(p1, p2, cam);
 
@@ -82,9 +82,9 @@ namespace GGXXACPROverlay
         {
             _graphics.SetDeviceContext(GraphicsContext.Hitbox);
             Matrix4x4 transform = GGXXACPR.GGXXACPR.GetModelTransform(p) * GGXXACPR.GGXXACPR.GetProjectionTransform(cam);
-            _graphics.DrawRectangles(
-                Drawing.GetHitboxPrimitives(GGXXACPR.GGXXACPR.GetHitboxes(boxType, p)),
-                transform);
+            using var rentalSlice = GGXXACPR.GGXXACPR.GetHitboxes(boxType, p);
+            using var rentalArray = Drawing.GetHitboxPrimitives(rentalSlice.Span);
+            _graphics.DrawRectangles(rentalArray.Span, transform);
         }
         private void RenderCleanHitbox(Player p, Camera cam)
         {
@@ -106,9 +106,9 @@ namespace GGXXACPROverlay
                 if (iEntity.PlayerIndex == playerIndexFilter)
                 {
                     Matrix4x4 transform = GGXXACPR.GGXXACPR.GetModelTransform(iEntity) * GGXXACPR.GGXXACPR.GetProjectionTransform(cam);
-                    _graphics.DrawRectangles(
-                        Drawing.GetHitboxPrimitives(GGXXACPR.GGXXACPR.GetHitboxes(boxType, iEntity)),
-                        transform);
+                    using var rentalHitboxArraySlice = GGXXACPR.GGXXACPR.GetHitboxes(boxType, iEntity);
+                    using var rentalColorRectangleArray = Drawing.GetHitboxPrimitives(rentalHitboxArraySlice.Span);
+                    _graphics.DrawRectangles(rentalColorRectangleArray.Span, transform);
                 }
 
                 iEntity = iEntity.Next;
@@ -118,9 +118,8 @@ namespace GGXXACPROverlay
         private void RenderPivot(Player p, Camera cam)
         {
             _graphics.SetDeviceContext(GraphicsContext.Pivot);
-            _graphics.DrawRectangles(
-                Drawing.GetPivot(p, GGXXACPR.GGXXACPR.WorldCoorPerViewPixel(cam)),
-                GGXXACPR.GGXXACPR.GetProjectionTransform(cam));
+            using var rental = Drawing.GetPivot(p, GGXXACPR.GGXXACPR.WorldCoorPerViewPixel(cam));
+            _graphics.DrawRectangles(rental.Span, GGXXACPR.GGXXACPR.GetProjectionTransform(cam));
         }
 
         private void RenderPushbox(Player p, Camera cam)

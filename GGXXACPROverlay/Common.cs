@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Buffers;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Vortice.Mathematics;
 
@@ -103,6 +104,42 @@ namespace GGXXACPROverlay
         [FieldOffset(0x0C)] public readonly D3DCOLOR_ARGB Color = color;
 
         public LineVertex(float x, float y, D3DCOLOR_ARGB color) : this(new Vector3(x, y, 0), color) { }
+    }
+
+    public ref struct RentedArraySlice<T>
+    {
+        private readonly T[] _pooledArray;
+        private readonly Span<T> _slice;
+        public readonly Span<T> Span => _slice;
+
+        private bool _isReturned = false;
+
+        public readonly int Length => _slice.Length;
+
+        public RentedArraySlice(T[] pooledArray)
+            : this(pooledArray, pooledArray.AsSpan()) { }
+        public RentedArraySlice(T[] pooledArray, int start, int length)
+            : this(pooledArray, pooledArray.AsSpan(start, length)) { }
+        public RentedArraySlice(T[] pooledArray, Span<T> slice)
+        {
+            _pooledArray = pooledArray;
+            _slice = slice;
+        }
+
+        public void Dispose()
+        {
+            if (!_isReturned)
+            {
+                ArrayPool<T>.Shared.Return(_pooledArray);
+                _isReturned = true;
+            }
+        }
+
+        public T this[int key]
+        {
+            get => _slice[key];
+            set => _slice[key] = value;
+        }
     }
 
     /// <summary>

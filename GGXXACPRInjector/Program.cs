@@ -17,23 +17,24 @@ namespace GGXXACPRInjector
             try
             {
                 FileVersionInfo overlayVersion = FileVersionInfo.GetVersionInfo(overlay);
-                Console.WriteLine($"Overlay Version: v{overlayVersion.ProductVersion}");
+                Console.WriteLine($"Overlay Version: v{overlayVersion.FileVersion}");
             }
             catch (FileNotFoundException)
             {
                 Console.WriteLine("\nCouldn't find GGXXACPROverlay.dll in current directory!");
-                Console.WriteLine("Make sure you're running this injector from the mod directory\n");
+                Console.WriteLine("Make sure you're running this injector from the GGXXACPROverlay folder.\n");
                 Console.WriteLine("Press any key to close this window...");
                 _ = Console.ReadKey(true);
                 return;
             }
             Console.WriteLine();
 
+
             bool injected = false;
 
             try
             {
-                if (CheckDependencies())
+                if (RuntimeInstaller.HandleRuntimeChecks())
                 {
                     Injector injector = new Injector(targetProcessName, Path.GetFullPath(injectee), [Path.GetFullPath(injecteeDependency)]);
                     injected = injector.Inject();
@@ -43,12 +44,11 @@ namespace GGXXACPRInjector
                     else
                         Console.WriteLine("Overlay failed to inject.\n");
                 }
-                else
-                {
-                    Console.WriteLine("This overlay requries a .NET runtime installation, but a compatible version wasn't detected.");
-                    Console.WriteLine("Please install the x86 version for console apps from Microsoft here:");
-                    Console.WriteLine("https://dotnet.microsoft.com/en-us/download/dotnet/9.0/runtime");
-                }
+            }
+            catch (InvalidHashException)
+            {
+                Console.WriteLine("[ERROR] Something went wrong with the download!");
+                Console.WriteLine("Try downloading the runtime manually.");
             }
             catch (Exception ex)
             {
@@ -70,15 +70,6 @@ namespace GGXXACPRInjector
                 }
                 _ = Console.ReadKey(true);
             }
-        }
-
-        static bool CheckDependencies()
-        {
-            string hostfxrPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-                @"dotnet\host\fxr\");
-
-            return Path.Exists(hostfxrPath);
         }
     }
 }

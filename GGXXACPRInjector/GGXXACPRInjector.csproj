@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0-windows</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <InvariantGlobalization>true</InvariantGlobalization>
@@ -12,6 +12,7 @@
     <Platforms>AnyCPU;x86</Platforms>
     <ApplicationIcon>Sidewinder.ico</ApplicationIcon>
     <PackageIcon>Sidewinder.png</PackageIcon>
+    <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,10 +20,6 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\GGXXACPROverlay\GGXXACPROverlay.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -36,15 +33,27 @@
   </ItemGroup>
 
 	<Target Name="CopyGGXXACPROverlayBootstrapper" AfterTargets="Build">
-		<Copy SourceFiles="..\Release\GGXXACPROverlay.Bootstrapper.dll" DestinationFolder="$(OutDir)" />
-		<Copy SourceFiles="..\Release\nethost.dll" DestinationFolder="$(OutDir)" />
-		<Copy SourceFiles="..\GGXXACPROverlay\bin\x86\Release\net9.0-windows\win-x86\GGXXACPROverlay.runtimeconfig.json" DestinationFolder="$(OutDir)" />
+		<ItemGroup>
+			<OverlayFiles Include="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\*.*" />
+		</ItemGroup>
+		<Copy SourceFiles="..\$(Configuration)\GGXXACPROverlay.Bootstrapper.dll" DestinationFolder="$(OutDir)" />
+		<Copy SourceFiles="..\$(Configuration)\nethost.dll" DestinationFolder="$(OutDir)" />
+		<Copy
+			SourceFiles="@(OverlayFiles)"
+			DestinationFolder="$(OutDir)"
+			SkipUnchangedFiles="true" />
 	</Target>
 
 	<Target Name="CopyGGXXACPROverlayBootstrapperToPublish" AfterTargets="Publish">
-		<Copy SourceFiles="..\Release\GGXXACPROverlay.Bootstrapper.dll" DestinationFolder="$(PublishDir)" />
-		<Copy SourceFiles="..\Release\nethost.dll" DestinationFolder="$(PublishDir)" />
-		<Copy SourceFiles="..\GGXXACPROverlay\bin\x86\Release\net9.0-windows\win-x86\GGXXACPROverlay.runtimeconfig.json" DestinationFolder="$(PublishDir)" />
+		<ItemGroup>
+			<OverlayFiles Include="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\*.*" />
+		</ItemGroup>
+		<Copy SourceFiles="..\$(Configuration)\GGXXACPROverlay.Bootstrapper.dll" DestinationFolder="$(PublishDir)" />
+		<Copy SourceFiles="..\$(Configuration)\nethost.dll" DestinationFolder="$(PublishDir)" />
+		<Copy
+			SourceFiles="@(OverlayFiles)"
+			DestinationFolder="$(PublishDir)"
+			SkipUnchangedFiles="true" />
 	</Target>
 
 </Project>
