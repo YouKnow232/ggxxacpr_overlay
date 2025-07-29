@@ -1,6 +1,4 @@
-﻿using System.Buffers;
-using System.Numerics;
-using System.Runtime.CompilerServices;
+﻿using System.Numerics;
 using GGXXACPROverlay.GGXXACPR;
 
 namespace GGXXACPROverlay
@@ -62,6 +60,8 @@ namespace GGXXACPROverlay
             {
                 RenderComboTimeMeter(p2);
                 RenderUntechTimeMeter(p2);
+                RenderComboTimeMeter(p1);
+                RenderUntechTimeMeter(p1);
             }
 
             _graphics.EndScene();
@@ -70,12 +70,16 @@ namespace GGXXACPROverlay
         private unsafe void RenderComboTimeMeter(Player p)
         {
             _graphics.SetDeviceContext(GraphicsContext.ComboTime, p.Extra.ComboTime);
-            _graphics.DrawRectangles(_resources.ComboTimeMeter, GGXXACPR.GGXXACPR.GetWidescreenCorrectionTransform());
+            _graphics.DrawRectangles(
+                p.PlayerIndex == 0 ? _resources.ComboTimeMeterP2 : _resources.ComboTimeMeterP1,
+                GGXXACPR.GGXXACPR.GetWidescreenCorrectionTransform());
         }
         private unsafe void RenderUntechTimeMeter(Player p)
         {
             _graphics.SetDeviceContext(GraphicsContext.Meter, p.Extra.UntechTimer + 1, 60.0f);
-            _graphics.DrawRectangles(_resources.UntechTimeMeter, GGXXACPR.GGXXACPR.GetWidescreenCorrectionTransform());
+            _graphics.DrawRectangles(
+                p.PlayerIndex == 0 ? _resources.UntechTimeMeterP2 : _resources.UntechTimeMeterP1,
+                GGXXACPR.GGXXACPR.GetWidescreenCorrectionTransform());
         }
 
         private void RenderPlayerBoxes(Player p, Camera cam, BoxId boxType)
