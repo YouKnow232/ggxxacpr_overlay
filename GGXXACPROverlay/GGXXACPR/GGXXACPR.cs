@@ -182,6 +182,14 @@ namespace GGXXACPROverlay.GGXXACPR
                     {
                         temp[bufferIndex++] = e->HitboxSet[i];
                     }
+
+
+                    //temp[bufferIndex++] = e->HitboxSet[i];
+
+                    //if (e->HitboxExtraSet is not null && types.Contains((BoxId)e->HitboxExtraSet[i].BoxTypeId))
+                    //{
+                    //    temp[bufferIndex++] = e->HitboxExtraSet[i];
+                    //}
                 }
             }
 
@@ -244,10 +252,16 @@ namespace GGXXACPROverlay.GGXXACPR
         public static bool GetCommandGrabBox(Player p, Rect pushbox, out Rect rect)
         {
             rect = default;
-            if (p.Mark == 0 || !MoveData.IsActiveByMark(p.CharId, p.ActionId)) return false;
+            if (!IsCommandThrowActive(p)) return false;
 
             int cmdThrowID = MoveData.GetCommandGrabId(p.CharId, p.ActionId);
             int cmdThrowRange = CommandThrowRangeArr[cmdThrowID];
+
+            // Hard-coded override for A.B.A. Keygrab. See GGXXACPR_Win.exe+12054A
+            if (cmdThrowID == SPECIAL_CASE_COMMAND_THROW_ID)
+            {
+                cmdThrowRange = SPECIAL_CASE_COMMAND_THROW_RANGE;
+            }
 
             rect = new Rect(
                 pushbox.X - cmdThrowRange,
@@ -302,7 +316,7 @@ namespace GGXXACPROverlay.GGXXACPR
         }
         public static bool IsCommandThrowActive(Player p)
         {
-            return p.Mark != 0 && MoveData.IsActiveByMark(p.CharId, p.ActionId);
+            return p.Mark == 1 && MoveData.IsActiveByMark(p.CharId, p.ActionId);
         }
         #endregion
 
