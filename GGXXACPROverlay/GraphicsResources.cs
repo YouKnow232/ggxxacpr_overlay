@@ -20,9 +20,9 @@ namespace GGXXACPROverlay
     {
         NONE, TYPE, PROPERTY1, PROPERTY2
     }
-    internal readonly struct LegendEntry(FrameMeter.Frame exampleFrame, string label, FrameMeterElement elementType)
+    internal readonly struct LegendEntry(FrameMeter.FrameMeterPip exampleFrame, string label, FrameMeterElement elementType)
     {
-        public readonly FrameMeter.Frame ExampleFrame = exampleFrame;
+        public readonly FrameMeter.FrameMeterPip ExampleFrame = exampleFrame;
         public readonly string Label = label;
         public readonly FrameMeterElement ElementType = elementType;
     }

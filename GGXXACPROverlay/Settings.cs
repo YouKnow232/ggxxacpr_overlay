@@ -37,6 +37,9 @@ namespace GGXXACPROverlay
         ];
         public static bool DisplayHSDMeter { get; set; } = true;
         public static bool IgnoreDisableHitboxFlag { get; private set; } = false;
+        public static bool RecordDuringHitstop { get; set; } = false;
+        public static bool RecordDuringSuperFlash { get; set; } = false;
+
 
         public static Dictionary<string, Dictionary<string, string>> Sections { get; } = [];
 

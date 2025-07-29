@@ -138,6 +138,13 @@ namespace GGXXACPROverlay.GGXXACPR
             }
         }
 
+        public static Player GetOpponent(Player p)
+        {
+            if (!p.IsValid) return new();
+
+            return p.PlayerIndex == 0 ? Player2 : Player1;
+        }
+
         //private static readonly Hitbox[] _hitboxBuffer = new Hitbox[100];
         public static RentedArraySlice<Hitbox> GetHitboxes(BoxId type, Player p)
             => GetHitboxes([type, BoxId.USE_EXTRA], p);
@@ -223,7 +230,6 @@ namespace GGXXACPROverlay.GGXXACPR
         /// There is a flag set in `Player.Extra.HitstunFlags` for CL but it is cleared by the time the graphics hook runs.
         /// </summary>
         /// <param name="p">Target player</param>
-        /// <returns></returns>
         private static bool IsInCLHitstop(Player p)
         {
             // TODO: find a better method. Worst case, hook CL detection function to save result.
@@ -431,7 +437,68 @@ namespace GGXXACPROverlay.GGXXACPR
             return MoveData.IsActiveByMark(p.CharId, p.ActionId) && p.Mark == 1;
         }
 
-#region Rendering Helpers
+        /// <summary>
+        /// Helper logic for FrameMeter. Returns true if the given player has any hurt boxes.
+        /// </summary>
+        public static bool HasAnyHurtboxes(Player p)
+        {
+            Span<Hitbox> hitboxes = p.HitboxSet;
+            for (int i = 0; i < hitboxes.Length; i++)
+            {
+                if (hitboxes[i].BoxTypeId == (ushort)BoxId.HURT) return true;
+            }
+            return false;
+        }
+
+        public static bool HasAnyProjectileHitbox(byte playerIndex)
+        {
+            return AnyEntities((e) =>
+            {
+                if (e.PlayerIndex != playerIndex) return false;
+
+                foreach (Hitbox hb in e.HitboxSet)
+                {
+                    if (hb.BoxTypeId == (short)BoxId.HIT) return true;
+                }
+
+                return false;
+            });
+        }
+        public static bool HasAnyProjectileHurtbox(byte playerIndex)
+        {
+            return AnyEntities((e) =>
+            {
+                if (e.PlayerIndex != playerIndex) return false;
+
+                foreach (Hitbox hb in e.HitboxSet)
+                {
+                    if (hb.BoxTypeId == (ushort)BoxId.HURT) return true;
+                }
+
+                return false;
+            });
+        }
+
+        public static bool AnyEntities(Func<Entity, bool> predicate)
+        {
+            Entity Root = RootEntity;
+            if (!Root.IsValid) return false;
+
+            Entity iEntity = Root.Next;
+
+            while (!iEntity.Equals(Root))
+            {
+                if (!iEntity.IsValid) return false;
+
+                if (predicate.Invoke(iEntity)) return true;
+
+                iEntity = iEntity.Next;
+            }
+
+            return false;
+        }
+
+        #region Rendering Helpers
         /// <summary>
         /// Returns a matrix transform for aligning hitbox model coordinates to a player in world coordinates.
         /// </summary>
@@ -537,6 +604,6 @@ namespace GGXXACPROverlay.GGXXACPR
         {
             return c.Height * 1.0f / (*_viewHeight);
         }
-#endregion
+        #endregion
     }
 }
