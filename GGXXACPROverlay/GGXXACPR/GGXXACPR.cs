@@ -383,7 +383,6 @@ namespace GGXXACPROverlay.GGXXACPR
             // see BRIDGET_SHOOT_ACT_ID comment
             if (p.CharId == CharacterID.BRIDGET && p.ActionId == BRIDGET_SHOOT_ACT_ID)
             {
-                y += BRIDGET_SHOOT_PUSHBOX_ADJUST;
                 height += BRIDGET_SHOOT_PUSHBOX_ADJUST;
             }
 
