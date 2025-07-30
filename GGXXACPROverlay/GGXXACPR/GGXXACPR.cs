@@ -168,8 +168,10 @@ namespace GGXXACPROverlay.GGXXACPR
 
                     // hitbox discard checks
                     if (e->HitboxSet[i].BoxTypeId == (ushort)BoxId.HIT &&
+                        // Discard if disabled hitboxes is flagged and not ignoring that flag in settings
                         ((e->Status & (uint)ActionState.DisableHitboxes) > 0 && !Settings.IgnoreDisableHitboxFlag) &&
-                        e->HitstopCounter <= 0)
+                        // but only if not in hitstop after an attack has connected
+                        !(e->HitstopCounter > 0 && (e->AttackFlags & (uint)AttackState.HasConnected) > 0))
                         continue;
 
 
@@ -182,14 +184,6 @@ namespace GGXXACPROverlay.GGXXACPR
                     {
                         temp[bufferIndex++] = e->HitboxSet[i];
                     }
-
-
-                    //temp[bufferIndex++] = e->HitboxSet[i];
-
-                    //if (e->HitboxExtraSet is not null && types.Contains((BoxId)e->HitboxExtraSet[i].BoxTypeId))
-                    //{
-                    //    temp[bufferIndex++] = e->HitboxExtraSet[i];
-                    //}
                 }
             }
 
@@ -383,6 +377,7 @@ namespace GGXXACPROverlay.GGXXACPR
             // see BRIDGET_SHOOT_ACT_ID comment
             if (p.CharId == CharacterID.BRIDGET && p.ActionId == BRIDGET_SHOOT_ACT_ID)
             {
+                // Game makes Y adjustment here too, but that's already handled by checking the PushboxOffsetP1 / P2 address
                 height += BRIDGET_SHOOT_PUSHBOX_ADJUST;
             }
 

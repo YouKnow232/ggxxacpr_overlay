@@ -231,6 +231,7 @@ namespace GGXXACPROverlay.GGXXACPR
         public ActionState Status => (ActionState)NativePointer->Status;
         public byte PlayerIndex => NativePointer->PlayerIndex;
         public ushort ParentFlag => NativePointer->ParentFlag;
+        public AttackState AttackFlags => (AttackState)NativePointer->AttackFlags;
         public short CoreX => NativePointer->CoreX;
         public short CoreY => NativePointer->CoreY;
         public short ScaleX => NativePointer->ScaleX;
@@ -388,22 +389,22 @@ namespace GGXXACPROverlay.GGXXACPR
         IsAttack            = 1 << 0,
         Unknown1            = 1 << 1,
         Unknown2            = 1 << 2,
+        Unknown3            = 1 << 3,
         /// <summary>
         /// Doesn't necessarily mean the move can currently gatling or has gatling options
         /// </summary>
-        IsInGatlingWindow   = 1 << 3,
-        SpecialCancelOkay   = 1 << 4,
-        Unknown5            = 1 << 5,
-        UnknownDustFlag1    = 1 << 6,
-        HomingJumpOkay      = 1 << 7,
-        KaraFDOkay          = 1 << 8,
-        NoSpecialCancel     = 1 << 9,
-        IsInRecovery        = 1 << 10,
+        IsInGatlingWindow   = 1 << 4,
+        SpecialCancelOkay   = 1 << 5,
+        Unknown6            = 1 << 6,
+        UnknownDustFlag1    = 1 << 7,
+        HomingJumpOkay      = 1 << 8,
+        KaraFDOkay          = 1 << 9,
+        NoSpecialCancel     = 1 << 10,
+        IsInRecovery        = 1 << 11,
         /// <summary>
         /// On during/after hit. Maybe an RC-Okay flag.
         /// </summary>
-        HasConnected        = 1 << 11,
-        Unknown12           = 1 << 12,
+        HasConnected        = 1 << 12,
         Unknown13           = 1 << 13,
         Unknown14           = 1 << 14,
         Unknown15           = 1 << 15,

@@ -99,6 +99,7 @@ namespace GGXXACPROverlay
         private void RenderEntityBoxes(int playerIndexFilter, Camera cam, BoxId boxType)
         {
             _graphics.SetDeviceContext(GraphicsContext.Hitbox);
+
             Entity Root = GGXXACPR.GGXXACPR.RootEntity;
             if (!Root.IsValid) return;
 
@@ -107,6 +108,19 @@ namespace GGXXACPROverlay
             while (!iEntity.Equals(Root))
             {
                 if (!iEntity.IsValid) return;
+
+                if ((boxType == BoxId.HIT && iEntity.Status.HasFlag(ActionState.DisableHitboxes) &&
+                        // Discard if disabled hitboxes is flagged and not ignoring that flag in settings
+                        iEntity.Status.HasFlag(ActionState.DisableHitboxes) && !Settings.IgnoreDisableHitboxFlag &&
+                        // but only if not in hitstop
+                        !(iEntity.HitstopCounter > 0 && iEntity.AttackFlags.HasFlag(AttackState.HasConnected))) ||
+                    boxType == BoxId.HURT && iEntity.Status.HasFlag(ActionState.DisableHurtboxes) ||
+                    boxType == BoxId.HURT && iEntity.Status.HasFlag(ActionState.StrikeInvuln))
+                {
+                    iEntity = iEntity.Next;
+                    continue;
+                }
+
                 if (iEntity.PlayerIndex == playerIndexFilter)
                 {
                     Matrix4x4 transform = GGXXACPR.GGXXACPR.GetModelTransform(iEntity) * GGXXACPR.GGXXACPR.GetProjectionTransform(cam);
