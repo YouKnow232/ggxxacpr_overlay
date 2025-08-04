@@ -5,11 +5,14 @@ using Vortice.Mathematics;
 
 namespace GGXXACPROverlay
 {
+    /// <summary>
+    /// Each draw operation draws all of one specific type of box.
+    /// </summary>
     public enum DrawOperation
     {
         None,
         Push,
-        MiscProximity,
+        MiscRange,
         Grab,
         Hurt,
         Hit,
@@ -106,6 +109,10 @@ namespace GGXXACPROverlay
         public LineVertex(float x, float y, D3DCOLOR_ARGB color) : this(new Vector3(x, y, 0), color) { }
     }
 
+    /// <summary>
+    /// Wrapper struct for arrays rented from ArrayPool.Shared. Compatible with `using` keyword to return the array to the array pool when finished.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public ref struct RentedArraySlice<T>
     {
         private readonly T[] _pooledArray;
@@ -116,6 +123,10 @@ namespace GGXXACPROverlay
 
         public readonly int Length => _slice.Length;
 
+        public RentedArraySlice()
+            : this([], 0, 0) { }
+        public RentedArraySlice(int size)
+            : this(ArrayPool<T>.Shared.Rent(size), 0, size) { }
         public RentedArraySlice(T[] pooledArray)
             : this(pooledArray, pooledArray.AsSpan()) { }
         public RentedArraySlice(T[] pooledArray, int start, int length)
@@ -125,20 +136,20 @@ namespace GGXXACPROverlay
             _pooledArray = pooledArray;
             _slice = slice;
         }
+        public ref T this[int key]
+        {
+            get => ref _slice[key];
+        }
+
+        public static implicit operator Span<T>(RentedArraySlice<T> rentedArray) => rentedArray.Span;
 
         public void Dispose()
         {
-            if (!_isReturned)
+            if (!_isReturned && _pooledArray is not null)
             {
                 ArrayPool<T>.Shared.Return(_pooledArray);
                 _isReturned = true;
             }
-        }
-
-        public T this[int key]
-        {
-            get => _slice[key];
-            set => _slice[key] = value;
         }
     }
 

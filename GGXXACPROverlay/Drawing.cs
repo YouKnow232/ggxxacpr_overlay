@@ -29,14 +29,50 @@ namespace GGXXACPROverlay
             public readonly int Y = y;
         }
 
+        public static D3DCOLOR_ARGB GetBoxColor(ushort id) => GetBoxColor((BoxId)id);
+        public static D3DCOLOR_ARGB GetBoxColor(BoxId id)
+        {
+            switch (id)
+            {
+                case BoxId.HIT:
+                    return Settings.Hitbox;
+                case BoxId.HURT:
+                    return Settings.Hurtbox;
+                default:
+                    return Settings.Default;
+            }
+        }
 
         public static RentedArraySlice<ColorRectangle> GetHitboxPrimitives(Span<Hitbox> boxes)
         {
-            if (boxes.Length > 100) throw new ArgumentOutOfRangeException($"hitboxes exceeded buffer size of 100: {boxes.Length} boxes");
-            ColorRectangle[] temp = ArrayPool<ColorRectangle>.Shared.Rent(boxes.Length);
-            for (int i = 0; i < boxes.Length; i++) Convert(ref boxes[i], out temp[i]);
+            RentedArraySlice<ColorRectangle> output = new(boxes.Length);
+            for (int i = 0; i < boxes.Length; i++) Convert(ref boxes[i], out output[i]);
 
-            return new(temp, 0, boxes.Length);
+            return output;
+        }
+        public static RentedArraySlice<Rect> ToRects(Span<Hitbox> boxes)
+        {
+            RentedArraySlice<Rect> output = new(boxes.Length);
+            for (int i = 0; i < boxes.Length; i++) Convert(ref boxes[i], out output[i]);
+
+            return output;
+        }
+        public static RentedArraySlice<Vertex3PositionColor> GetCombinedHitboxPrimitives(Span<Hitbox> boxes)
+        {
+            if (boxes.Length == 0) return new();
+
+            D3DCOLOR_ARGB borderColor = GetBoxColor(boxes[0].BoxTypeId);
+            using var rects = ToRects(boxes);
+            return Geometry.GetCombinedGeometry(rects, borderColor);
+        }
+        public static RentedArraySlice<Vertex3PositionColor> GetBorderPrimitives(Span<Hitbox> boxes)
+        {
+            if (boxes.Length == 0) return new();
+
+            D3DCOLOR_ARGB borderColor = new(GetBoxColor(boxes[0].BoxTypeId).ARGB | 0xFF000000);
+            using var rects = ToRects(boxes);
+            float borderSizeInModelCoor = Settings.HitboxBorderThickness * GGXXACPR.GGXXACPR.WorldCoorPerViewPixel() / 100.0f;
+            return Geometry.GetBorderGeometry(rects, borderColor, borderSizeInModelCoor);
         }
 
         private static void Convert(ref Hitbox h, out ColorRectangle output)
@@ -46,6 +82,8 @@ namespace GGXXACPROverlay
             else if (h.BoxTypeId == (ushort)BoxId.HURT) colorValue = Settings.Hurtbox;
             output = new ColorRectangle(h.XOffset, h.YOffset, h.Width, h.Height, colorValue);
         }
+        private static void Convert(ref Hitbox h, out Rect output)
+            => output = new Rect(h.XOffset, h.YOffset, h.Width, h.Height);
 
         public static ColorRectangle GetCLHitBox(Player p)
             => new ColorRectangle(GGXXACPR.GGXXACPR.GetCLRect(p), Settings.CLHitbox);
@@ -58,21 +96,25 @@ namespace GGXXACPROverlay
         /// <param name="ratio"></param>
         /// <returns></returns>
         public static RentedArraySlice<ColorRectangle> GetPivot(Player p, float ratio)
+            => GetPivot(p.XPos, p.YPos, ratio);
+        public static RentedArraySlice<ColorRectangle> GetPivot(Entity e, float ratio)
+            => GetPivot(e.XPos, e.YPos, ratio);
+        private static RentedArraySlice<ColorRectangle> GetPivot(int x, int y, float ratio)
         {
             ColorRectangle[] temp = ArrayPool<ColorRectangle>.Shared.Rent(2);
             var halfSize = Settings.PivotCrossSize * ratio / 2.0f;
             var halfThickness = Settings.PivotCrossThickness * ratio / 2.0f;
 
             temp[0] = new ColorRectangle(
-                p.XPos - halfSize,
-                p.YPos - halfThickness,
+                x - halfSize,
+                y - halfThickness,
                 halfSize * 2,
                 halfThickness * 2,
                 Settings.PivotCrossColor
             );
             temp[1] = new ColorRectangle(
-                p.XPos - halfThickness,
-                p.YPos - halfSize,
+                x - halfThickness,
+                y - halfSize,
                 halfThickness * 2,
                 halfSize * 2,
                 Settings.PivotCrossColor
@@ -96,6 +138,11 @@ namespace GGXXACPROverlay
             GGXXACPR.GGXXACPR.GetCommandGrabBox(p, GGXXACPR.GGXXACPR.GetPushBox(p), out Rect cmdGrabBox);
             return new ColorRectangle(cmdGrabBox, Settings.Grab);
         }
+
+        public static ColorRectangle GetPushRangeBoxPrimitive(Rect r)
+            => new ColorRectangle(r, Settings.MiscPushRange);
+        public static ColorRectangle GetPivotRangeBoxPrimitive(Rect r)
+            => new ColorRectangle(r, Settings.MiscPivotRange);
 
         public static RentedArraySlice<ColorRectangle> GetPushAndGrabPrimitives(Player p)
         {

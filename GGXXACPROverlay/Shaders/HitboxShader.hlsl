@@ -70,45 +70,63 @@ technique Hitbox
     }
 }
 
+sampler2D maskSampler : register(s0);
 
-struct LineVSInput
+float4 MaskingPS() : Color
 {
-    float4 vPosition : POSITION;
-    float4 vDiffuse : COLOR0;
-};
-struct LineVSOutput
+    return float4(1, 1, 1, 1);
+}
+
+HitboxVSOutput CombinedHitboxVS(HitboxVSInput input)
 {
-    float4 position : POSITION;
-    float4 color : COLOR0;
-};
-
-
-
-LineVSOutput LineVS(LineVSInput input)
-{
-    LineVSOutput output;
+    HitboxVSOutput output;
     
-    output.position = mul(input.vPosition, mvpMatrix);
     output.color = input.vDiffuse;
+    output.position = input.vPosition;
+    output.vTexCoor = input.vTexCoor;
     
     return output;
 }
 
-struct LinePSInput
+float4 CombinedHitboxPS(HitboxPSInput input) : Color
 {
-    float4 color : COLOR0;
-};
+    float center = tex2D(maskSampler, input.vTexCoor).r;
+    float2 uv = input.vTexCoor;
+    float4 output = input.color;
+    
+    float2 dx = ddx(uv);
+    float2 dy = ddy(uv);
+    float2 uvSizeInPixels;
+    uvSizeInPixels.x = 1.0 / length(dx);
+    uvSizeInPixels.y = 1.0 / length(dy);
+    float2 borderUV = borderThickness / uvSizeInPixels;
+    
+    // Sampling
+    float up    = tex2D(maskSampler, uv + float2(0, -borderUV.y)).r;
+    float down  = tex2D(maskSampler, uv + float2(0,  borderUV.y)).r;
+    float left  = tex2D(maskSampler, uv + float2(-borderUV.x, 0)).r;
+    float right = tex2D(maskSampler, uv + float2( borderUV.x, 0)).r;
 
-float4 LinePS(LinePSInput input) : COLOR
-{
-    return input.color;
+    float edge = center * (1.0 - up * down * left * right);
+    
+    if (edge > 0.0) output.a = 1.0;
+    
+    return center > 0.0 ? output : float4(0,0,0,0);
 }
 
-technique Line
+technique CombinedHitboxMask
 {
-    pass P1
+    pass P0
     {
-        VertexShader = compile vs_3_0 LineVS();
-        PixelShader  = compile ps_3_0 LinePS();
+        VertexShader = compile vs_3_0 HitboxVS();
+        PixelShader  = compile ps_3_0 MaskingPS();
+    }
+}
+technique CombinedHitbox
+{
+    pass P0
+    {
+        VertexShader = compile vs_3_0 CombinedHitboxVS();
+        PixelShader  = compile ps_3_0 CombinedHitboxPS();
     }
 }
