@@ -11,6 +11,8 @@ Displays hitboxes ~~and a frame meter~~ (WIP) in an overlay for the Steam releas
 - Frame Meter coming soon!
 - Issues with anti-virus software. Exclude the overlay folder from your anti-virus if you are having problems.
 - Incompatible with some overlays/mods (e.g. MSI Afterburner's overlay)
+- Background black out causes crashes in replay mode, toggle it off with the F7 hotkey before using the overlay with replay mode.
+- This overlay was not intended to be used during netplay and therefore was not testing during it. Crashes, desyncs, and other unexpected behavior may occur.
 
 ## Build Instructions
 This project was built with Visual Studio 2022 v17.14.9 + .NET SDK v9.0.302
