@@ -15,6 +15,7 @@ namespace GGXXACPROverlay.GGXXACPR
         public const int SCREEN_WIDTH_PIXELS = 640;
         public const int SCREEN_GROUND_PIXEL_OFFSET = 40;
         public const int NUMBER_OF_CHARACTERS = 25;
+        public const float MAX_DISPLAY_HEIGHT = 100000;
 
         #region HSD
         // See HSD function at GGXXACPR_Win.exe+132570
@@ -49,23 +50,32 @@ namespace GGXXACPROverlay.GGXXACPR
         public const int ROBO_KY_MAT_ID = 0x62; // Lot of overlap on entity IDs
         public const int ROBO_KY_MAT_COLLISION_RANGE = 13200;   // GGXXACPR_Win.exe+382AE7
 
-        public const int TESTAMENT_HITOMI_ID = 0x50;
+        public const int TESTAMENT_ENTITY_ID = 0x50;
         public const int TESTAMENT_HITOMI_ACTIVATION_RANGE_AC = 7000;   // GGXXACPR_Win.exe+246BA8
         public const int TESTAMENT_HITOMI_ACTIVATION_RANGE_PR = 5500;   // GGXXACPR_Win.exe+246BA1
 
         // Checked against PUSHBOX_EDGE_DISTANCE so visual is pushbox + 10000 unit halfwidth
         public const int FAUST_HACK_N_SLASH_RANGE = 10000;  // GGXXACPR_Win.exe+292DFF
-        public const int FUAST_HACK_N_SLASH_FAIL_ACT_ID = 190;
-        public const int FUAST_HACK_N_SLASH_UNBLOCKABLE_ACT_ID = 122;
+        public const int FAUST_HACK_N_SLASH_FAIL_ACT_ID = 190;
+        public const int FAUST_HACK_N_SLASH_UNBLOCKABLE_ACT_ID = 122;
 
-        public const int FUAST_FOOD_ID = 0x2B;
-        public const int FUAST_DONUT_PICKUP_ACT_ID = 18;
-        public const int FUAST_CHOCOLATE_PICKUP_ACT_ID = 19;
-        public const int FUAST_CHIKUWA_PICKUP_ACT_ID = 53;
+        public const int FAUST_ENTITY_ID = 0x2B;
+        public const int FAUST_DONUT_PICKUP_ACT_ID = 18;
+        public const int FAUST_CHOCOLATE_PICKUP_ACT_ID = 19;
+        public const int FAUST_CHIKUWA_PICKUP_ACT_ID = 53;
         // GGXXACPR_Win.exe+28DE55 (Donut range)
         // GGXXACPR_Win.exe+28E2AD (Chocolate range)
         // GGXXACPR_Win.exe+28C571 (Chikuwa range)
         public const int FAUST_FOOD_PICKUP_RANGE = 4800;    // All 4800
+
+        // Horizontal check is made by multiplying Eddie's Mark var by 100;
+        // Horizontal check only made if Eddie's localid == 1 && trans == 0
+        public const int EDDIE_ENTITY_ID = 0x23;
+        public const int EDDIE_PUDDLE_VERTICAL_RANGE = 4000;   // GGXXACPR_Win.exe+22BF88
+
+        // This range check is based on PUSHBOX_EDGE_DISTANCE when Mark != 0
+        public const int POTEMKIN_SLIDE_HEAD_RANGE = 17000; // GGXXACPR_Win.exe+25BD41
+        public const int POTEMKIN_SLIDE_HEAD_ACT_ID = 0x78;
         #endregion
 
         // DirectX
@@ -225,7 +235,6 @@ namespace GGXXACPROverlay.GGXXACPR
         /// There is a flag set in `Player.Extra.HitstunFlags` for CL but it is cleared by the time the graphics hook runs.
         /// </summary>
         /// <param name="p">Target player</param>
-        /// <returns></returns>
         private static bool IsInCLHitstop(Player p)
         {
             // TODO: find a better method. Worst case, hook CL detection function to save result.
@@ -412,7 +421,71 @@ namespace GGXXACPROverlay.GGXXACPR
 
             return false;
         }
-#endregion
+        #endregion
+
+        #region Range Checks
+        public static bool GetProximityBox(Player p, out Rect box)
+        {
+            box = default;
+            if (!p.IsValid) return false;
+
+            if (p.CharId == CharacterID.POTEMKIN &&
+                p.ActionId == POTEMKIN_SLIDE_HEAD_ACT_ID &&
+                p.Mark != 0)
+            {
+                var push = GetPushBox(p);
+                box = new(push.X - POTEMKIN_SLIDE_HEAD_RANGE, push.Y, push.Width + POTEMKIN_SLIDE_HEAD_RANGE * 2, push.Height);
+                return true;
+            }
+            else if (p.CharId == CharacterID.FAUST &&
+                (p.ActionId == FAUST_HACK_N_SLASH_FAIL_ACT_ID || p.ActionId == FAUST_HACK_N_SLASH_UNBLOCKABLE_ACT_ID) &&
+                p.AnimationCounter == 1)
+            {
+                var push = GetPushBox(p);
+                box = new(push.X - FAUST_HACK_N_SLASH_RANGE, push.Y, push.Width + FAUST_HACK_N_SLASH_RANGE * 2, push.Height);
+                return true;
+            }
+
+            return false;
+        }
+        public static bool GetProximityBox(Entity e, out Rect box)
+        {
+            box = default;
+            if (!e.IsValid) return false;
+
+            var halfHeight = Settings.HitboxBorderThickness * 150.0f;
+
+            if (e.Id == ROBO_KY_MAT_ID)
+            {
+                box = new(-ROBO_KY_MAT_COLLISION_RANGE, -halfHeight, ROBO_KY_MAT_COLLISION_RANGE * 2, halfHeight * 2);
+                return true;
+            }
+            else if (e.Id == TESTAMENT_ENTITY_ID && e.ActionId == 10)
+            {
+                var range = IsPlusR ? TESTAMENT_HITOMI_ACTIVATION_RANGE_PR : TESTAMENT_HITOMI_ACTIVATION_RANGE_AC;
+
+                if (Settings.DrawInfiniteHeight)
+                    box = new(-range, -MAX_DISPLAY_HEIGHT, range * 2, MAX_DISPLAY_HEIGHT * 2);
+                else
+                    box = new(-range, -halfHeight, range * 2, halfHeight * 2);
+
+                return true;
+            }
+            else if (e.Id == FAUST_ENTITY_ID && 
+                (e.ActionId is FAUST_DONUT_PICKUP_ACT_ID or FAUST_CHOCOLATE_PICKUP_ACT_ID or FAUST_CHIKUWA_PICKUP_ACT_ID))
+            {
+                box = new(-FAUST_FOOD_PICKUP_RANGE, -halfHeight, FAUST_FOOD_PICKUP_RANGE * 2, halfHeight * 2);
+                return true;
+            }
+            else if (e.Id == EDDIE_ENTITY_ID && e.LocalId == 1 && e.Transition == 0)
+            {
+                box = new(-e.Mark * 100, -EDDIE_PUDDLE_VERTICAL_RANGE, e.Mark * 200, EDDIE_PUDDLE_VERTICAL_RANGE * 2);
+                return true;
+            }
+
+            return false;
+        }
+        #endregion
 
         /// <summary>
         /// Helper logic for FrameMeter. Returns whether the given player has any active hitboxes.
@@ -439,7 +512,7 @@ namespace GGXXACPROverlay.GGXXACPR
             return MoveData.IsActiveByMark(p.CharId, p.ActionId) && p.Mark == 1;
         }
 
-#region Rendering Helpers
+        #region Rendering Helpers
         /// <summary>
         /// Returns a matrix transform for aligning hitbox model coordinates to a player in world coordinates.
         /// </summary>
@@ -489,6 +562,21 @@ namespace GGXXACPROverlay.GGXXACPR
 
             // Player origin translation
             matrix *= Matrix4x4.CreateTranslation(p.XPos, p.YPos, 0f);
+
+            return matrix;
+        }
+
+        /// <summary>
+        /// Returns a matrix transform for aligning range boxes to entity coordinates.
+        /// </summary>
+        /// <param name="e"></param>
+        public static Matrix4x4 GetEntityTransform(Entity e)
+        {
+            Matrix4x4 matrix = Matrix4x4.Identity;
+
+            // WARNING: Flip not currently necessary here, but may be if functionality is extended
+
+            matrix *= Matrix4x4.CreateTranslation(e.XPos, e.YPos, 0f);
 
             return matrix;
         }
@@ -545,6 +633,6 @@ namespace GGXXACPROverlay.GGXXACPR
         {
             return c.Height * 1.0f / (*_viewHeight);
         }
-#endregion
+        #endregion
     }
 }

@@ -102,7 +102,6 @@ static DWORD WINAPI HostDotnetRuntime(LPVOID lpParam)
     // Initialize dotnet runtime
     _hostHandle = nullptr;
     int retCode = hostfxr_initialize_for_runtime_config(runtimeConfigPath, nullptr, &_hostHandle);
-    //int retCode = hostfxr_initialize_for_runtime_config(testConfigPath, nullptr, &handle);
     if (retCode != 0 || _hostHandle == nullptr) {
         DebugLog("Failed to initialize runtime: %1", retCode);
         return 5;
@@ -122,7 +121,6 @@ static DWORD WINAPI HostDotnetRuntime(LPVOID lpParam)
     // Defining Entry point
     component_entry_point_fn Main = nullptr;
 
-    //load_assembly_and_get_function_pointer_fn load_fn = (load_assembly_and_get_function_pointer_fn)load_assembly_and_get_function_pointer;
     retCode = load_assembly_and_get_function_pointer(
             overlayPath,                // Path to managed assembly
             L"GGXXACPROverlay.Program, GGXXACPROverlay",// "[Namespace].[Type], [Assembly]"
@@ -190,7 +188,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     if (ul_reason_for_call == DLL_PROCESS_ATTACH)
     {
         DisableThreadLibraryCalls(hModule);
-        // OpenConsoleWindow();
+        OpenConsoleWindow();
         DebugLog("Attached");
         CreateThread(nullptr, 0, HostDotnetRuntime, nullptr, 0, nullptr);
     }

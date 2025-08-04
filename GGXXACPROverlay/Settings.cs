@@ -10,12 +10,15 @@ namespace GGXXACPROverlay
         private const string defaultSettingsResource = "GGXXACPROverlay.OverlaySettings.ini";
 
         public static bool DisplayBoxes { get; set; }                   = true;
+        public static bool CombineBoxes { get; set; }                   = true;
         public static D3DCOLOR_ARGB Default { get; private set; }       = new(0x00FF0000);
         public static D3DCOLOR_ARGB Hitbox { get; private set; }        = new(0x80FF0000);
         public static D3DCOLOR_ARGB Hurtbox { get; private set; }       = new(0x8000FF00);
         public static D3DCOLOR_ARGB Push { get; private set; }          = new(0x8000FFFF);
         public static D3DCOLOR_ARGB Grab { get; private set; }          = new(0x80FF00FF);
         public static D3DCOLOR_ARGB CLHitbox { get; private set; }      = new(0x80FF8000);
+        public static D3DCOLOR_ARGB MiscPushRange { get; private set; } = new(0x80FF00FF);
+        public static D3DCOLOR_ARGB MiscPivotRange { get; private set; } = new(0x80FF8000);
         public static D3DCOLOR_ARGB PivotCrossColor { get; private set; } = new(0xFF800080);
         public static float PivotCrossSize { get; private set; }        = 15.0f;
         public static float PivotCrossThickness { get; private set; }   = 3.0f;
@@ -24,11 +27,13 @@ namespace GGXXACPROverlay
         public static bool HideP1 { get; set; }                         = false;
         public static bool HideP2 { get; set; }                         = false;
         public static bool AlwaysDrawThrowRange { get; set; }           = false;
+        public static bool DrawInfiniteHeight { get; private set; }     = true;
 
         public static readonly BoxId[] BoxDrawList = [BoxId.HIT, BoxId.HURT, BoxId.USE_EXTRA];
         // Pivot, CleanHit, Hit, Hurt, Grab, Push
         public static DrawOperation[] DrawOrder { get; private set; } = [
-            DrawOperation.Push,     // back
+            DrawOperation.MiscRange,// back
+            DrawOperation.Push,
             DrawOperation.Hurt,
             DrawOperation.Hit,
             DrawOperation.CleanHit,
@@ -86,12 +91,15 @@ namespace GGXXACPROverlay
             }
 
             // Caching settings that are checked at least once per frame
-            DisplayBoxes = Get("Hitboxes", "Display", DisplayBoxes);
-            Hitbox   = new(Get("Hitboxes.Palette", "Color_Hitbox", Hitbox.ARGB));
-            Hurtbox  = new(Get("Hitboxes.Palette", "Color_Hurtbox", Hurtbox.ARGB));
-            Push     = new(Get("Hitboxes.Palette", "Color_Pushbox", Push.ARGB));
-            Grab     = new(Get("Hitboxes.Palette", "Color_Grabbox", Grab.ARGB));
-            CLHitbox = new(Get("Hitboxes.Palette", "Color_CleanHit", CLHitbox.ARGB));
+            DisplayBoxes    = Get("Hitboxes", "Display", DisplayBoxes);
+            CombineBoxes    = Get("Hitboxes", "CombineBoxes", CombineBoxes);
+            Hitbox          = new(Get("Hitboxes.Palette", "Color_Hitbox", Hitbox.ARGB));
+            Hurtbox         = new(Get("Hitboxes.Palette", "Color_Hurtbox", Hurtbox.ARGB));
+            Push            = new(Get("Hitboxes.Palette", "Color_Pushbox", Push.ARGB));
+            Grab            = new(Get("Hitboxes.Palette", "Color_Grabbox", Grab.ARGB));
+            CLHitbox        = new(Get("Hitboxes.Palette", "Color_CleanHit", CLHitbox.ARGB));
+            MiscPushRange   = new(Get("Hitboxes.Palette", "Color_MiscPushRange", MiscPushRange.ARGB));
+            MiscPivotRange  = new(Get("Hitboxes.Palette", "Color_MiscPivotRange", MiscPivotRange.ARGB));
             PivotCrossColor = new(Get("Hitboxes.Palette", "Color_Pivot", PivotCrossColor.ARGB));
             // TODO: clamp some of these values
             PivotCrossSize          = Get("Hitboxes", "PivotSize", PivotCrossSize);

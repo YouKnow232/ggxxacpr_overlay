@@ -16,14 +16,14 @@ namespace GGXXACPROverlay.Hooks
         {
             if (Settings.Get("Misc", "BlackBackground", false))
             {
-                RenderThreadTaskQueue.Enqueue((_) =>
+                TaskQueues.RenderThreadTaskQueue.Enqueue((_) =>
                 {
                     Hacks.LockBackgroundState(
                         BackgroundState.BlackBackground | BackgroundState.HudOff);
                 });
             }
                 
-            RenderThreadTaskQueue.Enqueue(D3D9PresentHookSetup);
+            TaskQueues.RenderThreadTaskQueue.Enqueue(D3D9PresentHookSetup);
             _graphicsHook = new GraphicsDetourHook(GetD3D9PresentFuncPtr(), D3D9PresentHook);
 
             Debug.Log("Installing Direct3D9.Present hook..");
@@ -37,11 +37,8 @@ namespace GGXXACPROverlay.Hooks
             Debug.Log("Installing PeekMessageW wrapper hook..");
             _peekMessageHook.Install();
 
-            RenderThreadTaskQueue.Enqueue(UpdateMessageLoopJmp);
-
-            Thread.Sleep(500);
-
-            RenderThreadTaskQueue.Enqueue(RevertMessageLoopJmp);
+            TaskQueues.RenderThreadTaskQueue.Enqueue(UpdateMessageLoopJmp);
+            TaskQueues.PeekMessageTaskQueue.Enqueue(RevertMessageLoopJmp);
         }
         public static void UninstallHooks()
         {
@@ -65,6 +62,7 @@ namespace GGXXACPROverlay.Hooks
                 Debug.Log($"[ERROR] Caught unhandled exception before it bubbled into native code: {e}");
             }
         }
+        private static int _debugTimer = 0;
         private static void D3D9PresentHook(nint device)
         {
             try
@@ -75,8 +73,14 @@ namespace GGXXACPROverlay.Hooks
                     return;
                 }
 
-                RenderThreadTaskQueue.ExecutePending(device);
+                TaskQueues.RenderThreadTaskQueue.ExecutePending(device);
                 Overlay.Instance?.RenderFrame(device);
+                //if (++_debugTimer > 60)
+                //{
+                //    Debug.ReportAverage("Average clip time: {0}ms");
+                //    _debugTimer = 0;
+                //}
+
             }
             catch (Exception e)
             {
@@ -105,6 +109,8 @@ namespace GGXXACPROverlay.Hooks
         [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
         private static int PeekMessageWrapper(MSG* lpMsg, HWND hWnd, uint wMsgFilterMin, uint wMsgFilterMax, uint wRemoveMsg)
         {
+            TaskQueues.PeekMessageTaskQueue.ExecutePending();
+
             BOOL success = PInvoke.PeekMessage(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, (PEEK_MESSAGE_REMOVE_TYPE)wRemoveMsg);
 
             if (success && lpMsg is not null && lpMsg->message == WM_KEYDOWN &&
@@ -131,7 +137,7 @@ namespace GGXXACPROverlay.Hooks
         /// Reverts the relative jmp change made by <c>UpdateMessageLoopJmp</c>.
         /// </summary>
         /// <param name="unused">Discards unused device pointer</param>
-        private static void RevertMessageLoopJmp(nint unused)
+        private static void RevertMessageLoopJmp()
         {
             Debug.Log("Reverting message loop patch");
             Util.Patch(Memory.BaseAddress + Offsets.MESSAGE_LOOP_REL_JMP_OFFSET_BYTE_ADDR, [_originalJmpOffsetByte]);

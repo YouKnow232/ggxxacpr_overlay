@@ -29,5 +29,23 @@ namespace GGXXACPROverlay
         /// Controls Debug.Log behavior. Debug.Log will print messages if true.
         /// </summary>
         public static bool DebugStatements { get => DebugBehavior == DebugOn; set => DebugBehavior = (value ? DebugOn : DebugOff); }
+
+
+        private static readonly long[] _buffer = new long[240];
+        private static int _bufferIndex = 0;
+        public static void LogDatumForAverage(long data)
+        {
+            if (_bufferIndex >= _buffer.Length) return;
+
+            _buffer[_bufferIndex++] = data;
+        }
+        public static void ReportAverage(string msg)
+        {
+            double avg = _bufferIndex > 0 ? _buffer[.._bufferIndex].Average() : 0;
+            Console.WriteLine(msg, avg);
+
+            _bufferIndex = 0;
+            Array.Clear(_buffer);
+        }
     }
 }
