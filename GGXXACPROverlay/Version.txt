@@ -1,3 +1,15 @@
+#2.2.0
+- Added new box categories "MiscPushRange" and "MiscPivotRange"
+	- MiscPushRange is for range checks the game makes against player pushboxes, MiscPivotRange checks origin points
+	- Faust's Hack'n'Slash and Potemkin's Slidehead activation range are drawn as a MiscPushRange box
+	- Range checks that are drawn as MiscPivotRange include:
+		- Robo-KY's 2D (Mat)
+		- Testament's HITOMI (tree)
+		- Faust's food pickup range
+		- Eddie's Shadow Hole (puddle)
+- Added a HSD/untech meter for player 2
+- Added setting and hotkey toggle (F8) to draw hitboxes as a single polygon (i.e. no overlapping boxes)
+
 #2.1.0
 - Added a hitstun decay and untech time meter
 - Added F1 - F7 hotkeys to toggle certain settings

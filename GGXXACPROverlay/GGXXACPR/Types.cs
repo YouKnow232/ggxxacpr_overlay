@@ -112,6 +112,7 @@ namespace GGXXACPROverlay.GGXXACPR
         [FieldOffset(0x10)] public readonly short BufferedActionId;
         [FieldOffset(0x12)] public readonly ushort BufferFlags;
         [FieldOffset(0x18)] public readonly short ActionId;
+        [FieldOffset(0x1A)] public readonly short LocalId;
         [FieldOffset(0x1C)] public readonly ushort AnimationCounter;
         [FieldOffset(0x1E)] public readonly ushort Health;
         [FieldOffset(0x20)] public readonly nint ParentPtrRaw;
@@ -139,6 +140,7 @@ namespace GGXXACPROverlay.GGXXACPR
         [FieldOffset(0xD4)] public readonly int Gravity;
         [FieldOffset(0xFD)] public readonly byte HitstopCounter;
         [FieldOffset(0xFF)] public readonly byte Mark;
+        [FieldOffset(0x100)] public readonly byte Transition;
     }
 
     public unsafe readonly ref struct Player
@@ -159,6 +161,7 @@ namespace GGXXACPROverlay.GGXXACPR
         public short BufferedActionId => NativePointer->BufferedActionId;
         public BufferState BufferFlags => (BufferState)NativePointer->BufferFlags;
         public short ActionId => NativePointer->ActionId;
+        public short LocalId => NativePointer->LocalId;
         public ushort AnimationCounter => NativePointer->AnimationCounter;
         public ushort Health => NativePointer->Health;
         public byte PlayerIndex => NativePointer->PlayerIndex;
@@ -211,6 +214,7 @@ namespace GGXXACPROverlay.GGXXACPR
         /// Multi-use variable used for move-specific behavior (For Axl, holds parry active state)
         /// </summary>
         public byte Mark => NativePointer->Mark;
+        public byte Transition => NativePointer->Transition;
     }
 
     public unsafe readonly ref struct Entity
@@ -229,8 +233,11 @@ namespace GGXXACPROverlay.GGXXACPR
         public Entity Prev => new Entity(NativePointer->Prev);
         public Entity Next => new Entity(NativePointer->Prev);
         public ActionState Status => (ActionState)NativePointer->Status;
+        public short ActionId => NativePointer->ActionId;
+        public short LocalId => NativePointer->LocalId;
         public byte PlayerIndex => NativePointer->PlayerIndex;
         public ushort ParentFlag => NativePointer->ParentFlag;
+        public AttackState AttackFlags => (AttackState)NativePointer->AttackFlags;
         public short CoreX => NativePointer->CoreX;
         public short CoreY => NativePointer->CoreY;
         public short ScaleX => NativePointer->ScaleX;
@@ -243,6 +250,8 @@ namespace GGXXACPROverlay.GGXXACPR
         public int XPos => NativePointer->XPos;
         public int YPos => NativePointer->YPos;
         public byte HitstopCounter => NativePointer->HitstopCounter;
+        public byte Mark => NativePointer->Mark;
+        public byte Transition => NativePointer->Transition;
 
         public bool Equals(Entity e) => NativePointer == e.NativePointer;
     }
@@ -388,22 +397,22 @@ namespace GGXXACPROverlay.GGXXACPR
         IsAttack            = 1 << 0,
         Unknown1            = 1 << 1,
         Unknown2            = 1 << 2,
+        Unknown3            = 1 << 3,
         /// <summary>
         /// Doesn't necessarily mean the move can currently gatling or has gatling options
         /// </summary>
-        IsInGatlingWindow   = 1 << 3,
-        SpecialCancelOkay   = 1 << 4,
-        Unknown5            = 1 << 5,
-        UnknownDustFlag1    = 1 << 6,
-        HomingJumpOkay      = 1 << 7,
-        KaraFDOkay          = 1 << 8,
-        NoSpecialCancel     = 1 << 9,
-        IsInRecovery        = 1 << 10,
+        IsInGatlingWindow   = 1 << 4,
+        SpecialCancelOkay   = 1 << 5,
+        Unknown6            = 1 << 6,
+        UnknownDustFlag1    = 1 << 7,
+        HomingJumpOkay      = 1 << 8,
+        KaraFDOkay          = 1 << 9,
+        NoSpecialCancel     = 1 << 10,
+        IsInRecovery        = 1 << 11,
         /// <summary>
         /// On during/after hit. Maybe an RC-Okay flag.
         /// </summary>
-        HasConnected        = 1 << 11,
-        Unknown12           = 1 << 12,
+        HasConnected        = 1 << 12,
         Unknown13           = 1 << 13,
         Unknown14           = 1 << 14,
         Unknown15           = 1 << 15,

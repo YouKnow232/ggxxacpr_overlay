@@ -1,5 +1,5 @@
 ﻿=== GGXXACPR Overlay ===
-version: v2.1.0
+version: v2.2.0
 
 Overlay for Guilty Gear XX Accent Core Plus R
 Steam Release, product version: v1.2.0.0
@@ -21,7 +21,8 @@ F3 = Toggle throw range boxes
 F4 = Toggle between both boxes / P1 box only / P2 box only
 F5 = Freeze frame (i.e. pause->hide menu hotkey)
 F6 = Frame step from freeze frame (works from pause->hide menu)
-F7 = Toggle black out background
+F7 = Toggle background black out
+F8 = Toggle combined hitbox setting
 
 
 == FAQ ==
@@ -37,11 +38,19 @@ F7 = Toggle black out background
 	A: They're [hitstun decay thresholds.](https://dustloop.com/w/GGACR/Damage#Untechable_Time_Scaling)
 
 
+== Note on Accuracy ==
+
+For the sake of better visualization, ground throw and command grab boxes are given heights equal to the attacker's pushbox.
+In reality, the game does not use a box/collider system or perform a height check for ground throws; It instead checks the opponent for a grounded state flag.
+
+Similarly, some range boxes that don't have a height component at all are given minimum heights for better visual clarity.
+
+
 == Troubleshooting ==
 
 1) Anti-virus software will hate this as it is unknown software that uses DLL injection techniques.
 Configure any anti-virus software to ignore/exclude the mod folder. The anti-virus may delete any files
-it considers dangerous, so make sure you have all files
+it considers dangerous, so make sure you have all files.
 
 2) This overlay may have incompatibilities with other overlays/mods. If you don't see any hitboxes but some of the hotkeys still work this is likely the issue.
 MSI Afterburner overlay is a known incompatibility. OBS 'capture specific window' will not see the hitbox overlay if OBS is opened after injecting the overlay.

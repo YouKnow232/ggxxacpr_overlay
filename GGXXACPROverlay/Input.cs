@@ -25,6 +25,7 @@ namespace GGXXACPROverlay
                     Settings.AlwaysDrawThrowRange = !Settings.AlwaysDrawThrowRange;
                     break;
                 case VirtualKeyCodes.VK_F4:
+                    // TODO: could probably just use a bit flag for these two settings
                     if (Settings.HideP1 && Settings.HideP2) { Settings.HideP1 = true; Settings.HideP2 = true; }
                     else if (!Settings.HideP1 && Settings.HideP2) { Settings.HideP1 = true; Settings.HideP2 = false; }
                     else if (Settings.HideP1 && !Settings.HideP2) { Settings.HideP1 = false; Settings.HideP2 = false; }
@@ -39,7 +40,9 @@ namespace GGXXACPROverlay
                 case VirtualKeyCodes.VK_F7:
                     if (GGXXACPR.GGXXACPR.IsInGame) Hacks.ToggleBlackBG();
                     break;
-
+                case VirtualKeyCodes.VK_F8:
+                    Settings.CombineBoxes = !Settings.CombineBoxes;
+                    break;
             }
         }
 

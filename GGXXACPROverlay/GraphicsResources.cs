@@ -29,15 +29,29 @@ namespace GGXXACPROverlay
 
     internal class GraphicsResources
     {
-        public readonly ColorRectangle ComboTimeMeter =
+        public readonly ColorRectangle ComboTimeMeterP2 =
             new ColorRectangle(
                 Settings.Get("Misc", "HSDMeterXPosition", -0.95f),
                 Settings.Get("Misc", "HSDMeterYPosition", 0.1f),
                 0.05f,
                 0.4f);
-        public readonly ColorRectangle UntechTimeMeter =
+        public readonly ColorRectangle UntechTimeMeterP2 =
             new ColorRectangle(
                 Settings.Get("Misc", "HSDMeterXPosition", -0.95f) + 0.1f,
+                Settings.Get("Misc", "HSDMeterYPosition", 0.1f),
+                0.05f,
+                0.4f,
+                Settings.Get("Misc", "UntechMeterColor", 0xFF00FFFF));
+
+        public readonly ColorRectangle ComboTimeMeterP1 =
+            new ColorRectangle(
+                Settings.Get("Misc", "HSDMeterXPosition", -0.95f) * -1 - 0.05f,
+                Settings.Get("Misc", "HSDMeterYPosition", 0.1f),
+                0.05f,
+                0.4f);
+        public readonly ColorRectangle UntechTimeMeterP1 =
+            new ColorRectangle(
+                (Settings.Get("Misc", "HSDMeterXPosition", -0.95f) + 0.1f) * -1 - 0.05f,
                 Settings.Get("Misc", "HSDMeterYPosition", 0.1f),
                 0.05f,
                 0.4f,

@@ -16,7 +16,7 @@
         public const nint MESSAGE_LOOP_REL_JMP_OFFSET_BYTE_ADDR = 0x222414;
 
         // Hack Addresses
-        public const nint FIX_BACKGROUND_STATE_INSTRUCTION = 0X21C363;
+        public const nint FIX_BACKGROUND_STATE_INSTRUCTION = 0x21C363;
         public const nint BACKGROUND_STATE = 0x6D6420;  // see enum BackgroundState
 
         // DirectX

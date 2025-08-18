@@ -80,7 +80,7 @@ namespace GGXXACPROverlay.GGXXACPR
             if (*state == 2 && *display == 0)
             {
                 *state = 0;
-                RenderThreadTaskQueue.Enqueue(Repause);
+                TaskQueues.RenderThreadTaskQueue.Enqueue(Repause);
             }
         }
 

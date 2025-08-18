@@ -1,20 +1,21 @@
-struct VertexShaderInput
+struct VertexShaderData
 {
     float4 vPosition : POSITION;
     float4 vDiffuse : COLOR0;
 };
-struct VertexShaderOutput
-{
-    float4 position : POSITION;
-    float4 color : COLOR0;
-};
 
-VertexShaderOutput ColorVertexShader(VertexShaderInput input)
+
+uniform float4x4 mvpMatrix : register(c0);
+uniform float2 viewPort : register(c4);
+
+VertexShaderData BasicVS(VertexShaderData input)
 {
-    VertexShaderOutput output;
+    VertexShaderData output;
     
-    output.position = input.vPosition;
-    output.color = input.vDiffuse;
+    output.vPosition = mul(input.vPosition, mvpMatrix);
+    // D3D9 Half-pixel offset correction
+    output.vPosition.xy -= float2(0.5, 0.5) * output.vPosition.w / viewPort;
+    output.vDiffuse = input.vDiffuse;
     
     return output;
 }
@@ -24,13 +25,16 @@ struct PixelShaderInput
     float4 color : COLOR0;
 };
 
-float4 ColorPixelShader(PixelShaderInput input) : COLOR0
+float4 BasicPS(PixelShaderInput input) : COLOR
 {
     return input.color;
 }
 
-float4 g_SolidColor : register(c0);
-float4 SolidColorPixelShader() : COLOR
+technique
 {
-    return g_SolidColor;
+    pass P0
+    {
+        VertexShader = compile vs_3_0 BasicVS();
+        PixelShader  = compile vs_3_0 BasicPS();
+    }
 }

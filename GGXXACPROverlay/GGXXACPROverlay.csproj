@@ -13,12 +13,12 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <IncludeSymbolsInSingleFile>true</IncludeSymbolsInSingleFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>$(VersionPrefix)2.1.0$(VersionSuffix)</Version>
+    <Version>$(VersionPrefix)2.2.0$(VersionSuffix)</Version>
     <PackageProjectUrl>https://github.com/YouKnow232/ggxxacpr_overlay</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/YouKnow232/ggxxacpr_overlay</RepositoryUrl>
-    <AssemblyVersion>2.1.0</AssemblyVersion>
-    <FileVersion>2.1.0</FileVersion>
+    <AssemblyVersion>2.2.0</AssemblyVersion>
+    <FileVersion>2.2.0</FileVersion>
     <PlatformTarget>x86</PlatformTarget>
     <Platforms>x86</Platforms>
     <Configurations>Debug;Release</Configurations>
@@ -50,10 +50,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Clipper2" Version="1.5.4" />
     <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.162">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Poly2Tri.NetStandard" Version="1.0.2" />
     <PackageReference Include="Vortice.D3DCompiler" Version="3.6.2" />
     <PackageReference Include="Vortice.Direct3D9" Version="3.6.2" />
   </ItemGroup>
