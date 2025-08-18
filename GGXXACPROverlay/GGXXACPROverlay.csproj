@@ -4,8 +4,7 @@
     <OutputType>Library</OutputType>
     <RuntimeIdentifier>win-x86</RuntimeIdentifier>
     <TargetFramework>net9.0-windows7.0</TargetFramework>
-    <RuntimeFrameworkVersion>9.0.4</RuntimeFrameworkVersion>
-    <RollForward>Disable</RollForward>
+    <RuntimeFrameworkVersion>9.0.8</RuntimeFrameworkVersion>
     <PublishTrimmed>false</PublishTrimmed>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

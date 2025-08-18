@@ -38,10 +38,7 @@
 		</ItemGroup>
 		<Copy SourceFiles="..\$(Configuration)\GGXXACPROverlay.Bootstrapper.dll" DestinationFolder="$(OutDir)" />
 		<Copy SourceFiles="..\$(Configuration)\nethost.dll" DestinationFolder="$(OutDir)" />
-		<Copy
-			SourceFiles="@(OverlayFiles)"
-			DestinationFolder="$(OutDir)"
-			SkipUnchangedFiles="true" />
+		<Copy SourceFiles="@(OverlayFiles)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
 	</Target>
 
 	<Target Name="CopyGGXXACPROverlayBootstrapperToPublish" AfterTargets="Publish">
@@ -50,10 +47,7 @@
 		</ItemGroup>
 		<Copy SourceFiles="..\$(Configuration)\GGXXACPROverlay.Bootstrapper.dll" DestinationFolder="$(PublishDir)" />
 		<Copy SourceFiles="..\$(Configuration)\nethost.dll" DestinationFolder="$(PublishDir)" />
-		<Copy
-			SourceFiles="@(OverlayFiles)"
-			DestinationFolder="$(PublishDir)"
-			SkipUnchangedFiles="true" />
+		<Copy SourceFiles="@(OverlayFiles)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
 	</Target>
 
 </Project>
