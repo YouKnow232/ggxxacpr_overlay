@@ -3,7 +3,7 @@
     internal class CircularBuffer<T>
     {
         private readonly T[] _buffer;
-        private int index = 0;
+        private int _index = 0;
 
         public CircularBuffer(int size)
         {
@@ -11,16 +11,31 @@
         }
 
         public int Length => _buffer.Length;
+        public int Index => _index;
+        public int MaxIndex => Math.Max(_index, _buffer.Length - 1);
+        public int MinIndex => Math.Min(_index - _buffer.Length - 1, 0);
 
-        public void UpdateFrameIndex(int offset)
+        private void UpdateFrameIndex(int offset)
         {
-            index += offset;
+            _index += offset;
         }
 
-        public T this[int key]
+        public void RollBack(int index)
         {
-            get => _buffer[WrappingIndex(key + index, _buffer.Length)];
-            set => _buffer[WrappingIndex(key + index, _buffer.Length)] = value;
+            _index = index;
+        }
+        public void Add(T element)
+        {
+            this[_index++] = element;
+        }
+        public T Get(int index)
+        {
+            return this[index];
+        }
+        private T this[int key]
+        {
+            get => _buffer[WrappingIndex(key + _index, _buffer.Length)];
+            set => _buffer[WrappingIndex(key + _index, _buffer.Length)] = value;
         }
 
         private static int WrappingIndex(int index, int size)

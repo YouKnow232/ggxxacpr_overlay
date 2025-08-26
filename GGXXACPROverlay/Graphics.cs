@@ -25,7 +25,7 @@ namespace GGXXACPROverlay
     internal unsafe class Graphics : IDisposable
     {
         private const string HLSL_COMPILE_TARGET_SUFFIX = "s_3_0";
-        private const uint RECTANGLE_LIMIT = 100;
+        private const uint RECTANGLE_LIMIT = 512;
         private const uint VERTEX_PER_RECTANGLE = 6;    // 6 for 2 triangles
 
         private IDirect3DDevice9 _device;
@@ -183,6 +183,7 @@ namespace GGXXACPROverlay
             ]);
         }
 
+        public Viewport ViewPort => _device?.Viewport ?? default;
         public void BeginScene() => _device?.BeginScene();
         public void EndScene() => _device?.EndScene();
 
@@ -233,14 +234,6 @@ namespace GGXXACPROverlay
                     _device.SetRenderState(RenderState.ScissorTestEnable, Settings.WidescreenClipping);
                     SetDeviceContext_HitboxShaders();
                     break;
-                //case GraphicsContext.HitboxCombined:
-                //    SetDeviceContext_Alpha();
-                //    _device.SetRenderState(RenderState.ScissorTestEnable, Settings.WidescreenClipping);
-                //    _device.SetStreamSource(0, vertex3PositionColorVB, 0, Vertex3PositionColor.SizeInBytes);
-                //    _device.VertexDeclaration = vertex3PositionColorVD;
-                //    _device.VertexShader = basicVS;
-                //    _device.PixelShader = basicPS;
-                //    break;
                 case GraphicsContext.Pivot:
                     _device.SetRenderState(RenderState.ScissorTestEnable, Settings.WidescreenClipping);
                     SetDeviceContext_HitboxShaders();
@@ -256,6 +249,15 @@ namespace GGXXACPROverlay
                     _device.SetRenderState(RenderState.ScissorTestEnable, false);
                     SetDeviceContext_MeterVertexShader();
                     _device.PixelShader = meterPS;
+                    break;
+                case GraphicsContext.HUD:
+                    SetDeviceContext_Alpha();
+                    _device.SetRenderState(RenderState.ScissorTestEnable, false);
+                    _device.SetStreamSource(0, vertex3PositionColorVB, 0, Vertex3PositionColor.SizeInBytes);
+                    _device.VertexDeclaration = vertex3PositionColorVD;
+                    _device.VertexShader = basicVS;
+                    _device.SetVertexShaderConstant(4, _screenSizeUniform);
+                    _device.PixelShader = basicPS;
                     break;
             }
         }
@@ -286,7 +288,11 @@ namespace GGXXACPROverlay
         {
             uint numRectangles = (uint)rectangleList.Length;
 
-            if (_device == null || vertex3PositionColorVB == null || numRectangles > RECTANGLE_LIMIT || numRectangles == 0) return;
+            if (_device == null || vertex3PositionColorVB == null || numRectangles > RECTANGLE_LIMIT || numRectangles == 0)
+            {
+                Debug.Log("[ERROR] Draw Rectangles failed!");
+                return;
+            }
 
             LoadPrimitivesToVertexBuffer(rectangleList, ref vertex3PositionColorVB);
 

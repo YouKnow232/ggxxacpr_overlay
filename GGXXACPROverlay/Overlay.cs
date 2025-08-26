@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using GGXXACPROverlay.FrameMeter;
 using GGXXACPROverlay.GGXXACPR;
 
 namespace GGXXACPROverlay
@@ -13,10 +14,13 @@ namespace GGXXACPROverlay
         private delegate void DrawDelegate(Player p1, Player p2, Camera cam);
         private readonly DrawDelegate? DrawFunctions;
 
+        private readonly FrameMeter.FrameMeter _frameMeter;
+
         public Overlay(Graphics graphics)
         {
             _graphics = graphics;
             _resources = new GraphicsResources();
+            _frameMeter = new FrameMeter.FrameMeter();
             Instance = this;
 
             var DrawOpMap = new Dictionary<DrawOperation, DrawDelegate>()
@@ -35,7 +39,6 @@ namespace GGXXACPROverlay
                 DrawFunctions += DrawOpMap[op];
             }
         }
-
 
         public void RenderFrame(nint devicePointer)
         {
@@ -65,17 +68,28 @@ namespace GGXXACPROverlay
                 RenderUntechTimeMeter(p1);
             }
 
+            // TODO: if setting
+            RenderFrameMeter();
+
             _graphics.EndScene();
         }
 
-        private unsafe void RenderComboTimeMeter(Player p)
+        private void RenderFrameMeter()
+        {
+            _graphics.SetDeviceContext(GraphicsContext.HUD);
+            var vp = _graphics.ViewPort;
+            using var primitives = Drawing.GetFrameMeterPrimitives(_frameMeter, vp.Width, vp.Height);
+            _graphics.DrawRectangles(primitives, GGXXACPR.GGXXACPR.GetViewPortProjectionTransform());
+        }
+
+        private void RenderComboTimeMeter(Player p)
         {
             _graphics.SetDeviceContext(GraphicsContext.ComboTime, p.Extra.ComboTime);
             _graphics.DrawRectangles(
                 p.PlayerIndex == 0 ? _resources.ComboTimeMeterP2 : _resources.ComboTimeMeterP1,
                 GGXXACPR.GGXXACPR.GetWidescreenCorrectionTransform());
         }
-        private unsafe void RenderUntechTimeMeter(Player p)
+        private void RenderUntechTimeMeter(Player p)
         {
             _graphics.SetDeviceContext(GraphicsContext.Meter, p.Extra.UntechTimer + 1, 60.0f);
             _graphics.DrawRectangles(
@@ -317,6 +331,10 @@ namespace GGXXACPROverlay
         }
         #endregion
 
+        public void UpdateGameState()
+        {
+            _frameMeter.Update();
+        }
 
         private bool _disposed = false;
         public void Dispose()

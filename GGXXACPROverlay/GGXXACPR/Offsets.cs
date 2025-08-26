@@ -14,6 +14,10 @@
         public const nint GRAPHICS_HOOK_BREAKPOINT = 0x2271DA;
         public const nint PEEK_MESSAGE_FUNCTION_POINTER = 0x3BD348;
         public const nint MESSAGE_LOOP_REL_JMP_OFFSET_BYTE_ADDR = 0x222414;
+        public const nint GRAPHICS_HOOK_TARGET_FUNCTION_CALL = 0x22717A;
+        public const nint GRAPHICS_HOOK_TARGET_FUNCTION_ADDRESS = 0x2227E0;
+        public const nint GET_PRESENT_FUNCTION_POINTER_INSTRUCTIONS = 0x2271C5;
+        public const nint UPDATE_GAME_STATE_RET_INSTRUCTION = 0x3A1B78;
 
         // Hack Addresses
         public const nint FIX_BACKGROUND_STATE_INSTRUCTION = 0x21C363;

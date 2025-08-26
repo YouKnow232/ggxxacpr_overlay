@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using GGXXACPROverlay.FrameMeter;
 using GGXXACPROverlay.GGXXACPR;
 using Vortice.Mathematics;
 
@@ -17,6 +18,8 @@ namespace GGXXACPROverlay
         private const int PIVOT_CROSS_SIZE = 6;
         private const int FRAME_METER_Y = 400;
         private const int FRAME_METER_VERTICAL_SPACING = 1;
+        private const uint WHITE = 0xFFFFFFFF;
+        private const uint BLACK = 0xFF000000;
 
         public readonly struct Dimensions(int width, int height)
         {
@@ -42,6 +45,42 @@ namespace GGXXACPROverlay
                     return Settings.Default;
             }
         }
+        public static D3DCOLOR_ARGB GetFrameMeterColor(FrameType type)
+            => type switch
+            {
+                FrameType.Neutral            => new D3DCOLOR_ARGB(0xFF1B1B1B),
+                FrameType.Movement           => new D3DCOLOR_ARGB(0xFF41F8FC),
+                FrameType.CounterHitState    => new D3DCOLOR_ARGB(0xFF01B597),
+                FrameType.Startup            => new D3DCOLOR_ARGB(0xFF01B597),
+                FrameType.Active             => new D3DCOLOR_ARGB(0xFFCB2B67),
+                FrameType.ActiveThrow        => new D3DCOLOR_ARGB(0xFFCB2B67),
+                FrameType.Recovery           => new D3DCOLOR_ARGB(0xFF006FBC),
+                FrameType.BlockStun          => new D3DCOLOR_ARGB(0xFFC8C800),
+                FrameType.HitStun            => new D3DCOLOR_ARGB(0xFFC8C800),
+                _                            => new D3DCOLOR_ARGB(0xFF0F0F0F),
+            };
+
+        public static D3DCOLOR_ARGB GetFrameMeterColor(PrimaryFrameProperty frameProperty)
+            => frameProperty switch
+            {
+                PrimaryFrameProperty.InvulnFull     => new D3DCOLOR_ARGB(255, 255, 255, 255),
+                PrimaryFrameProperty.InvulnStrike   => new D3DCOLOR_ARGB(255, 0, 125, 255),
+                PrimaryFrameProperty.InvulnThrow    => new D3DCOLOR_ARGB(255, 255, 125, 0),
+                PrimaryFrameProperty.Parry          => new D3DCOLOR_ARGB(255, 120, 80, 0),
+                PrimaryFrameProperty.GuardPointFull => new D3DCOLOR_ARGB(255, 120, 80, 0),
+                PrimaryFrameProperty.GuardPointHigh => new D3DCOLOR_ARGB(255, 120, 80, 0),
+                PrimaryFrameProperty.GuardPointLow  => new D3DCOLOR_ARGB(255, 120, 80, 0),
+                PrimaryFrameProperty.Armor          => new D3DCOLOR_ARGB(255, 120, 80, 0),
+                PrimaryFrameProperty.SlashBack      => new D3DCOLOR_ARGB(255, 255, 0, 0),
+                PrimaryFrameProperty.TEST           => new D3DCOLOR_ARGB(255, 0, 120, 80),
+                _                                   => new D3DCOLOR_ARGB(0xFF0F0F0F),
+            };
+        public static D3DCOLOR_ARGB GetFrameMeterColor(SecondaryFrameProperty frameProperty)
+            => frameProperty switch
+            {
+                SecondaryFrameProperty.FRC  => new D3DCOLOR_ARGB(0xFFFFFF00),
+                _                           => new D3DCOLOR_ARGB(0xFF0F0F0F),
+            };
 
         public static RentedArraySlice<ColorRectangle> GetHitboxPrimitives(Span<Hitbox> boxes)
         {
@@ -168,7 +207,131 @@ namespace GGXXACPROverlay
         }
 
     //    private const int FRAME_METER_Y_ALT = 90;
-    //    private const int FRAME_METER_BASE_LINE_X = 5;
+        private const int FRAME_METER_BASE_LINE_X = 5;
+        internal static RentedArraySlice<ColorRectangle> GetFrameMeterPrimitives(FrameMeter.FrameMeter frameMeter, int viewWidth, int viewHeight)
+        {
+            ColorRectangle[] output = ArrayPool<ColorRectangle>.Shared.Rent(1024);
+            int outputIndex = 0;
+
+            int frameMeterLength = FrameMeter.FrameMeter.METER_LENGTH;
+            int screenWidth = viewHeight * 4 / 3;
+
+            int pipSpacing = (screenWidth - FRAME_METER_BASE_LINE_X * 2) / frameMeterLength;
+            int pipWidth = pipSpacing - 1;
+            int totalWidth = (pipSpacing * frameMeterLength) - 1;
+            int pipHeight = pipWidth * 5 / 3;
+            int entityPipHeight = pipWidth;
+            int coreYPos = viewHeight * FRAME_METER_Y / GGXXACPR.GGXXACPR.SCREEN_HEIGHT_PIXELS;
+            int yPos = coreYPos - pipHeight - 1;
+            int xPos = (viewWidth - totalWidth) / 2;
+            int propertyHighlightHeight = pipHeight * 2 / 7;
+            propertyHighlightHeight += propertyHighlightHeight == 0 ? 1 : 0;
+            int propertyHighlightTop = pipHeight - propertyHighlightHeight;
+            int borderThickness = 2 * viewHeight / GGXXACPR.GGXXACPR.SCREEN_HEIGHT_PIXELS;
+
+            // Main border
+            output[outputIndex++] = new(
+                xPos - borderThickness,
+                yPos - borderThickness,
+                totalWidth + borderThickness * 2,
+                 2 * pipHeight + FRAME_METER_VERTICAL_SPACING + borderThickness * 2,
+                BLACK);
+
+            // P1 Entity Border
+            if (!frameMeter.EntityMeters[0].Hide)
+            {
+                output[outputIndex++] = new(
+                    xPos - borderThickness,
+                    yPos - borderThickness - FRAME_METER_VERTICAL_SPACING - entityPipHeight,
+                    totalWidth + borderThickness * 2,
+                    borderThickness + entityPipHeight,
+                    BLACK);
+            }
+
+            // P2 Entity Border
+            if (!frameMeter.EntityMeters[1].Hide)
+            {
+                output[outputIndex++] = new(
+                    xPos - borderThickness,
+                    yPos + 2 * (pipHeight + FRAME_METER_VERTICAL_SPACING),
+                    totalWidth + borderThickness * 2,
+                    borderThickness + entityPipHeight,
+                    BLACK);
+            }
+
+            // add frame pips and properties
+
+            for (int j = 0; j < frameMeter.PlayerMeters.Length; j++)
+            {
+                var frameArr = frameMeter.PlayerMeters[j].FrameArr;
+                for (int i = 0; i < frameArr.Length; i++)
+                {
+                    var pipRectangle = new Rect(
+                        xPos + (i * pipSpacing),
+                        yPos + (j * (FRAME_METER_VERTICAL_SPACING + pipHeight)),
+                        pipWidth,
+                        pipHeight);
+                        
+                    output[outputIndex++] = new ColorRectangle(pipRectangle, GetFrameMeterColor(frameArr[i].Type));
+                    if (frameArr[i].SecondaryProperty != SecondaryFrameProperty.Default)
+                    {
+                        // highlight border
+                        output[outputIndex++] = new(
+                            pipRectangle.Left,
+                            pipRectangle.Top + 1,
+                            pipRectangle.Width,
+                            propertyHighlightHeight,
+                            BLACK
+                        );
+                        // highlight
+                        output[outputIndex++] = new(
+                            pipRectangle.Left,
+                            pipRectangle.Top,
+                            pipRectangle.Width,
+                            propertyHighlightHeight,
+                            GetFrameMeterColor(frameArr[i].SecondaryProperty)
+                        );
+                    }
+                    if (frameArr[i].PrimaryProperty1 != PrimaryFrameProperty.Default)
+                    {
+                        // highlight border
+                        output[outputIndex++] = new(
+                            pipRectangle.Left,
+                            pipRectangle.Bottom - propertyHighlightHeight - 1,
+                            pipRectangle.Width,
+                            propertyHighlightHeight,
+                            BLACK
+                        );
+                        // highlight
+                        output[outputIndex++] = new(
+                            pipRectangle.Left,
+                            pipRectangle.Top + propertyHighlightTop,
+                            pipRectangle.Width,
+                            propertyHighlightHeight,
+                            GetFrameMeterColor(frameArr[i].PrimaryProperty1)
+                        );
+                        if (frameArr[i].PrimaryProperty2 != PrimaryFrameProperty.Default)
+                        {
+                            int halfPipWidth = pipWidth / 2;
+                            output[outputIndex++] = new(
+                                pipRectangle.Left + halfPipWidth,
+                                pipRectangle.Top + propertyHighlightTop,
+                                pipWidth - halfPipWidth,
+                                pipRectangle.Height,
+                            GetFrameMeterColor(frameArr[i].PrimaryProperty2)
+                            );
+                        }
+                    }
+                }
+            }
+
+
+            // add property highlights
+            // add pip sums (TODO)
+            // add Labels
+
+            return new RentedArraySlice<ColorRectangle>(output, 0, outputIndex);
+        }
     //    internal static void DrawFrameMeter(Graphics g, GraphicsResources r, FrameMeter frameMeter, Dimensions windowDimensions)
     //    {
     //        FrameMeter.Frame[] frameArr;

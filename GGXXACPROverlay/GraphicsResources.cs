@@ -1,5 +1,7 @@
 ﻿// TODO: Split this among FrameMeter and Drawing
 
+using Microsoft.VisualBasic;
+
 namespace GGXXACPROverlay
 {
     public enum GeneralPalette
@@ -56,7 +58,6 @@ namespace GGXXACPROverlay
                 0.05f,
                 0.4f,
                 Settings.Get("Misc", "UntechMeterColor", 0xFF00FFFF));
-
 
         //private static readonly LegendEntry[] _frameMeterLegend = [
         //        new LegendEntry(new FrameMeter.Frame { Type = FrameMeter.FrameType.Neutral },  "Neutral", FrameMeterElement.TYPE),

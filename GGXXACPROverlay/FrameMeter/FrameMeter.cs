@@ -5,9 +5,12 @@ namespace GGXXACPROverlay.FrameMeter
     internal class FrameMeter
     {
         private const int MAX_REPLAY_REWIND_BUFFER = 3589;
+        private const int MIN_REPLAY_REWIND_BUFFER = 16;
 
         public const int METER_LENGTH = 80;
         private const int PAUSE_THRESHOLD = 10;
+
+        private readonly CircularBuffer<StateSnapShot> _stateBuffer;
 
         private int _index;
         private bool _isPaused = true;
@@ -17,6 +20,7 @@ namespace GGXXACPROverlay.FrameMeter
 
         public FrameMeter()
         {
+            _stateBuffer = new(MIN_REPLAY_REWIND_BUFFER);
             _index = 0;
             PlayerMeters[0] = new Meter("Player 1", METER_LENGTH);
             PlayerMeters[1] = new Meter("Player 2", METER_LENGTH);
@@ -27,28 +31,22 @@ namespace GGXXACPROverlay.FrameMeter
 
         public int Update()
         {
-            FrameMeterPip p1PrevFrame = FrameAtOffset(PlayerMeters[0], -1);
-            FrameMeterPip p2PrevFrame = FrameAtOffset(PlayerMeters[1], -1);
+            // if replay theater: setup state buffer
+            // else use smaller fixed state memory for certain frame detection behavior
 
             var P1 = GGXXACPR.GGXXACPR.Player1;
             var P2 = GGXXACPR.GGXXACPR.Player2;
 
-            if (!P1.IsValid || !P2.IsValid) return 1;
+            if (!P1.IsValid || !P2.IsValid || !GGXXACPR.GGXXACPR.ShouldUpdate) return 1;
 
-            // Skip update if both character haven't advanced a frame (TODO: Should update this logic after D3D hook update)
-            // This should handle double frame reads as well as pausing
-            if (P1.AnimationCounter == prevState?.Player1.AnimationCounter &&
-                P2.AnimationCounter == prevState?.Player2.AnimationCounter &&
-                P1.HitstopCounter == prevState?.Player1.HitstopCounter &&
-                P2.HitstopCounter == prevState?.Player2.HitstopCounter)
-            {
-                return 0;
-            }
+            StateSnapShot prevState = GetPreviousState();
+            
             // Skip update if either player is frozen in super flash while the opponent doesn't have an active hitbox.
             // The hitbox requirement is for moves that become active while in super flash.
             // Special exception for first freeze frame.
             if ((P1.Status.HasFlag(ActionState.Freeze) || P2.Status.HasFlag(ActionState.Freeze)) &&
-                (p1PrevFrame.Status.HasFlag(ActionState.Freeze) || p2PrevFrame.Status.HasFlag(ActionState.Freeze)) &&
+                //(p1PrevFrame.Status.HasFlag(ActionState.Freeze) || p2PrevFrame.Status.HasFlag(ActionState.Freeze)) &&
+                (prevState.p1.Status.HasFlag(ActionState.Freeze) || prevState.p2.Status.HasFlag(ActionState.Freeze)) &&
                 !Settings.RecordDuringSuperFlash)
             {
                 // TODO: account for projectile supers that hit during flash
@@ -57,9 +55,7 @@ namespace GGXXACPROverlay.FrameMeter
                 // Rewrite the previous frame to an active frame and recalculate startup
                 if (P2.Status.HasFlag(ActionState.Freeze) && GGXXACPR.GGXXACPR.HasActiveFrame(P1))
                 {
-                    PlayerMeters[0].FrameArr[AddToLoopingIndex(-1)] = new Frame(
-                        FrameType.Active, p1PrevFrame.PrimaryProperty1, p1PrevFrame.PrimaryProperty2, p1PrevFrame.SecondaryProperty, p1PrevFrame.ActId,
-                        p1PrevFrame.ActTimer, p1PrevFrame.HitStop, (uint)p1PrevFrame.Status);
+                    PlayerMeters[0].FrameArr[AddToLoopingIndex(-1)].Type = FrameType.Active;
 
                     _index = AddToLoopingIndex(-1);
                     UpdateStartupByCountBackWithMoveData(P1, ref PlayerMeters[0]);
@@ -67,25 +63,26 @@ namespace GGXXACPROverlay.FrameMeter
                 }
                 else if (P1.Status.HasFlag(ActionState.Freeze) && GGXXACPR.GGXXACPR.HasActiveFrame(P2))
                 {
-                    PlayerMeters[1].FrameArr[AddToLoopingIndex(-1)] = new Frame(
-                        FrameType.Active, p2PrevFrame.PrimaryProperty1, p1PrevFrame.PrimaryProperty2, p2PrevFrame.SecondaryProperty, p2PrevFrame.ActId,
-                        p2PrevFrame.ActTimer, p2PrevFrame.HitStop, (uint)p2PrevFrame.Status);
+                    PlayerMeters[1].FrameArr[AddToLoopingIndex(-1)].Type = FrameType.Active;
 
                     _index = AddToLoopingIndex(-1);
                     UpdateStartupByCountBackWithMoveData(P2, ref PlayerMeters[1]);
                     _index = AddToLoopingIndex(1);
                 }
 
+                _stateBuffer.Add(new(P1, P2));
                 return 0;
             }
             // Skip update when both players are in hitstop (currently somewhat redundant when checking for unchanged animation timers above)
             // Special exception to also skip the first frame after hitstop counters have ended
             // Super freeze often uses the histop counter as well so need to except that situation
             if ((P1.HitstopCounter > 0 && P2.HitstopCounter > 0 ||
-                    prevState?.Player1.HitstopCounter > 0 && prevState?.Player2.HitstopCounter > 0) &&
-                    !(P1.Status.HasFlag(ActionState.Freeze) || P2.Status.HasFlag(ActionState.Freeze)) &&
+                    prevState.p1.HitstopCounter > 0 && prevState.p2.HitstopCounter > 0) &&
+                    !P1.Status.HasFlag(ActionState.Freeze) &&
+                    !P2.Status.HasFlag(ActionState.Freeze) &&
                     !Settings.RecordDuringHitstop)
             {
+                _stateBuffer.Add(new(P1, P2));
                 return 0;
             }
 
@@ -93,18 +90,15 @@ namespace GGXXACPROverlay.FrameMeter
             // Pause logic
             if (_isPaused)
             {
-                if (DetermineFrameType(P1) == FrameType.Neutral &&
-                    DetermineFrameType(P2) == FrameType.Neutral &&
-                    DetermineEntityFrameType(P1) == FrameType.None &&
-                    DetermineEntityFrameType(P2) == FrameType.None)
-                {
-                    return 0;
-                }
-                else
+                if (ShouldUnpause(P1, P2))
                 {
                     _isPaused = false;
                     _index = 0;
                     ClearMeters();
+                }
+                else
+                {
+                    return 0;
                 }
             }
 
@@ -123,10 +117,9 @@ namespace GGXXACPROverlay.FrameMeter
                 p1FrameType = FrameAtOffset(PlayerMeters[0], -i).Type;
                 p2FrameType = FrameAtOffset(PlayerMeters[1], -i).Type;
 
-                if (p1FrameType != FrameType.Neutral && p1FrameType != FrameType.None ||
-                    p2FrameType != FrameType.Neutral && p2FrameType != FrameType.None ||
-                    FrameAtOffset(EntityMeters[0], -i).Type != FrameType.None ||
-                    FrameAtOffset(EntityMeters[1], -i).Type != FrameType.None)
+                if (!IsIgnorableFrameType(p1FrameType) || !IsIgnorableFrameType(p2FrameType) ||
+                    !IsIgnorableFrameType(FrameAtOffset(EntityMeters[0], -i).Type) ||
+                    !IsIgnorableFrameType(FrameAtOffset(EntityMeters[1], -i).Type))
                 {
                     _isPaused = false;
                     break;
@@ -138,6 +131,7 @@ namespace GGXXACPROverlay.FrameMeter
             UpdateStartupByCountBackWithMoveData(P2, ref PlayerMeters[1]);
             UpdateAdvantageByCountBack();
 
+            _stateBuffer.Add(new(P1, P2));
             _index = (_index + 1) % METER_LENGTH;
             return 0;
         }
@@ -431,6 +425,18 @@ namespace GGXXACPROverlay.FrameMeter
         {
             return (_index + offset + METER_LENGTH) % METER_LENGTH;
         }
+
+        private StateSnapShot GetPreviousState()
+        {
+            if (_stateBuffer.Index == _stateBuffer.MinIndex) return default;
+            return _stateBuffer.Get(_stateBuffer.Index - 1);
+        }
+
+        private static bool ShouldUnpause(Player p1, Player p2)
+        {
+            return !IsIgnorableFrameType(DetermineFrameType(p1)) || !IsIgnorableFrameType(DetermineFrameType(p2));
+        }
+        private static bool IsIgnorableFrameType(FrameType type) => type is FrameType.None or FrameType.Neutral;
 
         private static bool HasThrowInvuln(Player p)
         {

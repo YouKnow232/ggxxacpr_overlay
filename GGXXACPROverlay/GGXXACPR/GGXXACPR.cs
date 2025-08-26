@@ -81,7 +81,6 @@ namespace GGXXACPROverlay.GGXXACPR
         // DirectX
         // Dereferencing pointer at class init since pointer is not expected to change
         public static readonly nint Direct3D9DevicePointer = *(nint*)(Memory.BaseAddress + Offsets.DIRECT3D9_DEVICE);
-        public static readonly nint GraphicsHookBreakPointAddress = Memory.BaseAddress + Offsets.GRAPHICS_HOOK_BREAKPOINT;
 
         /// <summary>
         /// Dereferences and returns a snapshot of the player 1 struct. If null, will return a dummy struct with default values.
@@ -127,6 +126,7 @@ namespace GGXXACPROverlay.GGXXACPR
         public static bool IsInGame => *_inGameFlag != 0;
         public static readonly byte* _inGameFlag = (byte*)(Memory.BaseAddress + Offsets.IN_GAME_FLAG);
         public static bool ShouldRender => *_inGameFlag != 0 && !(*TrainingPauseDisplay == 1 && *TrainingPauseState != 0);
+        public static bool ShouldUpdate => *_inGameFlag != 0 && !(*TrainingPauseDisplay == 1 && *TrainingPauseState != 0);
         public static readonly int* TrainingPauseState = (int*)(Memory.BaseAddress + Offsets.TRAINING_MODE_PAUSE_STATE);
         public static readonly int* TrainingPauseDisplay = (int*)(Memory.BaseAddress + Offsets.TRAINING_MODE_PAUSE_DISPLAY);
         public static readonly int* ReplaySimState = (int*)(Memory.BaseAddress + Offsets.GLOBAL_REPLAY_SIMULATE);
@@ -509,7 +509,7 @@ namespace GGXXACPROverlay.GGXXACPR
             {
                 if (hitboxes[i].BoxTypeId == (ushort)BoxId.HIT ||
                         (hitboxes[i].BoxTypeId == (ushort)BoxId.USE_EXTRA &&
-                        hitboxesExtra.Length >= i &&
+                        hitboxesExtra.Length > i &&
                         hitboxesExtra[i].BoxTypeId == (ushort)BoxId.HIT))
                 {
                     return true;
@@ -671,6 +671,13 @@ namespace GGXXACPROverlay.GGXXACPR
             matrix *= GetWidescreenCorrectionTransform(c);
 
             return matrix;
+        }
+        public static Matrix4x4 GetViewPortProjectionTransform()
+        {
+            return Matrix4x4.CreateOrthographicOffCenterLeftHanded(
+                0, *_viewWidth,
+                *_viewHeight, 0,
+                0, 1);
         }
         public static Matrix4x4 GetWidescreenCorrectionTransform() => GetWidescreenCorrectionTransform(Camera);
         public static Matrix4x4 GetWidescreenCorrectionTransform(Camera c)

@@ -64,6 +64,14 @@ namespace GGXXACPROverlay.FrameMeter
         public FrameMeterPip[] FrameArr = new FrameMeterPip[length];
     }
 
+    public readonly struct StateSnapShot(Player p1, Player p2)
+    {
+        // replay frame count (?)
+        public readonly PlayerSnapShot p1 = new(p1);
+        public readonly PlayerSnapShot p2 = new(p2);
+    }
+
+
     public readonly struct PlayerSnapShot(Player p)
     {
         public readonly ActionState Status = p.Status;
