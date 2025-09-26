@@ -35,6 +35,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Arial.png" />
     <None Remove="GGXXACPR\MoveData.csv" />
     <None Remove="OverlaySettings.ini" />
     <None Remove="Shaders\ComboTimeMeter.hlsl" />
@@ -56,6 +57,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Poly2Tri.NetStandard" Version="1.0.2" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.8" />
     <PackageReference Include="Vortice.D3DCompiler" Version="3.6.2" />
     <PackageReference Include="Vortice.Direct3D9" Version="3.6.2" />
   </ItemGroup>
@@ -74,6 +76,12 @@
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Shaders\SolidColorShader.hlsl">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Arial.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
   </ItemGroup>

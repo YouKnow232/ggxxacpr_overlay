@@ -22,7 +22,7 @@
 
         public void RollBack(int index)
         {
-            _index = index;
+            _index -= index;
         }
         public void Add(T element)
         {
@@ -34,8 +34,8 @@
         }
         private T this[int key]
         {
-            get => _buffer[WrappingIndex(key + _index, _buffer.Length)];
-            set => _buffer[WrappingIndex(key + _index, _buffer.Length)] = value;
+            get => _buffer[WrappingIndex(key, _buffer.Length)];
+            set => _buffer[WrappingIndex(key, _buffer.Length)] = value;
         }
 
         private static int WrappingIndex(int index, int size)

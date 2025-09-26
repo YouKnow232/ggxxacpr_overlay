@@ -15,6 +15,7 @@ namespace GGXXACPROverlay.Hooks
     {
         internal static class Asm
         {
+            internal const byte PUSHAD = 0x60;
             internal const byte POPAD = 0x61;
             internal const byte MOV = 0x8B;
             internal const byte RET = 0xC3;
@@ -31,10 +32,11 @@ namespace GGXXACPROverlay.Hooks
                 => originalOffset + originalSourceAddress - newSourceAddress;
         }
 
-        private static readonly nint _page = Marshal.AllocHGlobal(0x1000);
+        private static readonly nint _page = SetUpPage();
+        private static nint _page_index = 0;
 
         private static unsafe delegate* unmanaged[Cdecl, SuppressGCTransition]<uint, uint, uint, int>
-            _customCallingConventionParameters = WriteASMCallingConventionHelper(_page);
+            _customCallingConventionParameters = WriteASMCallingConventionHelper(_page + _page_index);
         /// <summary>
         /// Sets the EAX, ECX, and EDX cpu registers.
         /// </summary>
@@ -55,10 +57,20 @@ namespace GGXXACPROverlay.Hooks
             ];
 
             Marshal.Copy(asm, 0, address, asm.Length);
+            _page_index += 0x10;
 
             return (delegate* unmanaged[Cdecl, SuppressGCTransition]<uint, uint, uint, int>)address;
         }
 
+        private static unsafe nint SetUpPage()
+        {
+            const nuint pageSize = 0x1000;
+
+            void* page = NativeMemory.AllocZeroed(pageSize);
+            PInvoke.VirtualProtect(page, pageSize, PAGE_PROTECTION_FLAGS.PAGE_EXECUTE_READWRITE, out var _);
+
+            return (nint)page;
+        }
         /// <summary>
         /// Frees global page memory containing the raw assembly function CustomCallingConventionParameters
         /// </summary>
@@ -66,6 +78,10 @@ namespace GGXXACPROverlay.Hooks
         {
             _customCallingConventionParameters = null;
             Marshal.FreeHGlobal(_page);
+        }
+        private static void UpdatePageIndex(int bytesWritten)
+        {
+            _page_index += (bytesWritten + 0xF) & ~0xF;
         }
 
         internal static bool SetBreakPoint(nint address, out byte originalByte)
@@ -108,17 +124,19 @@ namespace GGXXACPROverlay.Hooks
         ///     This method will adapat any relative jmp instructions.</param>
         /// <returns>The allocated page and address of the trampoline function. This memory should be
         ///     freed with <c>VirtualFree</c> when uninstalling the hook.</returns>
-        public static unsafe nint WriteTrampoline(nint returnAddress, byte[] originalBytes, out nuint bytesWritten)
+        public static unsafe nint WriteReturnTrampoline(nint returnAddress, byte[] originalBytes, out nuint bytesWritten)
         {
             bytesWritten = (nuint)(originalBytes.Length + Asm.RELATIVE_JUMP_INSTRUCTION_SIZE);
             Debug.Log($"Trampoline allocation size: {bytesWritten} bytes");
-            nint trampolineAddress = (nint)PInvoke.VirtualAlloc(
-                null,
-                bytesWritten,
-                VIRTUAL_ALLOCATION_TYPE.MEM_COMMIT | VIRTUAL_ALLOCATION_TYPE.MEM_RESERVE,
-                PAGE_PROTECTION_FLAGS.PAGE_EXECUTE_READWRITE
-            );
-            if (trampolineAddress == 0) Debug.Log("Oops trampolineAddress fucky wucky!!");
+            //nint trampolineAddress = (nint)PInvoke.VirtualAlloc(
+            //    null,
+            //    bytesWritten,
+            //    VIRTUAL_ALLOCATION_TYPE.MEM_COMMIT | VIRTUAL_ALLOCATION_TYPE.MEM_RESERVE,
+            //    PAGE_PROTECTION_FLAGS.PAGE_EXECUTE_READWRITE
+            //);
+            nint trampolineAddress = _page + _page_index;
+            UpdatePageIndex((int)bytesWritten);
+
             Debug.Log($"Trampoline allocated at 0x{trampolineAddress:X8}");
 
             nint returnJumpOffset = Asm.CalculateRelativeOffset(trampolineAddress + originalBytes.Length, returnAddress);
@@ -155,17 +173,24 @@ namespace GGXXACPROverlay.Hooks
         /// <param name="originalBytes">Instructions that the detour overwrote</param>
         /// <param name="bytesWritten">Size of the trampoline function</param>
         /// <returns>Trampoline function pointer / page address</returns>
-        public static unsafe nint WriteToFromCallTrampoline(nint hookAddress, nint returnAddress, byte[] originalBytes, out nuint bytesWritten)
+        public static unsafe nint WriteToFromCallTrampoline(nint hookAddress, nint returnAddress, byte[] originalBytes, out nuint bytesWritten, int numParameters = 0)
         {
+            byte espOffset = (byte)(0x20 + 0x04 * numParameters);
+            byte[] pushEspInstruction = [0xFF, 0x74, 0x24, espOffset];
+
             // Forwards function parameters to hook
-            byte[] preambleAssembly = [
-                0x60,                       // pushad
-                0xFF, 0x74, 0x24, 0x34,     // push [esp+4C]
-                0xFF, 0x74, 0x24, 0x34,     // push [esp+4C]
-                0xFF, 0x74, 0x24, 0x34,     // push [esp+4C]
-                0xFF, 0x74, 0x24, 0x34,     // push [esp+4C]
-                0xFF, 0x74, 0x24, 0x34,     // push [esp+4C]
-            ];
+            byte[] preambleAssembly = new byte[1 + 4 * numParameters];
+            preambleAssembly[0] = Asm.PUSHAD;
+
+            for (int i = 0; i < numParameters; i++)
+            {
+                preambleAssembly[1 + 4 * i] = pushEspInstruction[0];
+                preambleAssembly[2 + 4 * i] = pushEspInstruction[1];
+                preambleAssembly[3 + 4 * i] = pushEspInstruction[2];
+                preambleAssembly[4 + 4 * i] = pushEspInstruction[3];
+            }
+
+            Debug.Log($"[DEBUG] Trampoline preamble: {BitConverter.ToString(preambleAssembly)}");
 
             bytesWritten = (nuint)(
                 preambleAssembly.Length +               // Preamble
@@ -175,13 +200,15 @@ namespace GGXXACPROverlay.Hooks
                 Asm.RELATIVE_JUMP_INSTRUCTION_SIZE);    // Return jump
 
             Debug.Log($"Trampoline allocation size: {bytesWritten} bytes");
-            nint trampolineAddress = (nint)PInvoke.VirtualAlloc(
-                null,
-                bytesWritten,
-                VIRTUAL_ALLOCATION_TYPE.MEM_COMMIT | VIRTUAL_ALLOCATION_TYPE.MEM_RESERVE,
-                PAGE_PROTECTION_FLAGS.PAGE_EXECUTE_READWRITE
-            );
-            if (trampolineAddress == 0) Debug.Log("Oops trampolineAddress fucky wucky!!");
+            //nint trampolineAddress = (nint)PInvoke.VirtualAlloc(
+            //    null,
+            //    bytesWritten,
+            //    VIRTUAL_ALLOCATION_TYPE.MEM_COMMIT | VIRTUAL_ALLOCATION_TYPE.MEM_RESERVE,
+            //    PAGE_PROTECTION_FLAGS.PAGE_EXECUTE_READWRITE
+            //);
+            nint trampolineAddress = _page + _page_index;
+            UpdatePageIndex((int)bytesWritten);
+
             Debug.Log($"Trampoline allocated at 0x{trampolineAddress:X8}");
 
             int hookCallOffset = (int)hookAddress - ((int)trampolineAddress + preambleAssembly.Length + Asm.RELATIVE_JUMP_INSTRUCTION_SIZE);
@@ -215,7 +242,6 @@ namespace GGXXACPROverlay.Hooks
             Marshal.Copy(trampolineAssembly, 0, trampolineAddress, trampolineAssembly.Length);
 
             return trampolineAddress;
-
         }
 
         /// <summary>

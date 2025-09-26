@@ -7,6 +7,7 @@
     {
         public const nint IN_GAME_FLAG = 0x7101F4;
         public const nint GAME_VER_FLAG = 0x6D0538;   // 0=AC, 1=+R
+        public const nint GAME_MODE = 0x70FFB4;
 
         // Injection Addresses
         public const nint MESSAGE_LOOP_END = 0x222413;
@@ -72,5 +73,6 @@
         // Replay
         // 1 = normal, 0 = do not simulate, -1 = rewinding (stays at 0 for frame stepping)
         public const nint GLOBAL_REPLAY_SIMULATE = 0x7D5788;
+        public const nint REPLAY_FRAME_COUNT = 0x7D57D8;
     }
 }

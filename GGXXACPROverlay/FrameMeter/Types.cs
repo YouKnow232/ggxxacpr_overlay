@@ -1,4 +1,5 @@
-﻿using GGXXACPROverlay.GGXXACPR;
+﻿using System.ComponentModel;
+using GGXXACPROverlay.GGXXACPR;
 
 namespace GGXXACPROverlay.FrameMeter
 {
@@ -7,13 +8,21 @@ namespace GGXXACPROverlay.FrameMeter
         None,
         Neutral,
         Movement,
+        [Description("Counter Hit")]
         CounterHitState,
         Startup,
         Active,
+        [Description("Throw")]
         ActiveThrow,
         Recovery,
-        BlockStun,
-        HitStun
+        [Description("Blockstun")]
+        Blockstun,
+        [Description("Hitstun")]
+        Hitstun,
+        [Description("Techable Hitstun")]
+        TechableHitstun,
+        [Description("Knocked Down")]
+        KnockDownHitstun,
     }
 
     /// <summary>
@@ -22,16 +31,22 @@ namespace GGXXACPROverlay.FrameMeter
     public enum PrimaryFrameProperty
     {
         Default,
+        [Description("Full Invuln")]
         InvulnFull,
+        [Description("Strike Invuln")]
         InvulnStrike,
+        [Description("Throw Invuln")]
         InvulnThrow,
         Parry,
+        [Description("Full Guard Point")]
         GuardPointFull,
+        [Description("High Guard Point")]
         GuardPointHigh,
+        [Description("Low Guard Point")]
         GuardPointLow,
         Armor,
         FRC,
-        SlashBack,
+        Slashback,
         TEST
     }
 
@@ -46,27 +61,28 @@ namespace GGXXACPROverlay.FrameMeter
 
     public struct FrameMeterPip
     {
-        public FrameType Type;
-        public PrimaryFrameProperty PrimaryProperty1;
-        public PrimaryFrameProperty PrimaryProperty2;
-        public SecondaryFrameProperty SecondaryProperty;
-        public PlayerSnapShot playerState;
+        public FrameType Type { get; set; }
+        public PrimaryFrameProperty PrimaryProperty1 { get; set; }
+        public PrimaryFrameProperty PrimaryProperty2 { get; set; }
+        public SecondaryFrameProperty SecondaryProperty { get; set; }
+        public PlayerSnapShot PlayerState { get; set; }
+        public int RunSum { get; set; }
     }
     public struct Meter(string name, int length)
     {
         public readonly string Label = name;
-        public int Startup = -1;
-        public int LastAttackActId = -1;
-        public int Total = -1;
-        public int Advantage = 0;
-        public bool DisplayAdvantage = false;
-        public bool Hide = false;
-        public FrameMeterPip[] FrameArr = new FrameMeterPip[length];
+        public int Startup { get; set; } = -1;
+        public int LastAttackActId { get; set; } = -1;
+        public int Total { get; set; } = -1;
+        public int Advantage { get; set; } = 0;
+        public bool DisplayAdvantage { get; set; } = false;
+        public bool Hide { get; set; } = false;
+        public readonly FrameMeterPip[] FrameArr = new FrameMeterPip[length];
     }
 
-    public readonly struct StateSnapShot(Player p1, Player p2)
+    public readonly struct StateSnapShot(Player p1, Player p2, int frameNumber = 0)
     {
-        // replay frame count (?)
+        public readonly int frameNumber = frameNumber;
         public readonly PlayerSnapShot p1 = new(p1);
         public readonly PlayerSnapShot p2 = new(p2);
     }

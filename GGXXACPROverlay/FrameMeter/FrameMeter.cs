@@ -2,26 +2,33 @@
 
 namespace GGXXACPROverlay.FrameMeter
 {
+    /// <summary>
+    /// Represents a SF6-style frame chart
+    /// </summary>
     internal class FrameMeter
     {
-        private const int MAX_REPLAY_REWIND_BUFFER = 3589;
-        private const int MIN_REPLAY_REWIND_BUFFER = 16;
+        private const int REPLAY_STATE_BUFFER_SIZE = 256;
+        private const int DEFAULT_STATE_BUFFER_SIZE = 16;
+        private const int MINIMUM_RUN_SUM = 8;
+        private const int PAUSE_THRESHOLD = 10;
 
         public const int METER_LENGTH = 80;
-        private const int PAUSE_THRESHOLD = 10;
 
         private readonly CircularBuffer<StateSnapShot> _stateBuffer;
 
-        private int _index;
+        private int _index = 0;
         private bool _isPaused = true;
-        public Meter[] PlayerMeters = new Meter[2];
-        public Meter[] EntityMeters = new Meter[2];
+        private readonly int[] _frameNumberLookup = new int[METER_LENGTH];
+        public readonly Meter[] PlayerMeters = new Meter[2];
+        public readonly Meter[] EntityMeters = new Meter[2];
 
+        private readonly bool _isReplay;
+        private int _currentFrame = 0;  // TODO: refactor this to use local var frameId
 
         public FrameMeter()
         {
-            _stateBuffer = new(MIN_REPLAY_REWIND_BUFFER);
-            _index = 0;
+            _isReplay = GGXXACPR.GGXXACPR.GameMode == GameMode.ReplayTheater;
+            _stateBuffer = new(_isReplay ? REPLAY_STATE_BUFFER_SIZE : DEFAULT_STATE_BUFFER_SIZE);
             PlayerMeters[0] = new Meter("Player 1", METER_LENGTH);
             PlayerMeters[1] = new Meter("Player 2", METER_LENGTH);
             EntityMeters[0] = new Meter("P1 Sub", METER_LENGTH);
@@ -29,15 +36,37 @@ namespace GGXXACPROverlay.FrameMeter
             ClearMeters();
         }
 
+        /// <summary>
+        /// Looks at the current game state, and updates the frame meter accordingly.
+        /// </summary>
+        /// <returns>Returns 0 if an update went through, otherwise returns 1</returns>
         public int Update()
         {
-            // if replay theater: setup state buffer
-            // else use smaller fixed state memory for certain frame detection behavior
-
+            int frameId = GGXXACPR.GGXXACPR.ReplayFrameCount;
             var P1 = GGXXACPR.GGXXACPR.Player1;
             var P2 = GGXXACPR.GGXXACPR.Player2;
 
             if (!P1.IsValid || !P2.IsValid || !GGXXACPR.GGXXACPR.ShouldUpdate) return 1;
+
+            if (_isReplay)  // Rewinding only handled in replay mode. (May need to extend this to online mode to handle rollbacks if supporting that mode)
+            {
+                int frameDiff = frameId - _currentFrame;
+                if (frameDiff == 0 || frameId == 0) return 1;
+
+                if (frameDiff < 0)
+                {
+                    Rewind(frameId);
+                    _currentFrame = frameId;
+                    return 0;
+                }
+
+                if (frameDiff > 1)
+                {
+                    Debug.Log($"Frame difference of {frameDiff} is unexpected");
+                }
+
+                _currentFrame = frameId;
+            }
 
             StateSnapShot prevState = GetPreviousState();
             
@@ -45,9 +74,8 @@ namespace GGXXACPROverlay.FrameMeter
             // The hitbox requirement is for moves that become active while in super flash.
             // Special exception for first freeze frame.
             if ((P1.Status.HasFlag(ActionState.Freeze) || P2.Status.HasFlag(ActionState.Freeze)) &&
-                //(p1PrevFrame.Status.HasFlag(ActionState.Freeze) || p2PrevFrame.Status.HasFlag(ActionState.Freeze)) &&
                 (prevState.p1.Status.HasFlag(ActionState.Freeze) || prevState.p2.Status.HasFlag(ActionState.Freeze)) &&
-                !Settings.RecordDuringSuperFlash)
+                Settings.FrameMeter.PauseDuringSuperFlash)
             {
                 // TODO: account for projectile supers that hit during flash
 
@@ -70,7 +98,7 @@ namespace GGXXACPROverlay.FrameMeter
                     _index = AddToLoopingIndex(1);
                 }
 
-                _stateBuffer.Add(new(P1, P2));
+                _stateBuffer.Add(new(P1, P2, frameId));
                 return 0;
             }
             // Skip update when both players are in hitstop (currently somewhat redundant when checking for unchanged animation timers above)
@@ -80,9 +108,9 @@ namespace GGXXACPROverlay.FrameMeter
                     prevState.p1.HitstopCounter > 0 && prevState.p2.HitstopCounter > 0) &&
                     !P1.Status.HasFlag(ActionState.Freeze) &&
                     !P2.Status.HasFlag(ActionState.Freeze) &&
-                    !Settings.RecordDuringHitstop)
+                    Settings.FrameMeter.PauseDuringHitstop)
             {
-                _stateBuffer.Add(new(P1, P2));
+                _stateBuffer.Add(new(P1, P2, frameId));
                 return 0;
             }
 
@@ -107,6 +135,8 @@ namespace GGXXACPROverlay.FrameMeter
             UpdateIndividualMeter(P2);
             UpdateIndividualEntityMeter(P1);
             UpdateIndividualEntityMeter(P2);
+            _frameNumberLookup[_index] = frameId;
+            // Debug.Log($"[FRAME METER DEBUG] Update() ReplayFameCount: {frameId} | _frameNumberLookup[]: {_frameNumberLookup[_index]}  !!!!!!!!!!!!!!!!");
 
             // Check if frame meter should pause
             // TODO: account for frame properties?
@@ -130,20 +160,86 @@ namespace GGXXACPROverlay.FrameMeter
             UpdateStartupByCountBackWithMoveData(P1, ref PlayerMeters[0]);
             UpdateStartupByCountBackWithMoveData(P2, ref PlayerMeters[1]);
             UpdateAdvantageByCountBack();
+            UpdateRunSums(PlayerMeters[1]);
+            UpdateRunSums(PlayerMeters[0]);
 
-            _stateBuffer.Add(new(P1, P2));
+            _stateBuffer.Add(new(P1, P2, frameId));
             _index = (_index + 1) % METER_LENGTH;
             return 0;
         }
 
+
+        /// <summary>
+        /// Rewinds the frame meter's individual arrays and the state buffer backwards to the target frame
+        /// </summary>
+        /// <param name="targetFrame">The target frame to rewind towards. Identified by the value given by GGXXACPR.GGXXACPR.ReplayFrameCount</param>
+        public void Rewind(int targetFrame)
+        {
+            // Rewind frame meter itself
+            //Debug.Log($"currentFrame: {_currentFrame} | targetFrame: {targetFrame}");
+            int indexFrameNum = _frameNumberLookup[AddToLoopingIndex(-1)];
+            //Debug.Log($"Start meter while loop ({indexFrameNum} > {targetFrame} && {indexFrameNum} > 0)");
+            int frameMeterRollbackNum = 1;
+            while (indexFrameNum > targetFrame && indexFrameNum > 0)
+            {
+                indexFrameNum = _frameNumberLookup[AddToLoopingIndex(-1 * (++frameMeterRollbackNum))];
+                //Debug.Log($"   indexFrameNum:{indexFrameNum} frameMeterRollbackNum:{frameMeterRollbackNum}");
+                //Debug.Log($"   indexFrameNum > targetFrame && indexFrameNum > 0");
+                //Debug.Log($"   {indexFrameNum} > {targetFrame} && {indexFrameNum} > 0");
+            }
+            frameMeterRollbackNum--;
+
+            if (frameMeterRollbackNum > 0)
+            {
+                //Debug.Log($"frameMeter rollback: {frameMeterRollbackNum}");
+                _index = AddToLoopingIndex(-frameMeterRollbackNum);
+
+                for (int i = 0; i < frameMeterRollbackNum; i++)
+                {
+                    int index = AddToLoopingIndex(i);
+
+                    // TODO: instead of erasing the frame pips here, load them from the stateBuffer
+                    PlayerMeters[0].FrameArr[index] = new FrameMeterPip();
+                    PlayerMeters[1].FrameArr[index] = new FrameMeterPip();
+                    EntityMeters[0].FrameArr[index] = new FrameMeterPip();
+                    EntityMeters[1].FrameArr[index] = new FrameMeterPip();
+                    _frameNumberLookup[index] = -1;
+                }
+            }
+
+            // Rewind the state buffer as well
+            var indexState = _stateBuffer.Get(_stateBuffer.Index - 1);
+            int stateFrameRollbackNum = 1;
+            //Debug.Log($"Start state while loop ({indexState.frameNumber} > {targetFrame} && ({_stateBuffer.Index} - {stateFrameRollbackNum}) > 0");
+            while (indexState.frameNumber > targetFrame && (_stateBuffer.Index - stateFrameRollbackNum) > 0)
+            {
+                indexState = _stateBuffer.Get(_stateBuffer.Index - (++stateFrameRollbackNum));
+            }
+            stateFrameRollbackNum--;
+            if (stateFrameRollbackNum > 0)
+            {
+                //Debug.Log($"stateFrame rollback: {stateFrameRollbackNum}");
+                _stateBuffer.RollBack(stateFrameRollbackNum);
+            }
+        }
+
+        /// <summary>
+        /// Clears each individual meter
+        /// </summary>
         private void ClearMeters()
         {
-            ClearMeter(ref PlayerMeters[0], false);
-            ClearMeter(ref PlayerMeters[1], false);
+            ClearMeter(ref PlayerMeters[0]);
+            ClearMeter(ref PlayerMeters[1]);
             ClearMeter(ref EntityMeters[0], true);
             ClearMeter(ref EntityMeters[1], true);
+            Array.Fill(_frameNumberLookup, 0);
         }
-        private static void ClearMeter(ref Meter m, bool hide)
+        /// <summary>
+        /// Resets the given Meter m to default values. An explicit parameter for the hide value is given for entity meters.
+        /// </summary>
+        /// <param name="m">The Meter struct to clear</param>
+        /// <param name="hide">What the set the Meter.Hide property to</param>
+        private static void ClearMeter(ref Meter m, bool hide = false)
         {
             for (int i = 0; i < METER_LENGTH; i++)
             {
@@ -157,6 +253,11 @@ namespace GGXXACPROverlay.FrameMeter
             m.Hide = hide;
         }
 
+        /// <summary>
+        /// Determines what type of frame should be displayed given the current state of a Player p.
+        /// </summary>
+        /// <param name="p">The Player to inspect</param>
+        /// <returns>The determined frame type to represent the player state</returns>
         private static FrameType DetermineFrameType(Player p)
         {
             if (GGXXACPR.GGXXACPR.IsThrowActive(p) || GGXXACPR.GGXXACPR.IsCommandThrowActive(p))
@@ -170,33 +271,44 @@ namespace GGXXACPROverlay.FrameMeter
             // Slide Head runs a grounded status check for all entities when his hitbox flag is -1 to determine if the unblockable connects
             else if (p.CharId == CharacterID.POTEMKIN &&
                 p.ActionId == GGXXACPR.GGXXACPR.SLIDE_HEAD_ACT_ID &&
-                p.HitboxFlag == 0xFF)
+                p.ActionHeaderFlags == GGXXACPR.GGXXACPR.SLIDE_HEAD_UNBLOCKABLE_ACT_HEADER_VALUE)
             {
                 return FrameType.Active;
             }
             else if (p.Status.HasFlag(ActionState.IsInBlockstun) || p.Extra.SBTime > 0)
             {
-                return FrameType.BlockStun;
+                return FrameType.Blockstun;
             }
             else if (p.Status.HasFlag(ActionState.IsInHitstun))
             {
-                return FrameType.HitStun;
+                if (p.Status.HasFlag(ActionState.KnockedDown))
+                {
+                    return FrameType.KnockDownHitstun;
+                }
+                else if (p.Status.HasFlag(ActionState.IsAirborne) && p.Extra.UntechTimer < 0)
+                {
+                    return FrameType.TechableHitstun;
+                }
+                else
+                {
+                    return FrameType.Hitstun;
+                }
             }
             else if (p.AttackFlags.HasFlag(AttackState.IsInRecovery))
             {
                 return FrameType.Recovery;
             }
-            else if (p.CommandFlags.HasFlag(CommandState.IsMove) && !p.AttackFlags.HasFlag(AttackState.IsInRecovery))
+            else if (p.CommandFlags == CommandState.IsMove && !p.AttackFlags.HasFlag(AttackState.IsInRecovery))
             {
                 return FrameType.CounterHitState;
             }
-            else if (p.CommandFlags.HasFlag(CommandState.IsMove))
+            else if (p.CommandFlags == CommandState.IsMove)
             {
                 return FrameType.Startup;
             }
             else if (p.CommandFlags.HasFlag(CommandState.Prejump) ||
-                p.CommandFlags.HasFlag(CommandState.FreeCancel) || p.CommandFlags.HasFlag(CommandState.RunDash) ||
-                p.CommandFlags.HasFlag(CommandState.StepDash) || p.CommandFlags.HasFlag(CommandState.RunDashSkid))
+                (p.CommandFlags is CommandState.FreeCancel or CommandState.RunDash or
+                    CommandState.StepDash or CommandState.RunDashSkid))
             {
                 return FrameType.Movement;
             }
@@ -206,6 +318,11 @@ namespace GGXXACPROverlay.FrameMeter
             }
         }
 
+        /// <summary>
+        /// Determines what frame properties should be displayed given the current state of a Player p.
+        /// </summary>
+        /// <param name="p">The Player to inspect</param>
+        /// <returns>0 to 2 frame primary frame properties to represent the player state</returns>
         private static PrimaryFrameProperty[] DeterminePrimaryFrameProperties(Player p)
         {
             var output = new Stack<PrimaryFrameProperty>(2);
@@ -214,7 +331,7 @@ namespace GGXXACPROverlay.FrameMeter
 
             if (p.Extra.SBTime > 0)
             {
-                output.Push(PrimaryFrameProperty.SlashBack);
+                output.Push(PrimaryFrameProperty.Slashback);
             }
 
             if (HasStrikeInvuln(p) && HasThrowInvuln(p))
@@ -289,6 +406,9 @@ namespace GGXXACPROverlay.FrameMeter
             return output.ToArray();
         }
 
+        /// <summary>
+        /// Determines the frame type for a given player's entity sub meter.
+        /// </summary>
         private static FrameType DetermineEntityFrameType(Player p)
         {
             if (GGXXACPR.GGXXACPR.HasAnyProjectileHitbox(p.PlayerIndex))
@@ -308,6 +428,11 @@ namespace GGXXACPROverlay.FrameMeter
         private const int X_IGNORE_BOUNDARY = 86000;
         private const int Y_IGNORE_TOP_BOUNDARY = -120000;
         private const int Y_IGNORE_BOTTOM_BOUNDARY = 48000;
+        /// <summary>
+        /// Determines if a given entity is within the ignore boundary. This is used to discard active entities that are too far away to be relevant.
+        /// </summary>
+        /// <param name="e">A specific entity</param>
+        /// <returns>True if in bounds, false if it should be ignored</returns>
         private static bool IsEntityInBounds(Entity e)
         {
             if (Math.Abs(e.XPos) > X_IGNORE_BOUNDARY ||
@@ -324,21 +449,21 @@ namespace GGXXACPROverlay.FrameMeter
         {
             int index = p.PlayerIndex;
             FrameType type = DetermineFrameType(p);
-            PrimaryFrameProperty[] pprops = DeterminePrimaryFrameProperties(p);
-            SecondaryFrameProperty prop2 = SecondaryFrameProperty.Default;
+            PrimaryFrameProperty[] pProps = DeterminePrimaryFrameProperties(p);
+            SecondaryFrameProperty sProp = SecondaryFrameProperty.Default;
 
             if (p.Extra.RCTime > 0)
             {
-                prop2 = SecondaryFrameProperty.FRC;
+                sProp = SecondaryFrameProperty.FRC;
             }
 
             PlayerMeters[index].FrameArr[_index] = new FrameMeterPip()
             {
                 Type = type,
-                PrimaryProperty1 = pprops[0],
-                PrimaryProperty2 = pprops[1],
-                SecondaryProperty = prop2,
-                playerState = new PlayerSnapShot(p),
+                PrimaryProperty1 = pProps[0],
+                PrimaryProperty2 = pProps[1],
+                SecondaryProperty = sProp,
+                PlayerState = new PlayerSnapShot(p),
             };
             PlayerMeters[index].FrameArr[(_index + 2 + METER_LENGTH) % METER_LENGTH] = new FrameMeterPip(); // Forward erasure
         }
@@ -379,6 +504,15 @@ namespace GGXXACPROverlay.FrameMeter
                 }
             }
         }
+        /// <summary>
+        /// Calculates startup by looking at the player's current action animation counter.
+        /// This is unreliable because many attacks are made up of multiple actions, so the
+        /// animation counter will not necessarilly account for the entire move.
+        /// Another source for inaccuracy is moves that animate during super freeze.
+        /// The animation counter will count up, but super freeze frames are generally not counted in startup measurements.
+        /// 
+        /// Use UpdateStartupByCountBackWithMoveData instead.
+        /// </summary>
         private void UpdateStartupByAnimCounter(Player p, ref Meter pMeter)
         {
             FrameType prevFrameType = FrameAtOffset(pMeter, -1).Type;
@@ -388,6 +522,10 @@ namespace GGXXACPROverlay.FrameMeter
                 pMeter.Startup = p.AnimationCounter;
             }
         }
+
+        /// <summary>
+        /// Calculates startup using data from the MoveData class.
+        /// </summary>
         private void UpdateStartupByCountBackWithMoveData(Player p, ref Meter pMeter)
         {
             FrameType[] activeTypes = [FrameType.Active, FrameType.ActiveThrow];
@@ -396,18 +534,42 @@ namespace GGXXACPROverlay.FrameMeter
 
             if (activeTypes.Contains(currFrame.Type) && !activeTypes.Contains(prevFrameType))
             {
-                pMeter.LastAttackActId = currFrame.playerState.ActionId;
+                pMeter.LastAttackActId = currFrame.PlayerState.ActionId;
                 FrameMeterPip frame;
                 for (int i = 1; i < METER_LENGTH; i++)
                 {
                     frame = FrameAtOffset(pMeter, -i);
-                    if (frame.playerState.ActionId != pMeter.LastAttackActId &&
-                        !MoveData.IsPrevAnimSameMove(p.CharId, frame.playerState.ActionId, pMeter.LastAttackActId))
+                    if (frame.PlayerState.ActionId != pMeter.LastAttackActId &&
+                        !MoveData.IsPrevAnimSameMove(p.CharId, frame.PlayerState.ActionId, pMeter.LastAttackActId))
                     {
                         pMeter.Startup = i;
                         break;
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Determines if a continuous run of FrameTypes just ended in the given Meter and updates that FrameMeterPip's RunSum value.
+        /// </summary>
+        private void UpdateRunSums(Meter meter)
+        {
+            if (FrameAtOffset(meter, -1).Type == FrameAtOffset(meter, 0).Type)
+                return;
+
+            FrameType runType = FrameAtOffset(meter, -1).Type;
+
+            if (runType is FrameType.None or FrameType.Neutral) return;
+
+            int countingBack = 1;
+            while (countingBack < METER_LENGTH && FrameAtOffset(meter, -countingBack).Type == FrameAtOffset(meter, -countingBack - 1).Type)
+            {
+                countingBack++;
+            }
+
+            if (countingBack is >= MINIMUM_RUN_SUM and < (METER_LENGTH - 3))
+            {
+                meter.FrameArr[AddToLoopingIndex(-1)].RunSum = countingBack;
             }
         }
 

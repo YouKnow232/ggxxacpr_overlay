@@ -11,7 +11,8 @@ namespace GGXXACPROverlay.Hooks
     {
         private static GraphicsDetourHook? _graphicsHook;
         //private static CustomPtrToEdxHook? _graphicsHookTest;
-        private static GenericPatchHook? _UpdateGameStateHook;
+        //private static GenericPatchHook? _UpdateGameStateHook;
+        private static DetourHook? _GameStateHook;
         private static GenericPatchHook? _peekMessageHook;
 
         public static void InstallHooks()
@@ -26,9 +27,6 @@ namespace GGXXACPROverlay.Hooks
             }
             
             TaskQueues.RenderThreadTaskQueue.Enqueue(D3D9PresentHookSetup);
-
-
-            //_graphicsHook = new GraphicsDetourHook(GetD3D9PresentFuncPtr(), D3D9PresentHook);
 
             nint delegatePointer = Marshal.GetFunctionPointerForDelegate(D3D9PresentWrapperHook);
 
@@ -49,16 +47,23 @@ namespace GGXXACPROverlay.Hooks
 
 
             nint ugsTargetAddress = Memory.BaseAddress + Offsets.UPDATE_GAME_STATE_RET_INSTRUCTION;
-            nint ugsCallRelOffset = Util.Asm.CalculateRelativeOffset(
-                ugsTargetAddress,
-                Marshal.GetFunctionPointerForDelegate(UpdateGameStateHook));
+            //nint ugsCallRelOffset = Util.Asm.CalculateRelativeOffset(
+            //    ugsTargetAddress,
+            //    Marshal.GetFunctionPointerForDelegate(UpdateGameStateHook));
 
-            _UpdateGameStateHook = new GenericPatchHook(
-                [Util.Asm.CALL, ..BitConverter.GetBytes((int)ugsCallRelOffset),
-                Util.Asm.RET],
-                ugsTargetAddress);
+            //_UpdateGameStateHook = new GenericPatchHook(
+            //    [Util.Asm.CALL, ..BitConverter.GetBytes((int)ugsCallRelOffset),
+            //    Util.Asm.RET],
+            //    ugsTargetAddress);
 
-            _UpdateGameStateHook.Install();
+            //_UpdateGameStateHook.Install();
+
+            _GameStateHook = new DetourHook(
+                Marshal.GetFunctionPointerForDelegate(UpdateGameStateHook),
+                ugsTargetAddress
+            );
+
+            _GameStateHook.Install();
 
             nint peekMessageWrapperPtr = (nint)(delegate* unmanaged[Stdcall]<MSG*, HWND, uint, uint, uint, int>)&PeekMessageWrapper;
             Debug.Log($"peekMessageWrapper hook function pointer: 0x{peekMessageWrapperPtr:X8}");
@@ -76,24 +81,29 @@ namespace GGXXACPROverlay.Hooks
         {
             _graphicsHook?.Uninstall();
             //_graphicsHookTest?.Uninstall();
-            _UpdateGameStateHook?.Uninstall();
+            //_UpdateGameStateHook?.Uninstall();
+            _GameStateHook?.Uninstall();
             _peekMessageHook?.Uninstall();
         }
 
         private static void D3D9PresentHookSetup(nint device)
         {
-            Thread.BeginThreadAffinity();
+            // TODO: remove this after testing
+            // Thread.BeginThreadAffinity();
 
             if (device == 0)
                 throw new InvalidOperationException("Graphics init task was called with an invalid device pointer!");
 
             try
             {
-                _ = new Overlay(new Graphics(device));
+                var resources = new Rendering.GraphicsResources();
+                var graphics = new Rendering.Graphics(device, resources);
+                var frameMeter = new FrameMeter.FrameMeter();
+                _ = new Overlay(graphics, resources, frameMeter);
             }
             catch (Exception e)
             {
-                Debug.Log($"[ERROR] Caught unhandled exception before it bubbled into native code: {e}");
+                Debug.Log($"[ERROR] Caught unhandled exception before it bubbled into native code:\n{e}\n");
             }
         }
         private static void D3D9PresentHook(nint device)
@@ -111,7 +121,7 @@ namespace GGXXACPROverlay.Hooks
             }
             catch (Exception e)
             {
-                Debug.Log($"[ERROR] Caught unhandled exception before it bubbled into native code: {e}");
+                Debug.Log($"[ERROR] Caught unhandled exception before it bubbled into native code:\n{e}\n");
             }
         }
 
@@ -136,7 +146,7 @@ namespace GGXXACPROverlay.Hooks
             }
             catch (Exception e)
             {
-                Debug.Log($"[Error] Unhandled exception thrown in graphics hook: {e}");
+                Debug.Log($"[Error] Unhandled exception thrown in graphics hook:\n{e}\n");
             }
 
             return _Present((void*)device, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
@@ -162,7 +172,7 @@ namespace GGXXACPROverlay.Hooks
             }
             catch (Exception e)
             {
-                Debug.Log($"[ERROR] Caught unhandled exception before it bubbled into native code: {e}");
+                Debug.Log($"[ERROR] Caught unhandled exception before it bubbled into native code:\n{e}\n");
             }
             finally
             {
@@ -179,7 +189,7 @@ namespace GGXXACPROverlay.Hooks
             }
             catch (Exception e)
             {
-                Debug.Log($"[ERROR] Exception thrown from UpdateGameStateHook: {e}");
+                Debug.Log($"[ERROR] Exception thrown from UpdateGameStateHook:\n{e}\n");
             }
         }
 

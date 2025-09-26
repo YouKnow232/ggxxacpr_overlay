@@ -35,7 +35,6 @@ namespace GGXXACPROverlay.Hooks
             _nativeHookPtr = Marshal.GetFunctionPointerForDelegate(graphicsHookDelegate);
             _workingMemoryRegion = (int)_targetAddress..((int)_targetAddress + PATCH_SIZE);
             _originalBytes = new byte[PATCH_SIZE];
-
         }
 
         public override void Install()
@@ -47,7 +46,7 @@ namespace GGXXACPROverlay.Hooks
             Marshal.Copy(_targetAddress, _originalBytes, 0, PATCH_SIZE);
 
             using SafeHandle hMainThread = Util.SafelyPauseMainThread(_workingMemoryRegion);
-            _trampolineAddress = Util.WriteToFromCallTrampoline(_nativeHookPtr, _targetAddress + PATCH_SIZE, _originalBytes, out _trampolineSize);
+            _trampolineAddress = Util.WriteToFromCallTrampoline(_nativeHookPtr, _targetAddress + PATCH_SIZE, _originalBytes, out _trampolineSize, 5);
             Debug.Log($"Trampoline function written at: 0x{_trampolineAddress:X8}");
 
             _ = Util.PatchHookDetour(_targetAddress, _trampolineAddress);

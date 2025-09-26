@@ -3,23 +3,23 @@ using Windows.Win32;
 
 namespace GGXXACPROverlay.Hooks
 {
-    internal class GenericPatchHook : DisposableHook
+    internal class DetourHook : DisposableHook
     {
         protected bool _isInstalled = false;
         public override bool IsInstalled => _isInstalled;
 
-        protected readonly byte[] _payload;
+        protected readonly nint _hookAddress;
         protected readonly nint _targetAddress;
         protected readonly Range _workingMemoryRegion;
 
         protected byte[] _originalBytes = [];
 
-        public GenericPatchHook(byte[] payload, nint targetAddress, int workingMemoryRange = 64)
+        public DetourHook(nint hookAddress, nint targetAddress, int memoryRange = 64)
         {
-            _payload = payload;
+            _hookAddress = hookAddress;
             _targetAddress = targetAddress;
             _workingMemoryRegion =
-                ((int)targetAddress - workingMemoryRange)..((int)targetAddress + payload.Length);
+                ((int)targetAddress - memoryRange)..((int)targetAddress + Util.Asm.RELATIVE_JUMP_INSTRUCTION_SIZE);
         }
 
         public override void Install()
@@ -30,7 +30,18 @@ namespace GGXXACPROverlay.Hooks
 
             using SafeHandle hMainThread = Util.SafelyPauseMainThread(_workingMemoryRegion);
 
-            _originalBytes = Util.Patch(_targetAddress, _payload);
+            _originalBytes = new byte[5];
+            Marshal.Copy(_targetAddress, _originalBytes, 0, 5);
+
+            nint trampolineAddress = Util.WriteToFromCallTrampoline(_hookAddress, _targetAddress, _originalBytes, out var _);
+
+            nint relativeJmpToTrampoline = Util.Asm.CalculateRelativeOffset(_targetAddress, trampolineAddress);
+            byte[] _payload =
+            [
+                Util.Asm.JUMP, ..BitConverter.GetBytes((int)relativeJmpToTrampoline),
+            ];
+
+            _ = Util.Patch(_targetAddress, _payload);
 
             uint suspendCount = PInvoke.ResumeThread(hMainThread);
             if (suspendCount == uint.MaxValue) throw new COMException("Failed to resume main thread", Marshal.GetLastSystemError());
@@ -54,7 +65,7 @@ namespace GGXXACPROverlay.Hooks
             _isInstalled = false;
         }
 
-        ~GenericPatchHook()
+        ~DetourHook()
         {
             if (IsInstalled)
             {

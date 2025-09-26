@@ -16,20 +16,16 @@ namespace GGXXACPROverlay
             switch (keyCode)
             {
                 case VirtualKeyCodes.VK_F1:
-                    Settings.DisplayBoxes = !Settings.DisplayBoxes;
+                    Settings.Hitboxes.DisplayBoxes = !Settings.Hitboxes.DisplayBoxes;
                     break;
                 case VirtualKeyCodes.VK_F2:
-                    Settings.DisplayHSDMeter = !Settings.DisplayHSDMeter;
+                    Settings.Misc.DisplayHSDMeter = !Settings.Misc.DisplayHSDMeter;
                     break;
                 case VirtualKeyCodes.VK_F3:
-                    Settings.AlwaysDrawThrowRange = !Settings.AlwaysDrawThrowRange;
+                    Settings.FrameMeter.Display = !Settings.FrameMeter.Display;
                     break;
                 case VirtualKeyCodes.VK_F4:
-                    // TODO: could probably just use a bit flag for these two settings
-                    if (Settings.HideP1 && Settings.HideP2) { Settings.HideP1 = true; Settings.HideP2 = true; }
-                    else if (!Settings.HideP1 && Settings.HideP2) { Settings.HideP1 = true; Settings.HideP2 = false; }
-                    else if (Settings.HideP1 && !Settings.HideP2) { Settings.HideP1 = false; Settings.HideP2 = false; }
-                    else if (!Settings.HideP1 && !Settings.HideP2) { Settings.HideP1 = false; Settings.HideP2 = true; }
+                    Settings.Hitboxes.AlwaysDrawThrowRange = !Settings.Hitboxes.AlwaysDrawThrowRange;
                     break;
                 case VirtualKeyCodes.VK_F5:
                     if (GGXXACPR.GGXXACPR.IsInGame) Hacks.TogglePauseNoMenu();
@@ -41,7 +37,10 @@ namespace GGXXACPROverlay
                     if (GGXXACPR.GGXXACPR.IsInGame) Hacks.ToggleBlackBG();
                     break;
                 case VirtualKeyCodes.VK_F8:
-                    Settings.CombineBoxes = !Settings.CombineBoxes;
+                    Settings.ReloadSettings();
+                    break;
+                case VirtualKeyCodes.VK_F9:
+                    Settings.Misc.DisplayHelpDialog = !Settings.Misc.DisplayHelpDialog;
                     break;
             }
         }

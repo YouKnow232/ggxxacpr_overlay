@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
-using GGXXACPROverlay.FrameMeter;
 using GGXXACPROverlay.GGXXACPR;
+using GGXXACPROverlay.Rendering;
 
 namespace GGXXACPROverlay
 {
@@ -12,15 +12,17 @@ namespace GGXXACPROverlay
         private readonly GraphicsResources _resources;
 
         private delegate void DrawDelegate(Player p1, Player p2, Camera cam);
-        private readonly DrawDelegate? DrawFunctions;
+        private readonly DrawDelegate? BoxDrawFunctions;
 
-        private readonly FrameMeter.FrameMeter _frameMeter;
+        private FrameMeter.FrameMeter _frameMeter;
 
-        public Overlay(Graphics graphics)
+        private bool _rebuildFrameMeter = false;
+
+        public Overlay(Graphics graphics, GraphicsResources resources, FrameMeter.FrameMeter frameMeter)
         {
             _graphics = graphics;
-            _resources = new GraphicsResources();
-            _frameMeter = new FrameMeter.FrameMeter();
+            _resources = resources;
+            _frameMeter = frameMeter;
             Instance = this;
 
             var DrawOpMap = new Dictionary<DrawOperation, DrawDelegate>()
@@ -33,16 +35,17 @@ namespace GGXXACPROverlay
                 { DrawOperation.Pivot,      RenderPivots },
                 { DrawOperation.MiscRange,  RenderRangeBoxes },
             };
-            foreach (DrawOperation op in Settings.DrawOrder)
+            foreach (DrawOperation op in Settings.Hitboxes.DrawOrder)
             {
-                if (op == DrawOperation.None) continue;
-                DrawFunctions += DrawOpMap[op];
+                if (DrawOpMap.TryGetValue(op, out DrawDelegate? drawDelegate))
+                    BoxDrawFunctions += drawDelegate;
             }
         }
 
         public void RenderFrame(nint devicePointer)
         {
             if (!GGXXACPR.GGXXACPR.ShouldRender) return;
+
             _graphics.UpdateDevice(devicePointer);
 
             var p1 = GGXXACPR.GGXXACPR.Player1;
@@ -52,34 +55,52 @@ namespace GGXXACPROverlay
             if (!p1.IsValid || !p2.IsValid) return;
 
             _graphics.BeginScene();
-            if (Settings.WidescreenClipping) _graphics.SetScissorRect(GGXXACPR.GGXXACPR.GetGameRegion());
+
+            if (Settings.Hitboxes.WidescreenClipping)
+                _graphics.SetScissorRect(GGXXACPR.GGXXACPR.GetGameRegion());
 
             // TODO: Test this more
             //GGXXACPR.GGXXACPR.RenderText("TEST!", 212, 368, 0xFF);
 
-            if (Settings.DisplayBoxes)
-                DrawFunctions?.Invoke(p1, p2, cam);
+            if (Settings.Hitboxes.DisplayBoxes)
+                BoxDrawFunctions?.Invoke(p1, p2, cam);
 
-            if (Settings.DisplayHSDMeter)
+            if (Settings.Misc.DisplayHSDMeter)
             {
                 RenderComboTimeMeter(p2);
-                RenderUntechTimeMeter(p2);
                 RenderComboTimeMeter(p1);
+                RenderUntechTimeMeter(p2);
                 RenderUntechTimeMeter(p1);
             }
 
-            // TODO: if setting
-            RenderFrameMeter();
+            if (Settings.FrameMeter.Display)
+                RenderFrameMeter();
+
+            if (Settings.Misc.DisplayHelpDialog)
+                RenderHelpScreen();
 
             _graphics.EndScene();
+        }
+
+        private void RenderHelpScreen()
+        {
+            using var glyphs = Drawing.GetLegendPrimitives(_graphics.ViewPort, _resources.TextAtlas, out var backDrop);
+            Matrix4x4 transform = GGXXACPR.GGXXACPR.GetViewPortProjectionTransform();
+            _graphics.SetDeviceContext(GraphicsContext.HUD);
+            _graphics.DrawRectangles(backDrop, transform);
+            _graphics.DrawText(glyphs, transform);
+            backDrop.Dispose();
         }
 
         private void RenderFrameMeter()
         {
             _graphics.SetDeviceContext(GraphicsContext.HUD);
-            var vp = _graphics.ViewPort;
-            using var primitives = Drawing.GetFrameMeterPrimitives(_frameMeter, vp.Width, vp.Height);
-            _graphics.DrawRectangles(primitives, GGXXACPR.GGXXACPR.GetViewPortProjectionTransform());
+            using var primitives = Drawing.GetFrameMeterPrimitives(_frameMeter, _graphics.ViewPort, _resources.TextAtlas, out var glyphs);
+            Matrix4x4 transform = GGXXACPR.GGXXACPR.GetViewPortProjectionTransform();
+            _graphics.DrawRectangles(primitives, transform);
+            _graphics.DrawText(glyphs, transform);
+
+            glyphs.Dispose();
         }
 
         private void RenderComboTimeMeter(Player p)
@@ -105,7 +126,7 @@ namespace GGXXACPROverlay
             if (hitboxes.Length == 0) return;
 
             _graphics.SetDeviceContext(GraphicsContext.Hitbox);
-            if (Settings.CombineBoxes && hitboxes.Length > 1)
+            if (Settings.Hitboxes.CombineBoxes && hitboxes.Length > 1)
             {
                 using var combinedGeometry = Drawing.GetCombinedHitboxPrimitives(hitboxes);
                 using var borderGeometry = Drawing.GetBorderPrimitives(hitboxes);
@@ -138,7 +159,7 @@ namespace GGXXACPROverlay
             {
                 if ((boxType == BoxId.HIT && iEntity.Status.HasFlag(ActionState.DisableHitboxes) &&
                         // Discard if disabled hitboxes is flagged and not ignoring that flag in settings
-                        iEntity.Status.HasFlag(ActionState.DisableHitboxes) && !Settings.IgnoreDisableHitboxFlag &&
+                        iEntity.Status.HasFlag(ActionState.DisableHitboxes) && !Settings.Misc.IgnoreDisableHitboxFlag &&
                         // but only if not in hitstop
                         !(iEntity.HitstopCounter > 0 && iEntity.AttackFlags.HasFlag(AttackState.HasConnected))) ||
                     boxType == BoxId.HURT && iEntity.Status.HasFlag(ActionState.DisableHurtboxes) ||
@@ -159,7 +180,7 @@ namespace GGXXACPROverlay
                         continue;
                     }
 
-                    if (Settings.CombineBoxes && hitboxes.Length > 1)
+                    if (Settings.Hitboxes.CombineBoxes && hitboxes.Length > 1)
                     {
                         using var combinedGeometry = Drawing.GetCombinedHitboxPrimitives(hitboxes);
                         using var borderGeometry = Drawing.GetBorderPrimitives(hitboxes);
@@ -206,30 +227,26 @@ namespace GGXXACPROverlay
         private void RenderPushbox(Player p, Camera cam)
         {
             _graphics.SetDeviceContext(GraphicsContext.Hitbox);
-            Matrix4x4 transform = GGXXACPR.GGXXACPR.GetPlayerTransform(p) * GGXXACPR.GGXXACPR.GetProjectionTransform(cam);
-            _graphics.DrawRectangles(Drawing.GetPushboxPrimitives(p), transform);
+            _graphics.DrawRectangles(
+                Drawing.GetPushboxPrimitives(p),
+                GGXXACPR.GGXXACPR.GetPlayerTransform(p) * GGXXACPR.GGXXACPR.GetProjectionTransform(cam));
         }
 
         private void RenderGrabBox(Player p, Camera cam)
         {
             _graphics.SetDeviceContext(GraphicsContext.Hitbox);
-            Matrix4x4 transform = GGXXACPR.GGXXACPR.GetPlayerTransform(p) * GGXXACPR.GGXXACPR.GetProjectionTransform(cam);
-            _graphics.DrawRectangles(Drawing.GetGrabboxPrimitives(p), transform);
+            _graphics.DrawRectangles(
+                Drawing.GetGrabboxPrimitives(p),
+                GGXXACPR.GGXXACPR.GetPlayerTransform(p) * GGXXACPR.GGXXACPR.GetProjectionTransform(cam));
         }
 
         private void RenderCommandGrabBox(Player p, Camera cam)
         {
             _graphics.SetDeviceContext(GraphicsContext.Hitbox);
-            Matrix4x4 transform = GGXXACPR.GGXXACPR.GetPlayerTransform(p) * GGXXACPR.GGXXACPR.GetProjectionTransform(cam);
-            _graphics.DrawRectangles(Drawing.GetCommnadGrabboxPrimitives(p), transform);
+            _graphics.DrawRectangles(
+                Drawing.GetCommnadGrabboxPrimitives(p),
+                GGXXACPR.GGXXACPR.GetPlayerTransform(p) * GGXXACPR.GGXXACPR.GetProjectionTransform(cam));
         }
-
-        //private void RenderPushAndGrabBox(Player p, Camera cam)
-        //{
-        //    _graphics.SetDeviceContext(GraphicsContext.Hitbox);
-        //    Matrix4x4 transform = GGXXACPR.GGXXACPR.GetPlayerTransform(p) * GGXXACPR.GGXXACPR.GetProjectionTransform(cam);
-        //    _graphics.DrawRectangles(Drawing.GetPushAndGrabPrimitives(p), transform);
-        //}
 
         private void RenderRangeBoxes(Player p, Camera cam)
         {
@@ -248,8 +265,9 @@ namespace GGXXACPROverlay
             {
                 if (iEntity.PlayerIndex == p.PlayerIndex && GGXXACPR.GGXXACPR.GetProximityBox(iEntity, out var ebox))
                 {
-                    transform = GGXXACPR.GGXXACPR.GetEntityTransform(iEntity) * GGXXACPR.GGXXACPR.GetProjectionTransform(cam);
-                    _graphics.DrawRectangles(Drawing.GetPivotRangeBoxPrimitive(ebox), transform);
+                    _graphics.DrawRectangles(
+                        Drawing.GetPivotRangeBoxPrimitive(ebox),
+                        GGXXACPR.GGXXACPR.GetEntityTransform(iEntity) * GGXXACPR.GGXXACPR.GetProjectionTransform(cam));
                 }
 
                 iEntity = iEntity.Next;
@@ -259,22 +277,22 @@ namespace GGXXACPROverlay
         #region WrapperDelegates
         private void RenderPivots(Player p1, Player p2, Camera cam)
         {
-            if (!Settings.HideP2) RenderPivot(p2, cam);
-            if (!Settings.HideP1) RenderPivot(p1, cam);
+            if (!Settings.Hitboxes.HideP2) RenderPivot(p2, cam);
+            if (!Settings.Hitboxes.HideP1) RenderPivot(p1, cam);
         }
         private void RenderCleanHitboxes(Player p1, Player p2, Camera cam)
         {
-            if (!Settings.HideP2) RenderCleanHitbox(p2, cam);
-            if (!Settings.HideP1) RenderCleanHitbox(p1, cam);
+            if (!Settings.Hitboxes.HideP2) RenderCleanHitbox(p2, cam);
+            if (!Settings.Hitboxes.HideP1) RenderCleanHitbox(p1, cam);
         }
         private void RenderHitboxes(Player p1, Player p2, Camera cam)
         {
-            if (!Settings.HideP2)
+            if (!Settings.Hitboxes.HideP2)
             {
                 RenderPlayerBoxes(p2, cam, BoxId.HIT);
                 RenderEntityBoxes(1, cam, BoxId.HIT);
             }
-            if (!Settings.HideP1)
+            if (!Settings.Hitboxes.HideP1)
             {
                 RenderPlayerBoxes(p1, cam, BoxId.HIT);
                 RenderEntityBoxes(0, cam, BoxId.HIT);
@@ -282,12 +300,12 @@ namespace GGXXACPROverlay
         }
         private void RenderHurtboxes(Player p1, Player p2, Camera cam)
         {
-            if (!Settings.HideP2)
+            if (!Settings.Hitboxes.HideP2)
             {
                 RenderPlayerBoxes(p2, cam, BoxId.HURT);
                 RenderEntityBoxes(1, cam, BoxId.HURT);
             }
-            if (!Settings.HideP1)
+            if (!Settings.Hitboxes.HideP1)
             {
                 RenderPlayerBoxes(p1, cam, BoxId.HURT);
                 RenderEntityBoxes(0, cam, BoxId.HURT);
@@ -295,24 +313,24 @@ namespace GGXXACPROverlay
         }
         private void RenderGrabboxes(Player p1, Player p2, Camera cam)
         {
-            if (!Settings.HideP2)
+            if (!Settings.Hitboxes.HideP2)
             {
                 if (GGXXACPR.GGXXACPR.IsCommandThrowActive(p2))
                 {
                     RenderCommandGrabBox(p2, cam);
                 }
-                else if (GGXXACPR.GGXXACPR.IsThrowActive(p2) || Settings.AlwaysDrawThrowRange)
+                else if (GGXXACPR.GGXXACPR.IsThrowActive(p2) || Settings.Hitboxes.AlwaysDrawThrowRange)
                 {
                     RenderGrabBox(p2, cam);
                 }
             }
-            if (!Settings.HideP1)
+            if (!Settings.Hitboxes.HideP1)
             {
                 if (GGXXACPR.GGXXACPR.IsCommandThrowActive(p1))
                 {
                     RenderCommandGrabBox(p1, cam);
                 }
-                else if (GGXXACPR.GGXXACPR.IsThrowActive(p1) || Settings.AlwaysDrawThrowRange)
+                else if (GGXXACPR.GGXXACPR.IsThrowActive(p1) || Settings.Hitboxes.AlwaysDrawThrowRange)
                 {
                     RenderGrabBox(p1, cam);
                 }
@@ -320,19 +338,32 @@ namespace GGXXACPROverlay
         }
         private void RenderPushboxes(Player p1, Player p2, Camera cam)
         {
-            if (!Settings.HideP2) RenderPushbox(p2, cam);
-            if (!Settings.HideP1) RenderPushbox(p1, cam);
+            if (!Settings.Hitboxes.HideP2) RenderPushbox(p2, cam);
+            if (!Settings.Hitboxes.HideP1) RenderPushbox(p1, cam);
         }
 
         private void RenderRangeBoxes(Player p1, Player p2, Camera cam)
         {
-            if (!Settings.HideP2) RenderRangeBoxes(p2, cam);
-            if (!Settings.HideP1) RenderRangeBoxes(p1, cam);
+            if (!Settings.Hitboxes.HideP2) RenderRangeBoxes(p2, cam);
+            if (!Settings.Hitboxes.HideP1) RenderRangeBoxes(p1, cam);
         }
         #endregion
 
         public void UpdateGameState()
         {
+            if (!GGXXACPR.GGXXACPR.IsInGame)
+            {
+                _rebuildFrameMeter = true;
+                return;
+            }
+
+            if (_rebuildFrameMeter)
+            {
+                Debug.Log("[DEBUG] restarting Frame Meter");
+                _frameMeter = new FrameMeter.FrameMeter();
+                _rebuildFrameMeter = false;
+            }
+
             _frameMeter.Update();
         }
 
