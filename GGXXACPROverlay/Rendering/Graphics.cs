@@ -3,12 +3,14 @@ using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using GGXXACPROverlay.Rendering.Glyphs;
 using SharpGen.Runtime;
 using Vortice.D3DCompiler;
 using Vortice.Direct3D;
 using Vortice.Direct3D9;
+using static System.Net.Mime.MediaTypeNames;
 
-namespace GGXXACPROverlay
+namespace GGXXACPROverlay.Rendering
 {
     internal enum GraphicsContext
     {
@@ -19,16 +21,20 @@ namespace GGXXACPROverlay
         Pivot,
         ComboTime,
         Meter,
-        HUD
+        HUD,
+        Text
     }
 
     internal unsafe class Graphics : IDisposable
     {
         private const string HLSL_COMPILE_TARGET_SUFFIX = "s_3_0";
-        private const uint RECTANGLE_LIMIT = 100;
-        private const uint VERTEX_PER_RECTANGLE = 6;    // 6 for 2 triangles
+        private const uint RECTANGLE_LIMIT = 512;
+        private const uint VERTICES_PER_RECTANGLE = 6;    // 6 for 2 triangles
 
-        private IDirect3DDevice9 _device;
+        private IDirect3DDevice9Ex _device;
+        private GraphicsResources _resources;
+
+        private IGlyphAtlas _atlas = new ArialGlyphAtlas();
 
         private IDirect3DVertexBuffer9? vertex3PositionColorVB;
         private IDirect3DVertexDeclaration9? vertex3PositionColorVD;
@@ -40,22 +46,31 @@ namespace GGXXACPROverlay
         private IDirect3DVertexShader9? meterVS;
         private IDirect3DPixelShader9? meterPS;
         private IDirect3DPixelShader9? comboTimePS;
+        private IDirect3DPixelShader9? textPS;
+
+        private IDirect3DTexture9? textAtlas;
 
         // TODO: handle lost device state
-        public Graphics(nint rawDevicePointer)
+        public Graphics(nint rawDevicePointer, GraphicsResources resources)
         {
-            _device = new IDirect3DDevice9(rawDevicePointer);
+            _device = new IDirect3DDevice9Ex(rawDevicePointer);
+            _resources = resources;
 
             LogDeviceState();
 
             Debug.Log("Initializing Graphics resources");
+
             InitBuffers();
             Debug.Log("Vertex buffers initialized");
+
+            textAtlas = resources.GetTextAtlas(_device);
+            Debug.Log("Textures loaded");
 
             CompileShaders();
             Debug.Log("Shaders compiled");
 
             Debug.Log("tempInit finished");
+            _resources = resources;
         }
 
         public void LogDeviceState()
@@ -105,7 +120,7 @@ namespace GGXXACPROverlay
             if (_device.NativePointer != nativePointer)
             {
                 Debug.Log("[WARNING] Updating device pointer!");
-                _device = new IDirect3DDevice9(nativePointer);
+                _device = new IDirect3DDevice9Ex(nativePointer);
             }
         }
 
@@ -153,24 +168,25 @@ namespace GGXXACPROverlay
 
         private void CompileShaders()
         {
-            byte[] hitboxShaderSource           = ReadShaderSource("GGXXACPROverlay.Shaders.HitboxShader.hlsl");
-            byte[] comboTimeShaderSource        = ReadShaderSource("GGXXACPROverlay.Shaders.ComboTimeMeter.hlsl");
+            byte[] hitboxShaderSource = ReadShaderSource("GGXXACPROverlay.Shaders.HitboxShader.hlsl");
+            byte[] comboTimeShaderSource = ReadShaderSource("GGXXACPROverlay.Shaders.ComboTimeMeter.hlsl");
             byte[] basicVertexColorShaderSource = ReadShaderSource("GGXXACPROverlay.Shaders.SolidColorShader.hlsl");
 
-            basicVS =          AddVertexShaderFromSource(_device, basicVertexColorShaderSource, "BasicVS");
-            basicPS =          AddPixelShaderFromSource( _device, basicVertexColorShaderSource, "BasicPS");
-            hitboxVS =         AddVertexShaderFromSource(_device, hitboxShaderSource, "HitboxVS");
-            hitboxPS =         AddPixelShaderFromSource( _device, hitboxShaderSource, "HitboxPS");
-            meterVS =          AddVertexShaderFromSource(_device, comboTimeShaderSource, "MeterVS");
-            meterPS =          AddPixelShaderFromSource( _device, comboTimeShaderSource, "MeterPS");
-            comboTimePS =      AddPixelShaderFromSource( _device, comboTimeShaderSource, "ComboTimePS");
+            basicVS = AddVertexShaderFromSource(_device, basicVertexColorShaderSource, "BasicVS");
+            basicPS = AddPixelShaderFromSource(_device, basicVertexColorShaderSource, "BasicPS");
+            hitboxVS = AddVertexShaderFromSource(_device, hitboxShaderSource, "HitboxVS");
+            hitboxPS = AddPixelShaderFromSource(_device, hitboxShaderSource, "HitboxPS");
+            meterVS = AddVertexShaderFromSource(_device, comboTimeShaderSource, "MeterVS");
+            meterPS = AddPixelShaderFromSource(_device, comboTimeShaderSource, "MeterPS");
+            comboTimePS = AddPixelShaderFromSource(_device, comboTimeShaderSource, "ComboTimePS");
+            textPS = AddPixelShaderFromSource(_device, basicVertexColorShaderSource, "TextPS");
         }
 
         private void InitBuffers()
         {
             // Vert3 Buffer
             vertex3PositionColorVB = _device.CreateVertexBuffer(
-                RECTANGLE_LIMIT * Vertex3PositionColor.SizeInBytes * VERTEX_PER_RECTANGLE,
+                RECTANGLE_LIMIT * Vertex3PositionColor.SizeInBytes * VERTICES_PER_RECTANGLE,
                 Usage.None, 0, Pool.Managed
             );
 
@@ -183,6 +199,7 @@ namespace GGXXACPROverlay
             ]);
         }
 
+        public Viewport ViewPort => _device?.Viewport ?? default;
         public void BeginScene() => _device?.BeginScene();
         public void EndScene() => _device?.EndScene();
 
@@ -212,7 +229,7 @@ namespace GGXXACPROverlay
 
             _screenSizeUniform[0] = _device.Viewport.Width;
             _screenSizeUniform[1] = _device.Viewport.Height;
-            _borderThicknessUniform[0] = Settings.HitboxBorderThickness;
+            _borderThicknessUniform[0] = Settings.Hitboxes.HitboxBorderThickness;
             args.CopyTo(_miscShaderUniformBuffer, 0);
 
             _device.SetRenderState(RenderState.DestinationBlend, Blend.InverseSourceAlpha);
@@ -221,28 +238,17 @@ namespace GGXXACPROverlay
             {
                 case GraphicsContext.Basic:
                     SetDeviceContext_Alpha();
-                    _device.SetRenderState(RenderState.ScissorTestEnable, Settings.WidescreenClipping);
-                    _device.SetStreamSource(0, vertex3PositionColorVB, 0, Vertex3PositionColor.SizeInBytes);
-                    _device.VertexDeclaration = vertex3PositionColorVD;
                     _device.VertexShader = basicVS;
                     _device.SetVertexShaderConstant(4, _screenSizeUniform);
                     _device.PixelShader = basicPS;
                     break;
                 case GraphicsContext.Hitbox:
                     SetDeviceContext_Alpha();
-                    _device.SetRenderState(RenderState.ScissorTestEnable, Settings.WidescreenClipping);
+                    _device.SetRenderState(RenderState.ScissorTestEnable, Settings.Hitboxes.WidescreenClipping);
                     SetDeviceContext_HitboxShaders();
                     break;
-                //case GraphicsContext.HitboxCombined:
-                //    SetDeviceContext_Alpha();
-                //    _device.SetRenderState(RenderState.ScissorTestEnable, Settings.WidescreenClipping);
-                //    _device.SetStreamSource(0, vertex3PositionColorVB, 0, Vertex3PositionColor.SizeInBytes);
-                //    _device.VertexDeclaration = vertex3PositionColorVD;
-                //    _device.VertexShader = basicVS;
-                //    _device.PixelShader = basicPS;
-                //    break;
                 case GraphicsContext.Pivot:
-                    _device.SetRenderState(RenderState.ScissorTestEnable, Settings.WidescreenClipping);
+                    _device.SetRenderState(RenderState.ScissorTestEnable, Settings.Hitboxes.WidescreenClipping);
                     SetDeviceContext_HitboxShaders();
                     break;
                 case GraphicsContext.ComboTime:
@@ -257,6 +263,24 @@ namespace GGXXACPROverlay
                     SetDeviceContext_MeterVertexShader();
                     _device.PixelShader = meterPS;
                     break;
+                case GraphicsContext.HUD:
+                    SetDeviceContext_Alpha();
+                    _device.SetRenderState(RenderState.ScissorTestEnable, false);
+                    _device.VertexShader = basicVS;
+                    _device.SetVertexShaderConstant(4, _screenSizeUniform);
+                    _device.PixelShader = basicPS;
+                    break;
+                case GraphicsContext.Text:
+                    SetDeviceContext_Alpha();
+                    _device.SetRenderState(RenderState.ScissorTestEnable, false);
+                    _device.VertexShader = basicVS;
+                    _device.SetVertexShaderConstant(4, _screenSizeUniform);
+                    _device.SetTexture(0, textAtlas);
+                    _device.SetSamplerState(0, SamplerState.MinFilter, (int)TextureFilter.Linear);
+                    _device.SetSamplerState(0, SamplerState.MagFilter, (int)TextureFilter.Linear);
+                    _device.SetSamplerState(0, SamplerState.MipFilter, (int)TextureFilter.Linear);
+                    _device.PixelShader = textPS;
+                    break;
             }
         }
         private void SetDeviceContext_Alpha()
@@ -266,8 +290,6 @@ namespace GGXXACPROverlay
         }
         private void SetDeviceContext_HitboxShaders()
         {
-            _device.SetStreamSource(0, vertex3PositionColorVB, 0, Vertex3PositionColor.SizeInBytes);
-            _device.VertexDeclaration = vertex3PositionColorVD;
             _device.VertexShader = hitboxVS;
             _device.SetVertexShaderConstant(4, _screenSizeUniform);
             _device.PixelShader = hitboxPS;
@@ -275,8 +297,6 @@ namespace GGXXACPROverlay
         }
         private void SetDeviceContext_MeterVertexShader()
         {
-            _device.SetStreamSource(0, vertex3PositionColorVB, 0, Vertex3PositionColor.SizeInBytes);
-            _device.VertexDeclaration = vertex3PositionColorVD;
             _device.SetVertexShaderConstant(4, _screenSizeUniform);
             _device.VertexShader = meterVS;
             _device.SetPixelShaderConstant(5, _miscShaderUniformBuffer);
@@ -286,10 +306,16 @@ namespace GGXXACPROverlay
         {
             uint numRectangles = (uint)rectangleList.Length;
 
-            if (_device == null || vertex3PositionColorVB == null || numRectangles > RECTANGLE_LIMIT || numRectangles == 0) return;
+            if (_device == null || vertex3PositionColorVB == null || numRectangles > RECTANGLE_LIMIT || numRectangles == 0)
+            {
+                if (numRectangles > 0) Debug.Log("[ERROR] Draw Rectangles failed!");
+                return;
+            }
 
             LoadPrimitivesToVertexBuffer(rectangleList, ref vertex3PositionColorVB);
 
+            _device.VertexDeclaration = vertex3PositionColorVD;
+            _device.SetStreamSource(0, vertex3PositionColorVB, 0, Vertex3PositionColor.SizeInBytes);
             _device.SetVertexShaderConstant(0, Matrix4x4.Transpose(transform));
             _device.DrawPrimitive(PrimitiveType.TriangleList, 0, numRectangles * 2);
         }
@@ -305,21 +331,24 @@ namespace GGXXACPROverlay
         public void DrawRectangles(ColorRectangle rectangle)
             => DrawRectangles(rectangle, Matrix4x4.Identity);
 
+        public void DrawTriangles(Span<Vertex3PositionColor> vertices) => DrawTriangles(vertices, Matrix4x4.Identity);
         public void DrawTriangles(Span<Vertex3PositionColor> vertices, Matrix4x4 transform)
         {
-            uint numRectangles = (uint)vertices.Length / 3u;
+            uint numTriangle = (uint)vertices.Length / 3u;
 
-            if (numRectangles == 0 || _device is null || vertex3PositionColorVB is null) return;
+            if (numTriangle == 0 || _device is null || vertex3PositionColorVB is null) return;
 
             LoadToVertexBuffer(vertices, ref vertex3PositionColorVB);
-            
+
+            _device.VertexDeclaration = vertex3PositionColorVD;
+            _device.SetStreamSource(0, vertex3PositionColorVB, 0, Vertex3PositionColor.SizeInBytes);
             _device.SetVertexShaderConstant(0, Matrix4x4.Transpose(transform));
-            _device.DrawPrimitive(PrimitiveType.TriangleList, 0, numRectangles);
+            _device.DrawPrimitive(PrimitiveType.TriangleList, 0, numTriangle);
         }
 
         private static void LoadPrimitivesToVertexBuffer(Span<ColorRectangle> primitives, ref IDirect3DVertexBuffer9 vertexBuffer)
         {
-            int numVertices = primitives.Length * (int)VERTEX_PER_RECTANGLE;
+            int numVertices = primitives.Length * (int)VERTICES_PER_RECTANGLE;
             var vertices = ArrayPool<Vertex3PositionColor>.Shared.Rent(numVertices);
 
             int index = 0;
@@ -328,11 +357,11 @@ namespace GGXXACPROverlay
                 var r = primitives[i].rectangle;
                 var color = primitives[i].color;
 
-                vertices[index++] = new Vertex3PositionColor(new Vector3(r.Left,  r.Top,    1f), color, new Vector2(0, 0));
-                vertices[index++] = new Vertex3PositionColor(new Vector3(r.Right, r.Top,    1f), color, new Vector2(1, 0));
-                vertices[index++] = new Vertex3PositionColor(new Vector3(r.Left,  r.Bottom, 1f), color, new Vector2(0, 1));
-                vertices[index++] = new Vertex3PositionColor(new Vector3(r.Left,  r.Bottom, 1f), color, new Vector2(0, 1));
-                vertices[index++] = new Vertex3PositionColor(new Vector3(r.Right, r.Top,    1f), color, new Vector2(1, 0));
+                vertices[index++] = new Vertex3PositionColor(new Vector3(r.Left, r.Top, 1f), color, new Vector2(0, 0));
+                vertices[index++] = new Vertex3PositionColor(new Vector3(r.Right, r.Top, 1f), color, new Vector2(1, 0));
+                vertices[index++] = new Vertex3PositionColor(new Vector3(r.Left, r.Bottom, 1f), color, new Vector2(0, 1));
+                vertices[index++] = new Vertex3PositionColor(new Vector3(r.Left, r.Bottom, 1f), color, new Vector2(0, 1));
+                vertices[index++] = new Vertex3PositionColor(new Vector3(r.Right, r.Top, 1f), color, new Vector2(1, 0));
                 vertices[index++] = new Vertex3PositionColor(new Vector3(r.Right, r.Bottom, 1f), color, new Vector2(1, 1));
             }
 
@@ -349,6 +378,67 @@ namespace GGXXACPROverlay
             );
             MemoryMarshal.AsBytes(vertices).CopyTo(bufferLock);
             vertexBuffer.Unlock();
+        }
+
+        public void DrawText(Span<GlyphString> glyphs) => DrawText(glyphs, Matrix4x4.Identity);
+        public void DrawText(Span<GlyphString> glyphs, Matrix4x4 transform)
+        {
+            int vertIndex = 0;
+            int numCharacters = 0;
+            foreach (GlyphString gString in glyphs)
+            {
+                numCharacters += gString.Length;
+            }
+            RentedArraySlice<Vertex3PositionColor> vertices = new(numCharacters * (int)VERTICES_PER_RECTANGLE);
+
+            foreach (GlyphString glyphStr in glyphs)
+            {
+                Vector3 posIndex = new(glyphStr.Position, 0f);
+
+                foreach (var bounds in glyphStr.Select(g => g.Bounds))
+                {
+                    float height = glyphStr.Size;
+                    float width = bounds.Width / bounds.Height * glyphStr.Size;
+
+                    vertices[vertIndex++] = new Vertex3PositionColor(posIndex + new Vector3(0f,        0f, 0f), glyphStr.Color, new(bounds.Left,    bounds.Top));
+                    vertices[vertIndex++] = new Vertex3PositionColor(posIndex + new Vector3(width,     0f, 0f), glyphStr.Color, new(bounds.Right,   bounds.Top));
+                    vertices[vertIndex++] = new Vertex3PositionColor(posIndex + new Vector3(0f,    height, 0f), glyphStr.Color, new(bounds.Left,    bounds.Bottom));
+                    vertices[vertIndex++] = new Vertex3PositionColor(posIndex + new Vector3(0f,    height, 0f), glyphStr.Color, new(bounds.Left,    bounds.Bottom));
+                    vertices[vertIndex++] = new Vertex3PositionColor(posIndex + new Vector3(width,     0f, 0f), glyphStr.Color, new(bounds.Right,   bounds.Top));
+                    vertices[vertIndex++] = new Vertex3PositionColor(posIndex + new Vector3(width, height, 0f), glyphStr.Color, new(bounds.Right,   bounds.Bottom));
+
+                    posIndex += new Vector3(width + glyphStr.Spacing, 0f, 0f);
+                }
+                //    Vector3 topLeft = Vector3.Zero;
+                //    Vector3 topRight = new Vector3(glyphStr.Size, 0, 0);
+                //    Vector3 bottomLeft = new Vector3(0, glyphStr.Size, 0);
+                //    Vector3 bottomRight = new Vector3(glyphStr.Size, glyphStr.Size, 0);
+
+                //    Vector2 topLeft_uv = new Vector2(0, ATLAS_CELL_SIZE);
+                //    Vector2 topRight_uv = new Vector2(ATLAS_CELL_SIZE, ATLAS_CELL_SIZE);
+                //    Vector2 bottomLeft_uv = new Vector2(0, 0);
+                //    Vector2 bottomRight_uv = new Vector2(ATLAS_CELL_SIZE, 0);
+
+                //    for (int i = 0; i < glyphStr.Text.Length; i++)
+                //    {
+                //        // TODO: refactor to user Glyph structs
+                //        // Glyph g = _atlas.ToGlyph(glyphStr.Text[i]);
+
+                //        char c = glyphStr.Text[i];
+                //        Vector3 basePos = new Vector3(glyphStr.Position + new Vector2(i * glyphStr.Size, 0f), 1.0f);
+                //        Vector2 uv = MapCharToAtlasUV(c);
+
+                //        vertices[vertIndex++] = new Vertex3PositionColor(basePos + topLeft, glyphStr.Color, uv + topLeft_uv);
+                //        vertices[vertIndex++] = new Vertex3PositionColor(basePos + topRight, glyphStr.Color, uv + topRight_uv);
+                //        vertices[vertIndex++] = new Vertex3PositionColor(basePos + bottomLeft, glyphStr.Color, uv + bottomLeft_uv);
+                //        vertices[vertIndex++] = new Vertex3PositionColor(basePos + bottomLeft, glyphStr.Color, uv + bottomLeft_uv);
+                //        vertices[vertIndex++] = new Vertex3PositionColor(basePos + topRight, glyphStr.Color, uv + topRight_uv);
+                //        vertices[vertIndex++] = new Vertex3PositionColor(basePos + bottomRight, glyphStr.Color, uv + bottomRight_uv);
+                //    }
+            }
+
+            SetDeviceContext(GraphicsContext.Text);
+            DrawTriangles(vertices, transform);
         }
 
         private bool _disposed = false;
@@ -371,6 +461,7 @@ namespace GGXXACPROverlay
                 hitboxPS?.Release();
                 meterVS?.Release();
                 comboTimePS?.Release();
+                textPS?.Release();
             }
 
             _disposed = true;

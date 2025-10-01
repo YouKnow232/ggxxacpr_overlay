@@ -2,6 +2,9 @@
 
 namespace GGXXACPROverlay.GGXXACPR
 {
+    /// <summary>
+    /// Bit flags for universal throw detection.
+    /// </summary>
     public enum ThrowDetection : byte
     {
         None = 0,
@@ -45,6 +48,9 @@ namespace GGXXACPROverlay.GGXXACPR
         public readonly ushort BoxTypeId;
         public readonly short BoxFlags;  // Always 0 for hit and hurt boxes, used for some unknown box types
     }
+    /// <summary>
+    /// Hitbox type identifier
+    /// </summary>
     public enum BoxId : ushort
     {
         DUMMY     = 0,
@@ -97,6 +103,7 @@ namespace GGXXACPROverlay.GGXXACPR
         AC     = 0,
         PLUS_R = 1,
     }
+
     /// <summary>
     /// Represents players, projectiles, and other entities
     /// </summary>
@@ -138,11 +145,15 @@ namespace GGXXACPROverlay.GGXXACPR
         [FieldOffset(0xB8)] public readonly int XVelocity;
         [FieldOffset(0xBC)] public readonly int YVelocity;
         [FieldOffset(0xD4)] public readonly int Gravity;
+        [FieldOffset(0xE4)] public readonly uint ActionHeaderFlags;
         [FieldOffset(0xFD)] public readonly byte HitstopCounter;
         [FieldOffset(0xFF)] public readonly byte Mark;
         [FieldOffset(0x100)] public readonly byte Transition;
     }
 
+    /// <summary>
+    /// Wraps a pointer to a native BaseEntityRaw struct that represents a player
+    /// </summary>
     public unsafe readonly ref struct Player
     {
         public readonly BaseEntityRaw* NativePointer;
@@ -209,6 +220,7 @@ namespace GGXXACPROverlay.GGXXACPR
         public int XVelocity => NativePointer->XVelocity;
         public int YVelocity => NativePointer->YVelocity;
         public int Gravity => NativePointer->Gravity;
+        public uint ActionHeaderFlags => NativePointer->ActionHeaderFlags;
         public byte HitstopCounter => NativePointer->HitstopCounter;
         /// <summary>
         /// Multi-use variable used for move-specific behavior (For Axl, holds parry active state)
@@ -217,6 +229,9 @@ namespace GGXXACPROverlay.GGXXACPR
         public byte Transition => NativePointer->Transition;
     }
 
+    /// <summary>
+    /// Wraps a pointer to a native BaseEntityRaw struct that represents a generic entity
+    /// </summary>
     public unsafe readonly ref struct Entity
     {
         public readonly BaseEntityRaw* NativePointer;
@@ -256,6 +271,9 @@ namespace GGXXACPROverlay.GGXXACPR
         public bool Equals(Entity e) => NativePointer == e.NativePointer;
     }
 
+    /// <summary>
+    /// A substruct in BaseEntityRaw at 0x2C used only in player entities. Contains various player-only properties.
+    /// </summary>
     [StructLayout(LayoutKind.Explicit, Size = 0x148)]
     public readonly ref struct PlayerExtra
     {
@@ -279,7 +297,7 @@ namespace GGXXACPROverlay.GGXXACPR
         /// </summary>
         [FieldOffset(0x0AC)] public readonly uint HitstunFlags;
         /// <summary>
-        /// Number of frames this player has been in hitstun
+        /// Number of frames this player has been in hitstun. Includes hitstop and super freeze frames. Used for hitstun decay.
         /// </summary>
         [FieldOffset(0x0F6)] public readonly short ComboTime;
         [FieldOffset(0x10B)] public readonly byte SBTime;
@@ -512,5 +530,23 @@ namespace GGXXACPROverlay.GGXXACPR
         Unknown14       = 1 << 13,
         FBSuperFlash    = 1 << 14,
         Lightning       = 1 << 15,
+    }
+
+    public enum GameMode
+    {
+        Arcade,
+        MOM,
+        Versus,
+        Online,
+        VSCPU,
+        TeamVersus,
+        TeamVSCPU,
+        Training,
+        Survival,
+        Mission,
+        Story,
+        Gallery,
+        ReplayTheater,
+        Sound
     }
 }

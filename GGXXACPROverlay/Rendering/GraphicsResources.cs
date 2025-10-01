@@ -1,6 +1,11 @@
 ﻿// TODO: Split this among FrameMeter and Drawing
 
-namespace GGXXACPROverlay
+using System.Drawing;
+using System.Drawing.Imaging;
+using Vortice.Direct3D9;
+using GGXXACPROverlay.Rendering.Glyphs;
+
+namespace GGXXACPROverlay.Rendering
 {
     public enum GeneralPalette
     {
@@ -20,15 +25,17 @@ namespace GGXXACPROverlay
     {
         NONE, TYPE, PROPERTY1, PROPERTY2
     }
-    internal readonly struct LegendEntry(FrameMeter.Frame exampleFrame, string label, FrameMeterElement elementType)
+    internal readonly struct LegendEntry(FrameMeter.FrameMeterPip exampleFrame, string label, FrameMeterElement elementType)
     {
-        public readonly FrameMeter.Frame ExampleFrame = exampleFrame;
+        public readonly FrameMeter.FrameMeterPip ExampleFrame = exampleFrame;
         public readonly string Label = label;
         public readonly FrameMeterElement ElementType = elementType;
     }
 
     internal class GraphicsResources
     {
+        public readonly IGlyphAtlas TextAtlas = new ArialGlyphAtlas();
+
         public readonly ColorRectangle ComboTimeMeterP2 =
             new ColorRectangle(
                 Settings.Get("Misc", "HSDMeterXPosition", -0.95f),
@@ -57,6 +64,40 @@ namespace GGXXACPROverlay
                 0.4f,
                 Settings.Get("Misc", "UntechMeterColor", 0xFF00FFFF));
 
+        public unsafe IDirect3DTexture9 GetTextAtlas(IDirect3DDevice9 device)
+        {
+            const int A8R8G8B8_PIXEL_SIZE_IN_BYTES = 4;
+
+            using Bitmap bitmap = TextAtlas.Bitmap;
+            var texture = device.CreateTexture(
+                (uint)bitmap.Width,
+                (uint)bitmap.Height,
+                levels: 1,
+                Usage.None,
+                Format.A8R8G8B8,
+                Pool.Managed);
+
+            Rectangle rect = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+            BitmapData data = bitmap.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format32bppRgb);
+            LockedRectangle rectTex = texture.LockRect(0, LockFlags.None);
+
+            byte* src = (byte*)data.Scan0.ToPointer();
+            byte* dst = (byte*)rectTex.DataPointer;
+
+            for (int y = 0; y < bitmap.Height; y++)
+            {
+                Buffer.MemoryCopy(
+                    src + y * data.Stride,
+                    dst + y * rectTex.Pitch,
+                    rectTex.Pitch,
+                    bitmap.Width * A8R8G8B8_PIXEL_SIZE_IN_BYTES);
+            }
+
+            texture.UnlockRect(0);
+            bitmap.UnlockBits(data);
+
+            return texture;
+        }
 
         //private static readonly LegendEntry[] _frameMeterLegend = [
         //        new LegendEntry(new FrameMeter.Frame { Type = FrameMeter.FrameType.Neutral },  "Neutral", FrameMeterElement.TYPE),

@@ -1,10 +1,36 @@
 ﻿using System.Buffers;
+using System.ComponentModel;
 using System.Numerics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Vortice.Mathematics;
 
 namespace GGXXACPROverlay
 {
+    public static class Common
+    {
+        public static string GetDescription(this Enum enumValue)
+        {
+            Type type = enumValue.GetType();
+            string? name = Enum.GetName(type, enumValue);
+
+            if (name is not null)
+            {
+                FieldInfo? field = type.GetField(name);
+                if (field is not null)
+                {
+                    DescriptionAttribute? attr = Attribute.GetCustomAttribute(field, typeof(DescriptionAttribute)) as DescriptionAttribute;
+
+                    if (attr is not null)
+                    {
+                        return attr.Description;
+                    }
+                }
+            }
+            return name ?? "null";
+        }
+    }
+
     /// <summary>
     /// Each draw operation draws all of one specific type of box.
     /// </summary>
@@ -30,6 +56,12 @@ namespace GGXXACPROverlay
         public int Green { get => (byte)(_packedValue >> 8 & 0xff); }
         public int Blue { get => (byte)(_packedValue & 0xff); }
 
+        public static D3DCOLOR_ARGB WHITE => new(0xFFFFFFFF);
+        public static D3DCOLOR_ARGB BLACK => new(0xFF000000);
+        public static D3DCOLOR_ARGB RED => new(0xFFFF0000);
+        public static D3DCOLOR_ARGB BLUE => new(0xFF0000FF);
+        public static D3DCOLOR_ARGB CLEAR => new(0x00000000);
+
         public D3DCOLOR_ARGB(uint packedValue)
         {
             _packedValue = packedValue;
@@ -41,6 +73,10 @@ namespace GGXXACPROverlay
         public D3DCOLOR_ARGB(byte a, byte r, byte g, byte b)
         {
             _packedValue = (uint)((a << 24) | (r << 16) | (g << 8) | b);
+        }
+        public override string ToString()
+        {
+            return $"0x{_packedValue:X8}";
         }
     }
 
@@ -94,25 +130,11 @@ namespace GGXXACPROverlay
         public override string ToString() => $"X:{Position.X},Y:{Position.Y},Z:{Position.Z},0x{Color.ARGB:X8},U:{UV.X},V:{UV.Y}";
     }
 
-    [StructLayout(LayoutKind.Explicit, Size = 0x10)]
-    public readonly struct LineVertex(Vector3 position, D3DCOLOR_ARGB color)
-    {
-        public static unsafe readonly uint SizeInBytes = (uint)sizeof(LineVertex);
-        public const short PositionOffset = 0x00;
-        public const short ColorOffset = 0x0C;
-
-        // 0x00 - 0x0B
-        [FieldOffset(0x00)] public readonly Vector3 Position = position;
-        // 0x0C - 0x0F
-        [FieldOffset(0x0C)] public readonly D3DCOLOR_ARGB Color = color;
-
-        public LineVertex(float x, float y, D3DCOLOR_ARGB color) : this(new Vector3(x, y, 0), color) { }
-    }
 
     /// <summary>
     /// Wrapper struct for arrays rented from ArrayPool.Shared. Compatible with `using` keyword to return the array to the array pool when finished.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">The element type</typeparam>
     public ref struct RentedArraySlice<T>
     {
         private readonly T[] _pooledArray;
@@ -331,5 +353,17 @@ namespace GGXXACPROverlay
         VK_NONAME = 0xFC,       //Reserved
         VK_PA1 = 0xFD,          //PA1 key
         VK_OEM_CLEAR = 0xFE,    //Clear key
+    }
+
+    /// <summary>
+    /// Denotes a property that has a corresponding setting in OverlaySettings.ini
+    /// </summary>
+    /// <param name="section">The section of the corresponding field</param>
+    /// <param name="key">The field name</param>
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
+    public class SettingKeyAttribute(string section, string key) : Attribute
+    {
+        public string Section { get; private set; } = section;
+        public string Key { get; private set; } = key;
     }
 }

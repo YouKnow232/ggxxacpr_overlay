@@ -53,7 +53,7 @@ namespace GGXXACPROverlay.GGXXACPR
 
         public static unsafe void TogglePauseNoMenu()
         {
-            // TODO: check if training mode?
+            if (!GGXXACPR.IsInGame || GGXXACPR.GameMode != GameMode.Training) return;
 
             int* state = GGXXACPR.TrainingPauseState;
             int* display = GGXXACPR.TrainingPauseDisplay;
@@ -61,7 +61,7 @@ namespace GGXXACPROverlay.GGXXACPR
             if (*state == 2)
             {
                 *display = 1;
-                *state = 0;
+                *state = 0 ;
             }
             else if (*state == 0)
             {
@@ -72,7 +72,7 @@ namespace GGXXACPROverlay.GGXXACPR
 
         public static unsafe void FrameStepFromPause()
         {
-            // TODO: check if training mode?
+            if (!GGXXACPR.IsInGame || GGXXACPR.GameMode != GameMode.Training) return;
 
             int* state = GGXXACPR.TrainingPauseState;
             int* display = GGXXACPR.TrainingPauseDisplay;
@@ -84,15 +84,18 @@ namespace GGXXACPROverlay.GGXXACPR
             }
         }
 
+        /// <summary>
+        /// Used as a TaskQueue callback to implement frame stepping
+        /// </summary>
         private static unsafe void Repause(nint unused) => *GGXXACPR.TrainingPauseState = 2;
 
 
         /// <summary>
         /// Assumes <c>address</c> is not currently being executed or maybe executed while this function is running.
         /// </summary>
-        /// <param name="address"></param>
-        /// <param name="newMemory"></param>
-        /// <returns></returns>
+        /// <param name="address">target memory address</param>
+        /// <param name="newMemory">payload</param>
+        /// <returns>overwritten bytes</returns>
         private static unsafe byte[] OverwriteExecutableMemory(nint address, byte[] newMemory)
         {
             byte[] output = new byte[newMemory.Length];

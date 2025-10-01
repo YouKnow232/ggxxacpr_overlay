@@ -5,7 +5,7 @@ using Poly2Tri.Triangulation.Delaunay;
 using Poly2Tri.Triangulation.Polygon;
 using Vortice.Mathematics;
 
-namespace GGXXACPROverlay
+namespace GGXXACPROverlay.Rendering
 {
     /// <summary>
     /// Performs geometry functions for combining hitbox
@@ -28,14 +28,11 @@ namespace GGXXACPROverlay
             RentedArraySlice<Vertex3PositionColor> output = new(borderPolys.Sum(poly => poly.Triangles.Count) * 3);
             int outIndex = 0;
 
-            foreach (Polygon poly in borderPolys)
+            foreach (var Point in borderPolys
+                    .SelectMany(static poly => poly.Triangles)
+                    .SelectMany(static tri => tri.Points))
             {
-                foreach (DelaunayTriangle tri in poly.Triangles)
-                {
-                    output[outIndex++] = ToColorVertex(tri.Points[0], color);
-                    output[outIndex++] = ToColorVertex(tri.Points[1], color);
-                    output[outIndex++] = ToColorVertex(tri.Points[2], color);
-                }
+                output[outIndex++] = ToColorVertex(Point, color);
             }
 
             return output;
