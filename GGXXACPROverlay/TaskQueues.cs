@@ -18,6 +18,9 @@ namespace GGXXACPROverlay
         public static readonly TaskQueue PeekMessageTaskQueue = new();
     }
 
+    /// <summary>
+    /// Wrapper for ConcurrentQueue<Action<T>>
+    /// </summary>
     internal class TaskQueue<T>
     {
         private readonly ConcurrentQueue<Action<T>> _taskQueue = new();
@@ -42,6 +45,9 @@ namespace GGXXACPROverlay
         }
     }
 
+    /// <summary>
+    /// Wrapper for ConcurrentQueue<Action>
+    /// </summary>
     internal class TaskQueue
     {
         private readonly ConcurrentQueue<Action> _taskQueue = new();

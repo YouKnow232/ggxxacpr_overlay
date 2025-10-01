@@ -1,24 +1,35 @@
 ﻿using System.Diagnostics;
-using System.Security.Cryptography;
-using Microsoft.Win32;
+using System.Text.RegularExpressions;
+using GGXXACPRInjector.DotnetInstaller;
 
 namespace GGXXACPRInjector
 {
-    internal static class RuntimeInstaller
+    internal static partial class RuntimeInstaller
     {
-        private const string downloadUrl = @"https://builds.dotnet.microsoft.com/dotnet/WindowsDesktop/9.0.4/";
-        private const string installerName = "windowsdesktop-runtime-9.0.4-win-x86.exe";
-        private const string checkSum = "214a98c6d468566cb0d84898e7129897890384b1f3a49f1c59187f3711cea6340df588850d65c1b0c239fd0151806cfa7bc056551da05d9a0d94130b2e4fba7d";
+        private const string DOTNET_CLI = "dotnet.exe";
+        private const string DOTNET_LIST_RUNTIMES = "--list-runtimes --arch x86";
 
+        /// <summary>
+        /// A bug in versions 9.0.4 - 9.0.6 severly impacts stability in this overlay.
+        /// </summary>
+        [GeneratedRegex(@"Microsoft\.NETCore\.App 9\.(?!0\.[456]\s)\d+.\d+")]
+        private static partial Regex AcceptableDotnet9VersionsRegex { get; }
+
+        /// <summary>
+        /// Returns true if a valid runtime is installed else runs an installation
+        /// script and returns whether the installation was successful.
+        /// </summary>
         internal static bool HandleRuntimeChecks()
         {
             if (CheckRuntimeInstallation()) return true;
 
-            if (PromptUserAgreement("This mod requires .NET runtime v9.0.4, but no installation was found.\n" +
-                                    "Would you like to download it now?\n\n" +
-                                    $"The runtime will be downloaded from:\n{downloadUrl+installerName}"))
+            IInstaller installer = ChooseInstaller();
+
+            if (PromptUserAgreement(
+                "This overlay requires a .NET 9 x86 Runtime, but no suitable installation was found.\n" +
+                $"Would you like to download it now? (via \"{installer.GetDescription()}\")"))
             {
-                return DownloadDotnetRuntime();
+                return installer.Install();
             }
             else
             {
@@ -26,15 +37,51 @@ namespace GGXXACPRInjector
             }
         }
 
+        /// <summary>
+        /// Determins the installation method to use. Currently only returns an IInstaller
+        /// that downloads and executes the offical runtime-win-x86 installer, but I'm leaving
+        /// this method here for when I look into linux/iOS compatability.
+        /// </summary>
+        private static IInstaller ChooseInstaller()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return new HttpInstaller();
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    "This overlay requires a Microsoft .NET 9.0 Runtime Windows x86 installation, but none was found. " +
+                    "Install it in the same environment that +R is running in then run this injector in that same environment. " +
+                    "The injector will look for the installation via the dotnet CLI, so make sure that's also accessible.");
+            }
+        }
+
+        /// <summary>
+        /// Checks for a valid .NET installation by attempting to run the dotnet CLI
+        /// </summary>
         private static bool CheckRuntimeInstallation()
         {
-            const string keyPath = @"SOFTWARE\WOW6432Node\dotnet\Setup\InstalledVersions\x86\sharedfx\Microsoft.NETCore.App";
-            const string versionPrefix = "9.0.4";
-            using RegistryKey? key = Registry.LocalMachine.OpenSubKey(keyPath);
+            string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+            string path = Path.Combine(programFiles, "dotnet", DOTNET_CLI);
 
-            if (key == null) return false;
+            if (!File.Exists(path)) return false;
 
-            return key.GetValueNames().Any(name => name.StartsWith(versionPrefix));
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = path,
+                Arguments = DOTNET_LIST_RUNTIMES,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+            });
+
+            if (process is null) return false;
+            process.WaitForExit();  // use a timeout?
+            if (process.ExitCode != 0) return false;
+
+            string output = process.StandardOutput.ReadToEnd();
+            return AcceptableDotnet9VersionsRegex.IsMatch(output);
         }
 
         private static bool PromptUserAgreement(string prompt)
@@ -50,42 +97,6 @@ namespace GGXXACPRInjector
                    !response.Equals("n", StringComparison.OrdinalIgnoreCase));
 
             return response.Equals("y", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static bool DownloadDotnetRuntime()
-        {
-            Console.WriteLine("Downloading ...");
-            using var client = new HttpClient();
-            byte[] data = client.GetByteArrayAsync(downloadUrl + installerName).Result; ;
-            Console.WriteLine("Download complete");
-
-            byte[] hash = SHA512.HashData(data);
-            if (!Convert.ToHexString(hash).Equals(checkSum, StringComparison.OrdinalIgnoreCase)) throw new InvalidHashException("Downloaded runtime exe did not match checksum");
-            Console.WriteLine("File hash verified.");
-
-            File.WriteAllBytes(installerName, data);
-
-            Console.WriteLine("Running installer ...");
-            using var process = Process.Start(new ProcessStartInfo
-            {
-                FileName = installerName,
-                Arguments = "/quiet /norestart",
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            });
-
-            if (process is null) return false;
-
-            process.WaitForExit();
-            if (process.ExitCode == 0)
-            {
-                Console.WriteLine("Installation complete.");
-                return true;
-            }
-            else
-            {
-                return false;
-            }
         }
     }
 }

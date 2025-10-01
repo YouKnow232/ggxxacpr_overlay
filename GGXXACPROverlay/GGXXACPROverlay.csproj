@@ -4,8 +4,7 @@
     <OutputType>Library</OutputType>
     <RuntimeIdentifier>win-x86</RuntimeIdentifier>
     <TargetFramework>net9.0-windows7.0</TargetFramework>
-    <RuntimeFrameworkVersion>9.0.4</RuntimeFrameworkVersion>
-    <RollForward>Disable</RollForward>
+    <RuntimeFrameworkVersion>9.0.8</RuntimeFrameworkVersion>
     <PublishTrimmed>false</PublishTrimmed>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -13,12 +12,12 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <IncludeSymbolsInSingleFile>true</IncludeSymbolsInSingleFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>$(VersionPrefix)2.2.0$(VersionSuffix)</Version>
+    <Version>$(VersionPrefix)2.3.0$(VersionSuffix)</Version>
     <PackageProjectUrl>https://github.com/YouKnow232/ggxxacpr_overlay</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/YouKnow232/ggxxacpr_overlay</RepositoryUrl>
-    <AssemblyVersion>2.2.0</AssemblyVersion>
-    <FileVersion>2.2.0</FileVersion>
+    <AssemblyVersion></AssemblyVersion>
+    <FileVersion></FileVersion>
     <PlatformTarget>x86</PlatformTarget>
     <Platforms>x86</Platforms>
     <Configurations>Debug;Release</Configurations>
@@ -35,6 +34,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Arial.png" />
     <None Remove="GGXXACPR\MoveData.csv" />
     <None Remove="OverlaySettings.ini" />
     <None Remove="Shaders\ComboTimeMeter.hlsl" />
@@ -56,6 +56,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Poly2Tri.NetStandard" Version="1.0.2" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.8" />
     <PackageReference Include="Vortice.D3DCompiler" Version="3.6.2" />
     <PackageReference Include="Vortice.Direct3D9" Version="3.6.2" />
   </ItemGroup>
@@ -65,7 +66,7 @@
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="OverlaySettings.ini">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Shaders\ComboTimeMeter.hlsl">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
@@ -74,6 +75,12 @@
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Shaders\SolidColorShader.hlsl">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Arial.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
   </ItemGroup>

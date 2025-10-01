@@ -7,6 +7,7 @@
     {
         public const nint IN_GAME_FLAG = 0x7101F4;
         public const nint GAME_VER_FLAG = 0x6D0538;   // 0=AC, 1=+R
+        public const nint GAME_MODE = 0x70FFB4;
 
         // Injection Addresses
         public const nint MESSAGE_LOOP_END = 0x222413;
@@ -14,6 +15,10 @@
         public const nint GRAPHICS_HOOK_BREAKPOINT = 0x2271DA;
         public const nint PEEK_MESSAGE_FUNCTION_POINTER = 0x3BD348;
         public const nint MESSAGE_LOOP_REL_JMP_OFFSET_BYTE_ADDR = 0x222414;
+        public const nint GRAPHICS_HOOK_TARGET_FUNCTION_CALL = 0x22717A;
+        public const nint GRAPHICS_HOOK_TARGET_FUNCTION_ADDRESS = 0x2227E0;
+        public const nint GET_PRESENT_FUNCTION_POINTER_INSTRUCTIONS = 0x2271C5;
+        public const nint UPDATE_GAME_STATE_RET_INSTRUCTION = 0x3A1B78;
 
         // Hack Addresses
         public const nint FIX_BACKGROUND_STATE_INSTRUCTION = 0x21C363;
@@ -68,5 +73,6 @@
         // Replay
         // 1 = normal, 0 = do not simulate, -1 = rewinding (stays at 0 for frame stepping)
         public const nint GLOBAL_REPLAY_SIMULATE = 0x7D5788;
+        public const nint REPLAY_FRAME_COUNT = 0x7D57D8;
     }
 }

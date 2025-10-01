@@ -1,7 +1,6 @@
 ﻿namespace GGXXACPRInjector
 {
-    public class InvalidHashException : Exception
+    public class InvalidHashException(string message) : Exception(message)
     {
-        public InvalidHashException(string message) : base(message) { }
     }
 }

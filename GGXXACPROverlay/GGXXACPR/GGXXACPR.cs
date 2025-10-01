@@ -6,8 +6,8 @@ using Vortice.Mathematics;
 namespace GGXXACPROverlay.GGXXACPR
 {
     /// <summary>
-    /// Exposes game data. Handles dereferencing as well as some slightly higher level
-    /// functions for visualization.
+    /// Exposes game data. Handles pointer dereferencing as well as
+    /// some slightly higher level functions for visualization.
     /// </summary>
     public static unsafe class GGXXACPR
     {
@@ -36,9 +36,10 @@ namespace GGXXACPROverlay.GGXXACPR
         /// </summary>
         public const int BRIDGET_SHOOT_ACT_ID = 134;
         public const int BRIDGET_SHOOT_PUSHBOX_ADJUST = 7000;
-        // Slide head uses a grounded status check for hit detection instead of a hitbox
+        // Slide head uses a grounded status check for hit detection in addition to a special hitbox
         //  The frame meter will check for this act id to see if it should mark the frame as an active frame
         public const int SLIDE_HEAD_ACT_ID = 181;
+        public const uint SLIDE_HEAD_UNBLOCKABLE_ACT_HEADER_VALUE = 0x10102015;
         // For whatever reason, this throw range is hardcoded and not in the array with everything else
         public const int SPECIAL_CASE_COMMAND_THROW_ID = 0x19;
         public const int SPECIAL_CASE_COMMAND_THROW_RANGE = 11000; // GGXXACPR_Win.exe+12054F
@@ -81,7 +82,6 @@ namespace GGXXACPROverlay.GGXXACPR
         // DirectX
         // Dereferencing pointer at class init since pointer is not expected to change
         public static readonly nint Direct3D9DevicePointer = *(nint*)(Memory.BaseAddress + Offsets.DIRECT3D9_DEVICE);
-        public static readonly nint GraphicsHookBreakPointAddress = Memory.BaseAddress + Offsets.GRAPHICS_HOOK_BREAKPOINT;
 
         /// <summary>
         /// Dereferences and returns a snapshot of the player 1 struct. If null, will return a dummy struct with default values.
@@ -126,10 +126,23 @@ namespace GGXXACPROverlay.GGXXACPR
         public static bool IsAccentCore => GameVersion == GameVersion.AC;
         public static bool IsInGame => *_inGameFlag != 0;
         public static readonly byte* _inGameFlag = (byte*)(Memory.BaseAddress + Offsets.IN_GAME_FLAG);
+        /// <summary>
+        /// The current game mode. This variable is updated when selecting a mode from the main menu.
+        /// When backing out to the main menu, the previous game mode value will be retained until selecting a new game mode. Defaults to Arcade mode on boot.
+        /// </summary>
+        public static GameMode GameMode => *(GameMode*)(Memory.BaseAddress + Offsets.GAME_MODE);
         public static bool ShouldRender => *_inGameFlag != 0 && !(*TrainingPauseDisplay == 1 && *TrainingPauseState != 0);
+        public static bool ShouldUpdate => *_inGameFlag != 0 && *TrainingPauseState == 0;
+        /// <summary>
+        /// 0 = Unpaused, 1 = Pause transiiton, 2 = Paused
+        /// </summary>
         public static readonly int* TrainingPauseState = (int*)(Memory.BaseAddress + Offsets.TRAINING_MODE_PAUSE_STATE);
+        /// <summary>
+        /// 0 = Hide pause menu, 1 = Show pause menu
+        /// </summary>
         public static readonly int* TrainingPauseDisplay = (int*)(Memory.BaseAddress + Offsets.TRAINING_MODE_PAUSE_DISPLAY);
-        public static readonly int* ReplaySimState = (int*)(Memory.BaseAddress + Offsets.GLOBAL_REPLAY_SIMULATE);
+        public static int ReplaySimState => *(int*)(Memory.BaseAddress + Offsets.GLOBAL_REPLAY_SIMULATE);
+        public static int ReplayFrameCount => *(int*)(Memory.BaseAddress + Offsets.REPLAY_FRAME_COUNT);
         public static readonly int* BackgroundState = (int*)(Memory.BaseAddress + Offsets.BACKGROUND_STATE);
 
         private static readonly delegate* unmanaged[Cdecl]<int, int, float, byte, float, int> _RenderText =
@@ -146,6 +159,13 @@ namespace GGXXACPROverlay.GGXXACPR
                 Hooks.Util.CustomCallingConventionParameters(0, (uint)pText, 0);
                 return _RenderText(xPos, yPos, 365f, alpha, 1f);
             }
+        }
+
+        public static Player GetOpponent(Player p)
+        {
+            if (!p.IsValid) return new();
+
+            return p.PlayerIndex == 0 ? Player2 : Player1;
         }
 
         //private static readonly Hitbox[] _hitboxBuffer = new Hitbox[100];
@@ -179,7 +199,7 @@ namespace GGXXACPROverlay.GGXXACPR
                     // hitbox discard checks
                     if (e->HitboxSet[i].BoxTypeId == (ushort)BoxId.HIT &&
                         // Discard if disabled hitboxes is flagged and not ignoring that flag in settings
-                        ((e->Status & (uint)ActionState.DisableHitboxes) > 0 && !Settings.IgnoreDisableHitboxFlag) &&
+                        ((e->Status & (uint)ActionState.DisableHitboxes) > 0 && !Settings.Misc.IgnoreDisableHitboxFlag) &&
                         // but only if not in hitstop after an attack has connected
                         !(e->HitstopCounter > 0 && (e->AttackFlags & (uint)AttackState.HasConnected) > 0))
                         continue;
@@ -195,6 +215,14 @@ namespace GGXXACPROverlay.GGXXACPR
                         temp[bufferIndex++] = e->HitboxSet[i];
                     }
                 }
+            }
+
+            // Special case for Slide head's unblockable hitbox. Not sure the exact checks for this,
+            // but it appears in the first slot of the extra hitbox set and is active when the act header flags are in a certain state.
+            if (e->Id == (int)CharacterID.POTEMKIN && e->ActionId == SLIDE_HEAD_ACT_ID &&
+                e->ActionHeaderFlags == SLIDE_HEAD_UNBLOCKABLE_ACT_HEADER_VALUE && e->HitboxExtraSet is not null)
+            {
+                temp[bufferIndex++] = e->HitboxExtraSet[0];
             }
 
             return new(temp, 0, bufferIndex);
@@ -453,7 +481,7 @@ namespace GGXXACPROverlay.GGXXACPR
             box = default;
             if (!e.IsValid) return false;
 
-            var halfHeight = Settings.HitboxBorderThickness * 150.0f;
+            var halfHeight = Settings.Hitboxes.HitboxBorderThickness * 150.0f;
 
             if (e.Id == ROBO_KY_MAT_ID)
             {
@@ -464,7 +492,7 @@ namespace GGXXACPROverlay.GGXXACPR
             {
                 var range = IsPlusR ? TESTAMENT_HITOMI_ACTIVATION_RANGE_PR : TESTAMENT_HITOMI_ACTIVATION_RANGE_AC;
 
-                if (Settings.DrawInfiniteHeight)
+                if (Settings.Hitboxes.DrawInfiniteHeight)
                     box = new(-range, -MAX_DISPLAY_HEIGHT, range * 2, MAX_DISPLAY_HEIGHT * 2);
                 else
                     box = new(-range, -halfHeight, range * 2, halfHeight * 2);
@@ -502,7 +530,7 @@ namespace GGXXACPROverlay.GGXXACPR
             {
                 if (hitboxes[i].BoxTypeId == (ushort)BoxId.HIT ||
                         (hitboxes[i].BoxTypeId == (ushort)BoxId.USE_EXTRA &&
-                        hitboxesExtra.Length >= i &&
+                        hitboxesExtra.Length > i &&
                         hitboxesExtra[i].BoxTypeId == (ushort)BoxId.HIT))
                 {
                     return true;
@@ -510,6 +538,67 @@ namespace GGXXACPROverlay.GGXXACPR
             }
 
             return MoveData.IsActiveByMark(p.CharId, p.ActionId) && p.Mark == 1;
+        }
+
+        /// <summary>
+        /// Helper logic for FrameMeter. Returns true if the given player has any hurt boxes.
+        /// </summary>
+        public static bool HasAnyHurtboxes(Player p)
+        {
+            Span<Hitbox> hitboxes = p.HitboxSet;
+            for (int i = 0; i < hitboxes.Length; i++)
+            {
+                if (hitboxes[i].BoxTypeId == (ushort)BoxId.HURT) return true;
+            }
+            return false;
+        }
+
+        public static bool HasAnyProjectileHitbox(byte playerIndex)
+        {
+            return AnyEntities((e) =>
+            {
+                if (e.PlayerIndex != playerIndex) return false;
+
+                foreach (Hitbox hb in e.HitboxSet)
+                {
+                    if (hb.BoxTypeId == (short)BoxId.HIT) return true;
+                }
+
+                return false;
+            });
+        }
+        public static bool HasAnyProjectileHurtbox(byte playerIndex)
+        {
+            return AnyEntities((e) =>
+            {
+                if (e.PlayerIndex != playerIndex) return false;
+
+                foreach (Hitbox hb in e.HitboxSet)
+                {
+                    if (hb.BoxTypeId == (ushort)BoxId.HURT) return true;
+                }
+
+                return false;
+            });
+        }
+
+        public static bool AnyEntities(Func<Entity, bool> predicate)
+        {
+            Entity Root = RootEntity;
+            if (!Root.IsValid) return false;
+
+            Entity iEntity = Root.Next;
+
+            while (!iEntity.Equals(Root))
+            {
+                if (!iEntity.IsValid) return false;
+
+                if (predicate.Invoke(iEntity)) return true;
+
+                iEntity = iEntity.Next;
+            }
+
+            return false;
         }
 
         #region Rendering Helpers
@@ -603,6 +692,13 @@ namespace GGXXACPROverlay.GGXXACPR
             matrix *= GetWidescreenCorrectionTransform(c);
 
             return matrix;
+        }
+        public static Matrix4x4 GetViewPortProjectionTransform()
+        {
+            return Matrix4x4.CreateOrthographicOffCenterLeftHanded(
+                0, *_viewWidth,
+                *_viewHeight, 0,
+                0, 1);
         }
         public static Matrix4x4 GetWidescreenCorrectionTransform() => GetWidescreenCorrectionTransform(Camera);
         public static Matrix4x4 GetWidescreenCorrectionTransform(Camera c)

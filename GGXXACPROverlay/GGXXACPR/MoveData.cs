@@ -33,7 +33,7 @@ namespace GGXXACPROverlay.GGXXACPR
         }
 
         // TODO: Will be needed for FrameMeter
-        // private static readonly Lookup<CharIdActIdKey, MoveDataEntry> _actIdToMoveIds = ReadRawMoveDataToLookup();
+        private static readonly Lookup<CharIdActIdKey, MoveDataEntry> _actIdToMoveIds = ReadRawMoveDataToLookup();
 
         // (charId, actId)
         private static readonly CommandGrabData[] _activeByMarkCommandGrabs = [
@@ -111,25 +111,27 @@ namespace GGXXACPROverlay.GGXXACPR
         /// <param name="charId">Character Id</param>
         /// <param name="actId1">first actId</param>
         /// <param name="actId2">second actId</param>
-        //public static bool IsPrevAnimSameMove(CharacterID charId, int actId1, int actId2)
-        //{
-        //    var key1 = new CharIdActIdKey(charId, actId1);
-        //    var key2 = new CharIdActIdKey(charId, actId2);
-        //    if (_actIdToMoveIds.Contains(key1) && _actIdToMoveIds.Contains(key2))
-        //    {
-        //        IEnumerable<MoveDataEntry> data1 = _actIdToMoveIds[key1];
-        //        IEnumerable<MoveDataEntry> data2 = _actIdToMoveIds[key2];
+        public static bool IsPrevAnimSameMove(CharacterID charId, int actId1, int actId2)
+        {
+            var key1 = new CharIdActIdKey(charId, actId1);
+            var key2 = new CharIdActIdKey(charId, actId2);
+            if (_actIdToMoveIds.Contains(key1) && _actIdToMoveIds.Contains(key2))
+            {
+                IEnumerable<MoveDataEntry> data1 = _actIdToMoveIds[key1];
+                IEnumerable<MoveDataEntry> data2 = _actIdToMoveIds[key2];
 
-        //        foreach (var data in data1)
-        //        {
-        //            if (data2.Any(mde => mde.moveId == data.moveId && mde.sequenceIndex > data.sequenceIndex))
-        //            {
-        //                return true;
-        //            }
-        //        }
-        //    }
-        //    return false;
-        //}
+                //foreach (var data in data1)
+                //{
+                //    if (data2.Any(mde => mde.moveId == data.moveId && mde.sequenceIndex > data.sequenceIndex))
+                //    {
+                //        return true;
+                //    }
+                //}
+
+                return data1.Any(data => data2.Any(mde => mde.moveId == data.moveId && mde.sequenceIndex > data.sequenceIndex));
+            }
+            return false;
+        }
 
         /// <summary>
         /// Returns true if the given character's move is a command grab that is active when Player.Mark == 1.

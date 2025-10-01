@@ -1,22 +1,25 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 
 namespace GGXXACPRInjector
 {
     internal unsafe static partial class Program
     {
-        private const string targetProcessName = "GGXXACPR_Win";
-        private const string injectee = "GGXXACPROverlay.Bootstrapper.dll";
-        private const string overlay = "GGXXACPROverlay.dll";
-        private const string injecteeDependency = "nethost.dll";
+        private const string TARGET_PROCESS_NAME = "GGXXACPR_Win";
+        private const string FILE_ROOT = @".\bin\";
+        private const string INJECTEE_DLL = "GGXXACPROverlay.Bootstrapper.dll";
+        private const string OVERLAY_DLL = "GGXXACPROverlay.dll";
+        private const string INJECTEE_DEPENDENCY = "nethost.dll";
 
-        static void Main(string[] args)
+        static void Main()
         {
-            // AppDomain.CurrentDomain.ProcessExit += new EventHandler(Eject);
+            Version version = Assembly.GetExecutingAssembly().GetName().Version ?? new Version();
+
             Console.WriteLine("== GGXXACPROverlay Injector ==");
-            Console.WriteLine("Injector Version: v1.0.0");
+            Console.WriteLine($"Injector Version: v{version}");
             try
             {
-                FileVersionInfo overlayVersion = FileVersionInfo.GetVersionInfo(overlay);
+                FileVersionInfo overlayVersion = FileVersionInfo.GetVersionInfo(Path.Combine(FILE_ROOT, OVERLAY_DLL));
                 Console.WriteLine($"Overlay Version: v{overlayVersion.FileVersion}");
             }
             catch (FileNotFoundException)
@@ -36,7 +39,10 @@ namespace GGXXACPRInjector
             {
                 if (RuntimeInstaller.HandleRuntimeChecks())
                 {
-                    Injector injector = new Injector(targetProcessName, Path.GetFullPath(injectee), [Path.GetFullPath(injecteeDependency)]);
+                    Injector injector = new Injector(
+                        TARGET_PROCESS_NAME,
+                        Path.GetFullPath(Path.Combine(FILE_ROOT, INJECTEE_DLL)),
+                        [Path.GetFullPath(Path.Combine(FILE_ROOT, INJECTEE_DEPENDENCY))]);
                     injected = injector.Inject();
 
                     if (injected)
@@ -59,10 +65,6 @@ namespace GGXXACPRInjector
                 if (injected)
                 {
                     Console.WriteLine("Press any key to close this window...");
-                    //while (!(targetProc?.HasExited ?? true) && !Console.KeyAvailable)
-                    //{
-                    //    Thread.Sleep(30);
-                    //}
                 }
                 else
                 {

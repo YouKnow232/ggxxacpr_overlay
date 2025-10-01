@@ -2,18 +2,24 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net9.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <InvariantGlobalization>true</InvariantGlobalization>
     <PlatformTarget>x86</PlatformTarget>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <StartupObject>GGXXACPRInjector.Program</StartupObject>
-    <Platforms>AnyCPU;x86</Platforms>
+    <Platforms>x86</Platforms>
     <ApplicationIcon>Sidewinder.ico</ApplicationIcon>
     <PackageIcon>Sidewinder.png</PackageIcon>
     <Configurations>Debug;Release</Configurations>
+    <Version>$(VersionPrefix)1.1.0</Version>
   </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)'=='Release'">
+        <DebugType>None</DebugType>
+        <DebugSymbols>False</DebugSymbols>
+    </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.183">
@@ -28,32 +34,32 @@
       <PackagePath>\</PackagePath>
     </None>
     <None Update="README.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
-	<Target Name="CopyGGXXACPROverlayBootstrapper" AfterTargets="Build">
-		<ItemGroup>
-			<OverlayFiles Include="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\*.*" />
-		</ItemGroup>
-		<Copy SourceFiles="..\$(Configuration)\GGXXACPROverlay.Bootstrapper.dll" DestinationFolder="$(OutDir)" />
-		<Copy SourceFiles="..\$(Configuration)\nethost.dll" DestinationFolder="$(OutDir)" />
-		<Copy
-			SourceFiles="@(OverlayFiles)"
-			DestinationFolder="$(OutDir)"
-			SkipUnchangedFiles="true" />
-	</Target>
+    <Target Name="CopyGGXXACPROverlayBootstrapper" AfterTargets="Build">
+        <ItemGroup>
+            <OverlayFiles Include="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\*.*" Exclude="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\OverlaySettings.ini" />
+            <Settings Include="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\OverlaySettings.ini" />
+        </ItemGroup>
+        <Copy SourceFiles="..\$(Configuration)\GGXXACPROverlay.Bootstrapper.dll" DestinationFolder="$(OutDir)\bin" />
+        <Copy SourceFiles="..\$(Configuration)\nethost.dll" DestinationFolder="$(OutDir)\bin" />
+        <Copy SourceFiles="@(OverlayFiles)" DestinationFolder="$(OutDir)\bin" SkipUnchangedFiles="false" />
+        <Copy SourceFiles="@(Settings)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="false" />
+    </Target>
 
-	<Target Name="CopyGGXXACPROverlayBootstrapperToPublish" AfterTargets="Publish">
-		<ItemGroup>
-			<OverlayFiles Include="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\*.*" />
-		</ItemGroup>
-		<Copy SourceFiles="..\$(Configuration)\GGXXACPROverlay.Bootstrapper.dll" DestinationFolder="$(PublishDir)" />
-		<Copy SourceFiles="..\$(Configuration)\nethost.dll" DestinationFolder="$(PublishDir)" />
-		<Copy
-			SourceFiles="@(OverlayFiles)"
-			DestinationFolder="$(PublishDir)"
-			SkipUnchangedFiles="true" />
-	</Target>
+    <Target Name="CopyGGXXACPROverlayBootstrapperToPublish" AfterTargets="Publish">
+        <ItemGroup>
+            <OverlayFiles Include="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\*.*" Exclude="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\OverlaySettings.ini" />
+            <Settings Include="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\OverlaySettings.ini" />
+        </ItemGroup>
+        <Copy SourceFiles="..\$(Configuration)\GGXXACPROverlay.Bootstrapper.dll" DestinationFolder="$(PublishDir)\bin" />
+        <Copy SourceFiles="..\$(Configuration)\nethost.dll" DestinationFolder="$(PublishDir)\bin" />
+        <Copy SourceFiles="@(OverlayFiles)" DestinationFolder="$(PublishDir)\bin" SkipUnchangedFiles="false" />
+        <Copy SourceFiles="@(Settings)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="false" />
+        <Copy SourceFiles=".\README.txt" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="false" />
+    </Target>
 
 </Project>
+    

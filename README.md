@@ -1,5 +1,5 @@
 # GGXXACPROverlay
-Displays hitboxes ~~and a frame meter~~ (WIP) in an overlay for the Steam release of Guilty Gear XX Accent Core Plus R.
+Displays hitboxes and a frame meter in an overlay for the Steam release of Guilty Gear XX Accent Core Plus R.
 
 ## How to Use
 1. Copy the GGXXACPROverlay folder to Plus R's folder. (..steamapps\common\Guilty Gear XX Accent Core Plus R\GGXXACPROverlay)
@@ -8,14 +8,13 @@ Displays hitboxes ~~and a frame meter~~ (WIP) in an overlay for the Steam releas
 4. (Optional) Check README.txt and OverlaySettings.ini for additional information
 
 ## Known Issues
-- Frame Meter coming soon!
 - Issues with anti-virus software. Exclude the overlay folder from your anti-virus if you are having problems.
 - Incompatible with some overlays/mods (e.g. MSI Afterburner's overlay)
-- Background black out causes crashes in replay mode, toggle it off with the F7 hotkey before using the overlay with replay mode.
+- Background black out may cause desyncs in replay mode, toggle it off before opening a replay.
 - This overlay was not intended to be used during netplay and therefore was not testing during it. Crashes, desyncs, and other unexpected behavior may occur.
 
 ## Build Instructions
-This project was built with Visual Studio 2022 v17.14.9 + .NET SDK v9.0.302
+This project was built with Visual Studio 2022 v17.14.16 + .NET SDK v9.0.302
 
 GGXXACPROverlay.dll and its related files must be in the designated mod folder GGXXACPROverlay.
 There's a GameFolder publish profile you can configure to facilitate that. After that's built you can use the normal build & run workflow since
