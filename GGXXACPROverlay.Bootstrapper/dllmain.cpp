@@ -55,8 +55,8 @@ static DWORD WINAPI HostDotnetRuntime(LPVOID lpParam)
 
     DebugLog("StartCoreCLR thread start.\n");
 
-    const char_t* runtimeConfigPath = L".\\GGXXACPROverlay\\GGXXACPROverlay.runtimeconfig.json";
-    const char_t* overlayPath = L".\\GGXXACPROverlay\\GGXXACPROverlay.dll";
+    const char_t* runtimeConfigPath = L".\\GGXXACPROverlay\\bin\\GGXXACPROverlay.runtimeconfig.json";
+    const char_t* overlayPath = L".\\GGXXACPROverlay\\bin\\GGXXACPROverlay.dll";
 
     char_t hostfxrPath[512];
     size_t hostfxrBufferSize = sizeof(hostfxrPath) / sizeof(char_t);

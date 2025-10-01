@@ -6,6 +6,7 @@ namespace GGXXACPRInjector
     internal unsafe static partial class Program
     {
         private const string TARGET_PROCESS_NAME = "GGXXACPR_Win";
+        private const string FILE_ROOT = @".\bin\";
         private const string INJECTEE_DLL = "GGXXACPROverlay.Bootstrapper.dll";
         private const string OVERLAY_DLL = "GGXXACPROverlay.dll";
         private const string INJECTEE_DEPENDENCY = "nethost.dll";
@@ -18,7 +19,7 @@ namespace GGXXACPRInjector
             Console.WriteLine($"Injector Version: v{version}");
             try
             {
-                FileVersionInfo overlayVersion = FileVersionInfo.GetVersionInfo(OVERLAY_DLL);
+                FileVersionInfo overlayVersion = FileVersionInfo.GetVersionInfo(Path.Combine(FILE_ROOT, OVERLAY_DLL));
                 Console.WriteLine($"Overlay Version: v{overlayVersion.FileVersion}");
             }
             catch (FileNotFoundException)
@@ -40,8 +41,8 @@ namespace GGXXACPRInjector
                 {
                     Injector injector = new Injector(
                         TARGET_PROCESS_NAME,
-                        Path.GetFullPath(INJECTEE_DLL),
-                        [Path.GetFullPath(INJECTEE_DEPENDENCY)]);
+                        Path.GetFullPath(Path.Combine(FILE_ROOT, INJECTEE_DLL)),
+                        [Path.GetFullPath(Path.Combine(FILE_ROOT, INJECTEE_DEPENDENCY))]);
                     injected = injector.Inject();
 
                     if (injected)
