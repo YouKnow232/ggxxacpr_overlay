@@ -1,3 +1,16 @@
+#2.3.0
+- Reimplemented the frame meter
+	- Has better compatability with replay mode
+	- When a streak of the same type of frame occurs, its length is now summed and display
+	- Integrated with OverlaySettings for more control of appearance
+		- Reveals some existing frame types that weren't being distinguished
+	- Added new frame types for techable hitstun and knock down
+- Added a hotkey and frame meter legend overlay
+	- Togglable with F9, can be disabled in OverlaySettings
+- Potemkin's Slide Head unblockable hitbox is now displayed
+- GGXXACPRInjector now downloads the latest .NET runtime version if none is detected.
+- GGXXACPRInjector now looks for and uses the dotnet CLI to check for existing runtimes.
+
 #2.2.0
 - Added new box categories "MiscPushRange" and "MiscPivotRange"
 	- MiscPushRange is for range checks the game makes against player pushboxes, MiscPivotRange checks origin points

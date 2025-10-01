@@ -1,5 +1,5 @@
 ﻿=== GGXXACPR Overlay ===
-version: v2.2.0
+version: v2.3.0
 
 Overlay for Guilty Gear XX Accent Core Plus R
 Steam Release, product version: v1.2.0.0
@@ -15,14 +15,15 @@ directory is "..\steamapps\common\Guilty Gear XX Accent Core Plus R\GGXXACPROver
 
 == Hotkeys ==
 
-F1 = Toggle Hitboxes
-F2 = Toggle Untech/HSD meters
-F3 = Toggle throw range boxes
-F4 = Toggle between both boxes / P1 box only / P2 box only
+F1 = Toggle hitboxes
+F2 = Toggle untech/HSD meters
+F3 = Toggle frame meter
+F4 = Toggle throw range boxes
 F5 = Freeze frame (i.e. pause->hide menu hotkey)
 F6 = Frame step from freeze frame (works from pause->hide menu)
 F7 = Toggle background black out
-F8 = Toggle combined hitbox setting
+F8 = Reload OverlaySettings.ini
+F9 = Toggle Legend
 
 
 == FAQ ==

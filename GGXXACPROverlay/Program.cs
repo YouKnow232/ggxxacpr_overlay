@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Windows.Win32;
 
@@ -6,6 +7,8 @@ namespace GGXXACPROverlay
 {
     public static class Program
     {
+        public static string Version { get; } = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "ERR";
+
         [UnmanagedCallersOnly(EntryPoint = "Main", CallConvs = [typeof(CallConvStdcall)])]
         public static unsafe uint Main(nint args, int argsSize)
         {

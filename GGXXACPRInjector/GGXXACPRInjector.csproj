@@ -13,6 +13,7 @@
     <ApplicationIcon>Sidewinder.ico</ApplicationIcon>
     <PackageIcon>Sidewinder.png</PackageIcon>
     <Configurations>Debug;Release</Configurations>
+    <Version>$(VersionPrefix)1.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

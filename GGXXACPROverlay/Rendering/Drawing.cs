@@ -438,7 +438,7 @@ namespace GGXXACPROverlay.Rendering
             const float FONT_SIZE = 28f;
             const float ITEM_INCREMENT = 40f;
 
-            GlyphString gString = new GlyphString("GGXXACPR Overlay v2.2.0", atlas, Vector2.Zero, FONT_SIZE);
+            GlyphString gString = new GlyphString($"GGXXACPR Overlay v{Program.Version}", atlas, Vector2.Zero, FONT_SIZE);
             float bgWidth = gString.Bounds.Width * 1.5f + 15f;
             strings[index++] = gString;
 
