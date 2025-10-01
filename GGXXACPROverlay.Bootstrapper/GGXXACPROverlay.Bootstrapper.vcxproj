@@ -60,14 +60,14 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>C:\Program Files (x86)\dotnet\packs\Microsoft.NETCore.App.Host.win-x86\9.0.6\runtimes\win-x86\native\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Program Files (x86)\dotnet\packs\Microsoft.NETCore.App.Host.win-x86\9.0.9\runtimes\win-x86\native\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FunctionLevelLinking>true</FunctionLevelLinking>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>C:\Program Files (x86)\dotnet\packs\Microsoft.NETCore.App.Host.win-x86\9.0.6\runtimes\win-x86\native\nethost.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>C:\Program Files (x86)\dotnet\packs\Microsoft.NETCore.App.Host.win-x86\9.0.9\runtimes\win-x86\native\nethost.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>GGXXACPROverlay.Bootstrapper.def</ModuleDefinitionFile>
       <OptimizeReferences>
       </OptimizeReferences>
@@ -77,7 +77,7 @@
       </LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y "C:\Program Files (x86)\dotnet\packs\Microsoft.NETCore.App.Host.win-x86\9.0.6\runtimes\win-x86\native\nethost.dll" "$(TargetDir)"</Command>
+      <Command>xcopy /Y "C:\Program Files (x86)\dotnet\packs\Microsoft.NETCore.App.Host.win-x86\9.0.9\runtimes\win-x86\native\nethost.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy NetHost</Message>
@@ -93,7 +93,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>C:\Program Files (x86)\dotnet\packs\Microsoft.NETCore.App.Host.win-x86\9.0.6\runtimes\win-x86\native\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Program Files (x86)\dotnet\packs\Microsoft.NETCore.App.Host.win-x86\9.0.9\runtimes\win-x86\native\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -101,11 +101,11 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>C:\Program Files (x86)\dotnet\packs\Microsoft.NETCore.App.Host.win-x86\9.0.6\runtimes\win-x86\native\nethost.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>C:\Program Files (x86)\dotnet\packs\Microsoft.NETCore.App.Host.win-x86\9.0.9\runtimes\win-x86\native\nethost.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>GGXXACPROverlay.Bootstrapper.def</ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y "C:\Program Files (x86)\dotnet\packs\Microsoft.NETCore.App.Host.win-x86\9.0.6\runtimes\win-x86\native\nethost.dll" "$(TargetDir)"</Command>
+      <Command>xcopy /Y "C:\Program Files (x86)\dotnet\packs\Microsoft.NETCore.App.Host.win-x86\9.0.9\runtimes\win-x86\native\nethost.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy NetHost</Message>
