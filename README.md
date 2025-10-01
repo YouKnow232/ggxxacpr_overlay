@@ -1,11 +1,21 @@
 # GGXXACPROverlay
 Displays hitboxes and a frame meter in an overlay for the Steam release of Guilty Gear XX Accent Core Plus R.
 
+<div align="center">
+  <img src="./Docs/Img/v2.3.0-preview-1.png" width="480" align="center" alt="Overlay screen shot"/>
+  <img src="./Docs/Img/v2.3.0-preview-2-labeled.png" width="480" align="center" alt="Overlay screen shot with numbered labels"/>
+  <br/>
+  (1) Hitboxes (2) Frame meter (3) Hitstun decay timer (4) Untech timer
+</div>
+
 ## How to Use
 1. Copy the GGXXACPROverlay folder to Plus R's folder. (..steamapps\common\Guilty Gear XX Accent Core Plus R\GGXXACPROverlay)
 2. Launch Plus R
 3. Launch GGXXACPRInjector.exe
-4. (Optional) Check README.txt and OverlaySettings.ini for additional information
+4. (Optional) Check [README.txt](./GGXXACPRInjector/README.txt) and OverlaySettings.ini for additional information
+
+### Reading the Frame Meter
+The frame meter is simply a timeline of [frames](https://glossary.infil.net/?t=Frame). There are two meters, one for each player, that can be compared with each other to help gauge [startup](https://glossary.infil.net/?t=Startup) and [advantage](https://glossary.infil.net/?t=Advantage) as well as other timing concepts. The frame meter color codes each frame based on the state the player character was in during that frame.
 
 ## Known Issues
 - Issues with anti-virus software. Exclude the overlay folder from your anti-virus if you are having problems.
@@ -24,7 +34,7 @@ changes in the main GGXXACPROverlay.dll.
 ### Dependencies
 This project requires an x86 installation of the .NET hosting api in order to host the runtime within the GGXXACPR_Win process.
 This should be bundled with a regular x64 .NET SDK installation.
-See DEV-README.txt
+See [DEV-README.txt](./GGXXACPROverlay.Bootstrapper/DEV-README.txt)
 
 ### Steps
 1. Clone the repository
@@ -32,7 +42,7 @@ See DEV-README.txt
 git clone https://github.com/YouKnow232/ggxxacpr_overlay.git
 ```
 2. Open the .sln file in Visual Studio
-3. Configure C++ linker settings if needed (see DEV-README.txt)
+3. Configure C++ linker settings if needed (see [DEV-README.txt](./GGXXACPROverlay.Bootstrapper/DEV-README.txt))
 4. Right-click GGXXACPRInjector in the Solution Explorer -> Publish...
 5. Select FolderPublish.pubxml -> Publish
 6. Click "Navigate" in the green "publish succeeded" box
