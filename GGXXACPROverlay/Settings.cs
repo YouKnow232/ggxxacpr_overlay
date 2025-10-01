@@ -386,47 +386,6 @@ namespace GGXXACPROverlay
                 primaryFrameTypes[key] = GetLegendLabel(primaryPropDict[key]);
             foreach (var key in secondaryPropDict.Keys)
                 secondaryFrameTypes[key] = GetLegendLabel(secondaryPropDict[key]);
-
-
-
-            //// Frame types
-            //foreach (FrameType fType in Enum.GetValues<FrameType>())
-            //{
-            //    if (fType is FrameType.None) continue;
-
-                //    var color = GetColor(fType);
-                //    if (!frameTypes.TryAdd(color, fType.GetDescription() ?? "?"))
-                //    {
-                //        frameTypes[color] = frameTypes[color] + "/" + fType.GetDescription();
-                //        // custom string checks
-                //    }
-                //}
-
-                //// primary props
-                //foreach (PrimaryFrameProperty pfType in Enum.GetValues<PrimaryFrameProperty>())
-                //{
-                //    if (pfType is PrimaryFrameProperty.Default or PrimaryFrameProperty.FRC or PrimaryFrameProperty.TEST) continue;
-
-                //    var color = GetColor(pfType);
-                //    if (!primaryFrameTypes.TryAdd(color, pfType.GetDescription() ?? "?"))
-                //    {
-                //        primaryFrameTypes[color] = primaryFrameTypes[color] + "/" + pfType.GetDescription();
-
-                //        // custom string checks
-                //    }
-                //}
-
-                //// secondary props
-                //foreach (SecondaryFrameProperty pfType in Enum.GetValues<SecondaryFrameProperty>())
-                //{
-                //    if (pfType is SecondaryFrameProperty.Default) continue;
-
-                //    var color = GetColor(pfType);
-                //    if (!secondaryFrameTypes.TryAdd(color, pfType.GetDescription() ?? "?"))
-                //    {
-                //        secondaryFrameTypes[color] = secondaryFrameTypes[color] + "/" + pfType.GetDescription();
-                //    }
-                //}
         }
 
 
@@ -452,21 +411,21 @@ namespace GGXXACPROverlay
             {
                 if (hitblockstunSet.IsSubsetOf(types))
                 {
-                    types.ExceptWith(hitblockstunSet);  // TODO: make sure set mutability isn't an issue here
+                    types.ExceptWith(hitblockstunSet);
                     string remainingLabel = GetLegendLabel(types);
                     string append = remainingLabel == "" ? "" : (", " + remainingLabel);
                     return "Hit/Blockstun" + append;
                 }
                 else if (hitstunSet.IsSubsetOf(types))
                 {
-                    types.ExceptWith(hitstunSet);  // TODO: make sure set mutability isn't an issue here
+                    types.ExceptWith(hitstunSet);
                     string remainingLabel = GetLegendLabel(types);
                     string append = remainingLabel == "" ? "" : (", " + remainingLabel);
                     return "Hitstun" + append;
                 }
                 else if (active.IsSubsetOf(types))
                 {
-                    types.ExceptWith(active);  // TODO: make sure set mutability isn't an issue here
+                    types.ExceptWith(active);
                     string remainingLabel = GetLegendLabel(types);
                     string append = remainingLabel == "" ? "" : (", " + remainingLabel);
                     return "Active" + append;

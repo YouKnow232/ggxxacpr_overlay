@@ -173,25 +173,19 @@ namespace GGXXACPROverlay.FrameMeter
         /// Rewinds the frame meter's individual arrays and the state buffer backwards to the target frame
         /// </summary>
         /// <param name="targetFrame">The target frame to rewind towards. Identified by the value given by GGXXACPR.GGXXACPR.ReplayFrameCount</param>
-        public void Rewind(int targetFrame)
+        private void Rewind(int targetFrame)
         {
             // Rewind frame meter itself
-            //Debug.Log($"currentFrame: {_currentFrame} | targetFrame: {targetFrame}");
             int indexFrameNum = _frameNumberLookup[AddToLoopingIndex(-1)];
-            //Debug.Log($"Start meter while loop ({indexFrameNum} > {targetFrame} && {indexFrameNum} > 0)");
             int frameMeterRollbackNum = 1;
             while (indexFrameNum > targetFrame && indexFrameNum > 0)
             {
                 indexFrameNum = _frameNumberLookup[AddToLoopingIndex(-1 * (++frameMeterRollbackNum))];
-                //Debug.Log($"   indexFrameNum:{indexFrameNum} frameMeterRollbackNum:{frameMeterRollbackNum}");
-                //Debug.Log($"   indexFrameNum > targetFrame && indexFrameNum > 0");
-                //Debug.Log($"   {indexFrameNum} > {targetFrame} && {indexFrameNum} > 0");
             }
             frameMeterRollbackNum--;
 
             if (frameMeterRollbackNum > 0)
             {
-                //Debug.Log($"frameMeter rollback: {frameMeterRollbackNum}");
                 _index = AddToLoopingIndex(-frameMeterRollbackNum);
 
                 for (int i = 0; i < frameMeterRollbackNum; i++)
@@ -210,7 +204,6 @@ namespace GGXXACPROverlay.FrameMeter
             // Rewind the state buffer as well
             var indexState = _stateBuffer.Get(_stateBuffer.Index - 1);
             int stateFrameRollbackNum = 1;
-            //Debug.Log($"Start state while loop ({indexState.frameNumber} > {targetFrame} && ({_stateBuffer.Index} - {stateFrameRollbackNum}) > 0");
             while (indexState.frameNumber > targetFrame && (_stateBuffer.Index - stateFrameRollbackNum) > 0)
             {
                 indexState = _stateBuffer.Get(_stateBuffer.Index - (++stateFrameRollbackNum));
@@ -218,7 +211,6 @@ namespace GGXXACPROverlay.FrameMeter
             stateFrameRollbackNum--;
             if (stateFrameRollbackNum > 0)
             {
-                //Debug.Log($"stateFrame rollback: {stateFrameRollbackNum}");
                 _stateBuffer.RollBack(stateFrameRollbackNum);
             }
         }
@@ -268,7 +260,7 @@ namespace GGXXACPROverlay.FrameMeter
             {
                 return FrameType.Active;
             }
-            // Slide Head runs a grounded status check for all entities when his hitbox flag is -1 to determine if the unblockable connects
+            // Slide Head runs a grounded status check for all entities to determine if the unblockable connects
             else if (p.CharId == CharacterID.POTEMKIN &&
                 p.ActionId == GGXXACPR.GGXXACPR.SLIDE_HEAD_ACT_ID &&
                 p.ActionHeaderFlags == GGXXACPR.GGXXACPR.SLIDE_HEAD_UNBLOCKABLE_ACT_HEADER_VALUE)
@@ -411,11 +403,43 @@ namespace GGXXACPROverlay.FrameMeter
         /// </summary>
         private static FrameType DetermineEntityFrameType(Player p)
         {
-            if (GGXXACPR.GGXXACPR.HasAnyProjectileHitbox(p.PlayerIndex))
+            int pIndex = p.PlayerIndex;
+
+            // TODO: Preformance concern
+
+            if (GGXXACPR.GGXXACPR.AnyEntities(
+                e =>
+                {
+                    if (e.PlayerIndex != pIndex) return false;
+
+                    if (Settings.FrameMeter.IgnoreDistantProjectiles && !IsEntityInBounds(e))
+                        return false;
+
+                    foreach (Hitbox hb in e.HitboxSet)
+                    {
+                        if (hb.BoxTypeId == (short)BoxId.HIT) return true;
+                    }
+
+                    return false;
+                }))
             {
                 return FrameType.Active;
             }
-            else if (GGXXACPR.GGXXACPR.HasAnyProjectileHurtbox(p.PlayerIndex))
+            else if (GGXXACPR.GGXXACPR.AnyEntities(
+                e =>
+                {
+                    if (e.PlayerIndex != pIndex) return false;
+
+                    if (Settings.FrameMeter.IgnoreDistantProjectiles && !IsEntityInBounds(e))
+                        return false;
+
+                    foreach (Hitbox hb in e.HitboxSet)
+                    {
+                        if (hb.BoxTypeId == (short)BoxId.HURT) return true;
+                    }
+
+                    return false;
+                }))
             {
                 return FrameType.Startup;
             }
@@ -435,14 +459,9 @@ namespace GGXXACPROverlay.FrameMeter
         /// <returns>True if in bounds, false if it should be ignored</returns>
         private static bool IsEntityInBounds(Entity e)
         {
-            if (Math.Abs(e.XPos) > X_IGNORE_BOUNDARY ||
-                e.YPos < Y_IGNORE_TOP_BOUNDARY ||
-                e.YPos > Y_IGNORE_BOTTOM_BOUNDARY)
-            {
-                return false;
-            }
-
-            return true;
+            return Math.Abs(e.XPos) < X_IGNORE_BOUNDARY &&
+                e.YPos > Y_IGNORE_TOP_BOUNDARY &&
+                e.YPos < Y_IGNORE_BOTTOM_BOUNDARY;
         }
 
         private void UpdateIndividualMeter(Player p)
