@@ -188,7 +188,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     if (ul_reason_for_call == DLL_PROCESS_ATTACH)
     {
         DisableThreadLibraryCalls(hModule);
+# ifdef _DEBUG
         OpenConsoleWindow();
+# endif
         DebugLog("Attached");
         CreateThread(nullptr, 0, HostDotnetRuntime, nullptr, 0, nullptr);
     }

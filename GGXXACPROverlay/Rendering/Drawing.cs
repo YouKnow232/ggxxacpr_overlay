@@ -203,7 +203,7 @@ namespace GGXXACPROverlay.Rendering
             d.propertyHighlightHeight += d.propertyHighlightHeight == 0 ? 1 : 0;
             d.propertyHighlightTop = d.pipHeight - d.propertyHighlightHeight;
             d.borderThickness = 2 * viewPort.Height / GGXXACPR.GGXXACPR.SCREEN_HEIGHT_PIXELS;
-            d.fontSize = 28;
+            d.fontSize = (int)Math.Max(18f, viewPort.Height / 34.286f);
 
             _dimensionCache.Add(viewPort, d);
 
@@ -435,66 +435,65 @@ namespace GGXXACPROverlay.Rendering
             const float X_POS = 20f;
             const float LEGEND_OFFSET = 50f;
             const float LEGEND_LABEL_OFFSET = 100f;
-            const float FONT_SIZE = 28f;
-            const float ITEM_INCREMENT = 40f;
+            float ITEM_INCREMENT = dim.fontSize * 1.4f;
 
-            GlyphString gString = new GlyphString($"GGXXACPR Overlay v{Program.Version}", atlas, Vector2.Zero, FONT_SIZE);
-            float bgWidth = gString.Bounds.Width * 1.5f + 15f;
+            GlyphString gString = new GlyphString($"GGXXACPR Overlay v{Program.Version}", atlas, Vector2.Zero, dim.fontSize);
+            float bgWidth = gString.Bounds.Width * 1.5f;
             strings[index++] = gString;
 
             strings[index++] = new GlyphString(
                 "F1 = Toggle Hitboxes",
                 atlas,
                 new Vector2(X_POS, (index - 1) * ITEM_INCREMENT),
-                FONT_SIZE);
+                dim.fontSize);
 
             strings[index++] = new GlyphString(
                 "F2 = Toggle Hitstun Meters",
                 atlas,
                 new Vector2(X_POS, (index - 1) * ITEM_INCREMENT),
-                FONT_SIZE);
+                dim.fontSize);
 
             strings[index++] = new GlyphString(
                 "F3 = Toggle Frame Meter",
                 atlas,
                 new Vector2(X_POS, (index - 1) * ITEM_INCREMENT),
-                FONT_SIZE);
+                dim.fontSize);
 
             strings[index++] = new GlyphString(
                 "F4 = Toggle Throw Range Box",
                 atlas,
                 new Vector2(X_POS, (index - 1) * ITEM_INCREMENT),
-                FONT_SIZE);
+                dim.fontSize);
 
             strings[index++] = new GlyphString(
                 "F5 = Freeze Frame",
                 atlas,
                 new Vector2(X_POS, (index - 1) * ITEM_INCREMENT),
-                FONT_SIZE);
+                dim.fontSize);
 
             strings[index++] = new GlyphString(
                 "F6 = Frame Step",
                 atlas,
                 new Vector2(X_POS, (index - 1) * ITEM_INCREMENT),
-                FONT_SIZE);
+                dim.fontSize);
 
             strings[index++] = new GlyphString(
                 "F7 = Black Background",
                 atlas,
                 new Vector2(X_POS, (index - 1) * ITEM_INCREMENT),
-                FONT_SIZE);
+                dim.fontSize);
 
             strings[index++] = new GlyphString(
                 "F8 = Reload OverlaySettings.ini",
                 atlas,
                 new Vector2(X_POS, (index - 1) * ITEM_INCREMENT),
-                FONT_SIZE);
+                dim.fontSize);
 
             strings[index++] = new GlyphString(
                 "F9 = Toggle this help menu",
                 atlas,
                 new Vector2(X_POS, (index - 1) * ITEM_INCREMENT),
-                FONT_SIZE);
+                dim.fontSize);
 
             int hotKeyCount = index;
 
@@ -508,7 +507,7 @@ namespace GGXXACPROverlay.Rendering
                     frameTypes[key],
                     atlas,
                     new Vector2(bgWidth + LEGEND_LABEL_OFFSET, ITEM_INCREMENT * (index + 1 - hotKeyCount)),
-                    FONT_SIZE);
+                    dim.fontSize);
                 legendBGWidth = Math.Max(legendBGWidth, glyphString.Bounds.Width);
                 strings[index++] = glyphString;
 
@@ -520,7 +519,7 @@ namespace GGXXACPROverlay.Rendering
                     pPropTypes[key],
                     atlas,
                     new Vector2(bgWidth + LEGEND_LABEL_OFFSET, ITEM_INCREMENT * (index + 1 - hotKeyCount)),
-                    FONT_SIZE);
+                    dim.fontSize);
                 legendBGWidth = Math.Max(legendBGWidth, glyphString.Bounds.Width);
                 strings[index++] = glyphString;
             }
@@ -530,7 +529,7 @@ namespace GGXXACPROverlay.Rendering
                     sPropTypes[key],
                     atlas,
                     new Vector2(bgWidth + LEGEND_LABEL_OFFSET, ITEM_INCREMENT * (index + 1 - hotKeyCount)),
-                    FONT_SIZE);
+                    dim.fontSize);
                 legendBGWidth = Math.Max(legendBGWidth, glyphString.Bounds.Width);
                 strings[index++] = glyphString;
             }

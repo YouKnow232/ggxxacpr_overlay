@@ -34,32 +34,31 @@
       <PackagePath>\</PackagePath>
     </None>
     <None Update="README.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
     <Target Name="CopyGGXXACPROverlayBootstrapper" AfterTargets="Build">
         <ItemGroup>
-            <OverlayFiles Include="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\*.*"
-                        Exclude="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\OverlaySettings.ini"/>
-            <Settings Include="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\OverlaySettings.ini"/>
+            <OverlayFiles Include="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\*.*" Exclude="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\OverlaySettings.ini" />
+            <Settings Include="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\OverlaySettings.ini" />
         </ItemGroup>
         <Copy SourceFiles="..\$(Configuration)\GGXXACPROverlay.Bootstrapper.dll" DestinationFolder="$(OutDir)\bin" />
         <Copy SourceFiles="..\$(Configuration)\nethost.dll" DestinationFolder="$(OutDir)\bin" />
-        <Copy SourceFiles="@(OverlayFiles)" DestinationFolder="$(OutDir)\bin" SkipUnchangedFiles="true" />
-        <Copy SourceFiles="@(Settings)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+        <Copy SourceFiles="@(OverlayFiles)" DestinationFolder="$(OutDir)\bin" SkipUnchangedFiles="false" />
+        <Copy SourceFiles="@(Settings)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="false" />
     </Target>
 
     <Target Name="CopyGGXXACPROverlayBootstrapperToPublish" AfterTargets="Publish">
         <ItemGroup>
-            <OverlayFiles Include="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\*.*"
-                        Exclude="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\OverlaySettings.ini"/>
-            <Settings Include="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\OverlaySettings.ini"/>
+            <OverlayFiles Include="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\*.*" Exclude="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\OverlaySettings.ini" />
+            <Settings Include="..\GGXXACPROverlay\bin\x86\$(Configuration)\net9.0-windows7.0\win-x86\OverlaySettings.ini" />
         </ItemGroup>
         <Copy SourceFiles="..\$(Configuration)\GGXXACPROverlay.Bootstrapper.dll" DestinationFolder="$(PublishDir)\bin" />
         <Copy SourceFiles="..\$(Configuration)\nethost.dll" DestinationFolder="$(PublishDir)\bin" />
-        <Copy SourceFiles="@(OverlayFiles)" DestinationFolder="$(PublishDir)\bin" SkipUnchangedFiles="true" />
-        <Copy SourceFiles="@(Settings)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+        <Copy SourceFiles="@(OverlayFiles)" DestinationFolder="$(PublishDir)\bin" SkipUnchangedFiles="false" />
+        <Copy SourceFiles="@(Settings)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="false" />
+        <Copy SourceFiles=".\README.txt" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="false" />
     </Target>
 
 </Project>
