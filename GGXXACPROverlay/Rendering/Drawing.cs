@@ -312,7 +312,7 @@ namespace GGXXACPROverlay.Rendering
                                 pipRectangle.Left + halfPipWidth,
                                 pipRectangle.Top + dim.propertyHighlightTop,
                                 dim.pipWidth - halfPipWidth,
-                                pipRectangle.Height,
+                                dim.propertyHighlightHeight,
                             Settings.FrameMeter.Palette.GetColor(frameArr[i].PrimaryProperty2)
                             );
                         }
