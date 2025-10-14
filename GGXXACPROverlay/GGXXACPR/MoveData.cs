@@ -11,20 +11,20 @@ namespace GGXXACPROverlay.GGXXACPR
         private const int SPECIAL_CASE_COMMAND_THROW_RANGE = 11000; // GGXXACPR_Win.exe+12054F
         private const string MoveDataFileName = "MoveData.csv";
 
-        private readonly struct CharIdActIdKey(CharacterID charId, int actId)
+        private readonly struct CharIdActIdKey(EntityId charId, int actId)
         {
-            public readonly CharacterID charId = charId;
+            public readonly EntityId charId = charId;
             public readonly int actId = actId;
         }
-        private readonly struct CommandGrabData(CharacterID charId, int actId, int cmdGrabId)
+        private readonly struct CommandGrabData(EntityId charId, int actId, int cmdGrabId)
         {
-            public readonly CharacterID CharId = charId;
+            public readonly EntityId CharId = charId;
             public readonly int ActId = actId;
             public readonly int CmdGrabId = cmdGrabId;
         }
         private struct MoveDataEntry
         {
-            public CharacterID charId;
+            public EntityId charId;
             public int actId;
             public int sequenceIndex;
             public string moveInput;
@@ -37,24 +37,24 @@ namespace GGXXACPROverlay.GGXXACPR
 
         // (charId, actId)
         private static readonly CommandGrabData[] _activeByMarkCommandGrabs = [
-            new(CharacterID.SOL,       0x088,  1), // Wild Throw
-            new(CharacterID.KY,        0x109,  2), // EX Ky Elegant Slash
-            new(CharacterID.MAY,       0x06B,  4), // Overhead Kiss
-            new(CharacterID.MAY,       0x0A2, 15), // IK
-            new(CharacterID.POTEMKIN,  0x07A,  3), // Potbuster
-            new(CharacterID.CHIPP,     0x08F,  6), // Leaf Grab
-            new(CharacterID.CHIPP,     0x130, 22), // EX Chipp grab super
-            new(CharacterID.EDDIE,     0x07C,  5), // Damned Fang
-            new(CharacterID.BAIKEN,    0x109, 23), // EX Baiken grab super
-            new(CharacterID.JAM,       0x0EE, 14), // Unknown (Unused)
-            new(CharacterID.SLAYER,    0x070, 18), // BSU
-            new(CharacterID.ZAPPA,     0x07E, 20), // IK
-            new(CharacterID.BRIDGET,   0x11B, 24), // EX Bridget grab super
-            new(CharacterID.ROBOKY,    0x0DF, 21), // S-KY-line
-            new(CharacterID.ABA,       0x112, 25), // Close Key Grab
-            new(CharacterID.ABA,       0x113, 25), // Moroha/ABA EX Close Key Grab
-            new(CharacterID.ABA,       0x11A, 26), // Unknown (Unused Air keygrab?) actId 282, cmdGrabId 26
-            new(CharacterID.ABA,       0x11B, 26), // Unknown (Unused Air keygrab?) actId 283, cmdGrabId 26
+            new(EntityId.SOL,       0x088,  1), // Wild Throw
+            new(EntityId.KY,        0x109,  2), // EX Ky Elegant Slash
+            new(EntityId.MAY,       0x06B,  4), // Overhead Kiss
+            new(EntityId.MAY,       0x0A2, 15), // IK
+            new(EntityId.POTEMKIN,  0x07A,  3), // Potbuster
+            new(EntityId.CHIPP,     0x08F,  6), // Leaf Grab
+            new(EntityId.CHIPP,     0x130, 22), // EX Chipp grab super
+            new(EntityId.EDDIE,     0x07C,  5), // Damned Fang
+            new(EntityId.BAIKEN,    0x109, 23), // EX Baiken grab super
+            new(EntityId.JAM,       0x0EE, 14), // Unknown (Unused)
+            new(EntityId.SLAYER,    0x070, 18), // BSU
+            new(EntityId.ZAPPA,     0x07E, 20), // IK
+            new(EntityId.BRIDGET,   0x11B, 24), // EX Bridget grab super
+            new(EntityId.ROBOKY,    0x0DF, 21), // S-KY-line
+            new(EntityId.ABA,       0x112, 25), // Close Key Grab
+            new(EntityId.ABA,       0x113, 25), // Moroha/ABA EX Close Key Grab
+            new(EntityId.ABA,       0x11A, 26), // Unknown (Unused Air keygrab?) actId 282, cmdGrabId 26
+            new(EntityId.ABA,       0x11B, 26), // Unknown (Unused Air keygrab?) actId 283, cmdGrabId 26
         ];
 
         private static Lookup<CharIdActIdKey, MoveDataEntry> ReadRawMoveDataToLookup()
@@ -78,7 +78,7 @@ namespace GGXXACPROverlay.GGXXACPR
                     if (values.Length < 6) { throw new InvalidDataException($"Move Data did not have the required amount of columns:\n\t{line}"); }
                     output.Add(new MoveDataEntry()
                     {
-                        charId = (CharacterID)int.Parse(values[0]),
+                        charId = (EntityId)int.Parse(values[0]),
                         actId = int.Parse(values[1]),
                         sequenceIndex = int.Parse(values[2]),
                         moveInput = values[3],
@@ -111,7 +111,7 @@ namespace GGXXACPROverlay.GGXXACPR
         /// <param name="charId">Character Id</param>
         /// <param name="actId1">first actId</param>
         /// <param name="actId2">second actId</param>
-        public static bool IsPrevAnimSameMove(CharacterID charId, int actId1, int actId2)
+        public static bool IsPrevAnimSameMove(EntityId charId, int actId1, int actId2)
         {
             var key1 = new CharIdActIdKey(charId, actId1);
             var key2 = new CharIdActIdKey(charId, actId2);
@@ -136,7 +136,7 @@ namespace GGXXACPROverlay.GGXXACPR
         /// <summary>
         /// Returns true if the given character's move is a command grab that is active when Player.Mark == 1.
         /// </summary>
-        public static bool IsActiveByMark(CharacterID charId, int actId)
+        public static bool IsActiveByMark(EntityId charId, int actId)
         {
             return _activeByMarkCommandGrabs.Any(data => data.CharId == charId && data.ActId == actId);
         }
@@ -148,7 +148,7 @@ namespace GGXXACPROverlay.GGXXACPR
         /// <param name="charId"></param>
         /// <param name="actId"></param>
         /// <returns></returns>
-        public static int GetCommandGrabId(CharacterID charId, int actId)
+        public static int GetCommandGrabId(EntityId charId, int actId)
         {
             var cmdGrabId = _activeByMarkCommandGrabs.FirstOrDefault(
                 data => data.CharId == charId && data.ActId == actId).CmdGrabId;

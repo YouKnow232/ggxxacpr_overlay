@@ -68,7 +68,10 @@ namespace GGXXACPROverlay.GGXXACPR
         UNKNOWN_6 = 6,  // Something to do with drawing particle effects
     }
 
-    public enum CharacterID : ushort
+    /// <summary>
+    /// Charaters 1-25 and entity group ids 26+
+    /// </summary>
+    public enum EntityId : ushort
     {
         NONE        = 0,
         SOL         = 1,
@@ -95,7 +98,137 @@ namespace GGXXACPROverlay.GGXXACPR
         ABA         = 22,
         ORDERSOL    = 23,
         KLIFF       = 24,
-        JUSTICE     = 25
+        JUSTICE     = 25,
+        /// <summary>
+        /// Scythe / Ice spike
+        /// </summary>
+        DIZZY_ENTITY_1          = 0x20,
+        /// <summary>
+        /// Everything but hair pin and IK
+        /// </summary>
+        MILLIA_ENTITY_1         = 0x21,
+        /// <summary>
+        /// Normal balls
+        /// </summary>
+        VENOM_ENTITY_1          = 0x22,
+        EDDIE_ENTITY_SHADOW     = 0x23,
+        KY_ENTITY               = 0x29,
+        /// <summary>
+        /// Items except for the minis
+        /// </summary>
+        FAUST_ENTITY_1          = 0x2B,
+        SOL_ENTITY              = 0x2C,
+        /// <summary>
+        /// Hair pin / IK
+        /// </summary>
+        MILLIA_ENTITY_2         = 0x2E,
+        JAM_ENTITY              = 0x2F,
+        /// <summary>
+        /// Charged ball
+        /// </summary>
+        VENOM_ENTITY_2          = 0x31,
+        /// <summary>
+        /// Dark Angel / IK
+        /// </summary>
+        VENOM_ENTITY_3          = 0x32,
+        /// <summary>
+        /// Main IK entity
+        /// </summary>
+        MILLIA_ENTITY_3         = 0x34,
+        /// <summary>
+        /// Jellyfish pirates
+        /// </summary>
+        MAY_ENTITY_IK_1         = 0x37,
+        BAIKEN_ENTITY           = 0x39,
+        BAIKEN_ENTITY_IK        = 0x3A,
+        CHIPP_ENTITY            = 0x3B,
+        POTEMKIN_ENTITY         = 0x3D,
+        JOHNNY_ENTITY           = 0x3F,
+        /// <summary>
+        /// Love explosion / IK
+        /// </summary>
+        FAUST_ENTITY_2          = 0x40,
+        EDDIE_ENTITY            = 0x41,
+        /// <summary>
+        /// Fish / Knife / Bubble / Supers
+        /// </summary>
+        DIZZY_ENTITY_2          = 0x43,
+        /// <summary>
+        /// Dolphins
+        /// </summary>
+        MAY_ENTITY_1            = 0x44,
+        /// <summary>
+        /// Supers
+        /// </summary>
+        MAY_ENTITY_2            = 0x46,
+        /// <summary>
+        /// Hoop
+        /// </summary>
+        MAY_ENTITY_3            = 0x48,
+        /// <summary>
+        /// Minis / Love
+        /// </summary>
+        FAUST_ENTITY_3          = 0x4A,
+        /// <summary>
+        /// Granny / Mech girl pirates
+        /// </summary>
+        MAY_ENTITY_IK_2         = 0x4B,
+        ANJI_ENTITY             = 0x4C,
+        /// <summary>
+        /// Rensen / Kokuu Geki / Super / Counter bandana visual / IK
+        /// </summary>
+        AXL_ENTITY_1            = 0x4D,
+        ANJI_ENTITY_BUTTERFLY   = 0x4E,
+        /// <summary>
+        /// Curse / Net / Nightmare Circular
+        /// </summary>
+        TESTAMENT_ENTITY_1      = 0x4F,
+        /// <summary>
+        /// Tree / EXE Beast
+        /// </summary>
+        TESTAMENT_ENTITY_2      = 0x50,
+        /// <summary>
+        /// Unblockable / Counter visual / Shiranami no Homura explosion
+        /// </summary>
+        AXL_ENTITY_2            = 0x51,
+        TESTAMENT_ENTITY_CROW   = 0x52,
+        JOHNNY_ENTITY_COIN      = 0x55,
+        INO_ENTITY              = 0x56,
+        ZAPPA_ENTITY_RAOU       = 0x57,
+        SLAYER_ENTITY           = 0x58,
+        ZAPPA_ENTITY            = 0x59,
+        ZAPPA_ENTITY_TRIPLETS   = 0x5B,
+        BRIDGET_ENTITY_1        = 0x5C,
+        ZAPPA_ENTITY_SWORD      = 0x5D,
+        /// <summary>
+        /// KSMH~Stop / Maintenance Disaster / IK
+        /// </summary>
+        BRIDGET_ENTITY_2        = 0x5E,
+        ZAPPA_ENTITY_DOG        = 0x60,
+        /// <summary>
+        /// 6P / 6H / 2D / Rocket / Install explosion
+        /// </summary>
+        ROBOKY_ENTITY_1         = 0x62,
+        /// <summary>
+        /// 2H / Air Rocket Punch / Mini-Robo-Kys in IK
+        /// </summary>
+        ROBOKY_ENTITY_2         = 0x63,
+        ABA_ENTITY              = 0x64,
+        ORDERSOL_ENTITY_1       = 0x67,
+        /// <summary>
+        /// Little fire visual on Tyrant Rave (maybe others)
+        /// </summary>
+        ORDERSOL_ENTITY_2       = 0x68,
+        KLIFF_ENTITY            = 0x6C,
+        /// <summary>
+        /// Everything but nukes
+        /// </summary>
+        JUSTICE_ENTITY_1        = 0x6E,
+        /// <summary>
+        /// Nukes
+        /// </summary>
+        JUSTICE_ENTITY_2        = 0x6F,
+        BURST_ENTITY            = 0x84,
     }
 
     public enum GameVersion
@@ -165,7 +298,7 @@ namespace GGXXACPROverlay.GGXXACPR
 
         public bool IsValid => NativePointer is not null;
 
-        public CharacterID CharId => (CharacterID)NativePointer->Id;
+        public EntityId CharId => (EntityId)NativePointer->Id;
         public byte IsFacingRight => NativePointer->IsFacingRight;
         public byte IsLeftSide => NativePointer->IsLeftSide;
         public ActionState Status => (ActionState)NativePointer->Status;

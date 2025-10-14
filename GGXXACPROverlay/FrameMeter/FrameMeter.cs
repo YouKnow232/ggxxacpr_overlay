@@ -261,7 +261,7 @@ namespace GGXXACPROverlay.FrameMeter
                 return FrameType.Active;
             }
             // Slide Head runs a grounded status check for all entities to determine if the unblockable connects
-            else if (p.CharId == CharacterID.POTEMKIN &&
+            else if (p.CharId == EntityId.POTEMKIN &&
                 p.ActionId == GGXXACPR.GGXXACPR.SLIDE_HEAD_ACT_ID &&
                 p.ActionHeaderFlags == GGXXACPR.GGXXACPR.SLIDE_HEAD_UNBLOCKABLE_ACT_HEADER_VALUE)
             {
@@ -345,7 +345,7 @@ namespace GGXXACPROverlay.FrameMeter
             }
             else if (p.GuardFlags.HasFlag(GuardState.Parry1) || p.GuardFlags.HasFlag(GuardState.Parry2))
             {
-                if (p.CharId == CharacterID.JAM)
+                if (p.CharId == EntityId.JAM)
                 {
                     // Jam parry flips her Parry2 flag for the rest of her current animation and uses a character specific counter for the active window
                     // Jam parry works by swapping out "on guard" interrupt functions (stored at player->0x2C->0xC8). Since this is only called while
@@ -358,9 +358,9 @@ namespace GGXXACPROverlay.FrameMeter
                     }
                 }
                 // Special case for Axl parry and Dizzy EX parry super
-                else if (p.CharId == CharacterID.AXL && p.ActionId == GGXXACPR.GGXXACPR.AXL_TENHOU_SEKI_UPPER_ACT_ID ||
-                         p.CharId == CharacterID.AXL && p.ActionId == GGXXACPR.GGXXACPR.AXL_TENHOU_SEKI_LOWER_ACT_ID ||
-                         p.CharId == CharacterID.DIZZY && p.ActionId == GGXXACPR.GGXXACPR.DIZZY_EX_NECRO_UNLEASHED_ACT_ID)
+                else if (p.CharId == EntityId.AXL && p.ActionId == GGXXACPR.GGXXACPR.AXL_TENHOU_SEKI_UPPER_ACT_ID ||
+                         p.CharId == EntityId.AXL && p.ActionId == GGXXACPR.GGXXACPR.AXL_TENHOU_SEKI_LOWER_ACT_ID ||
+                         p.CharId == EntityId.DIZZY && p.ActionId == GGXXACPR.GGXXACPR.DIZZY_EX_NECRO_UNLEASHED_ACT_ID)
                 {
                     // These moves are marked as in parry state for their full animation and use a special move specific
                     //  variable (Player.Mark) to actually determine if the move should parry.

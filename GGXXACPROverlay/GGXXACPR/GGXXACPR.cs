@@ -48,10 +48,11 @@ namespace GGXXACPROverlay.GGXXACPR
         #endregion
 
         #region Range Checks
-        public const int ROBO_KY_MAT_ID = 0x62; // Lot of overlap on entity IDs
+        public const int ROBO_KY_MAT_ACT_ID = 13;
         public const int ROBO_KY_MAT_COLLISION_RANGE = 13200;   // GGXXACPR_Win.exe+382AE7
 
-        public const int TESTAMENT_ENTITY_ID = 0x50;
+        public const int TESTAMENT_HITOMI_SET_ACT_ID = 10;
+        public const int TESTAMENT_ENHANCED_HITOMI_SET_ACT_ID = 17;
         public const int TESTAMENT_HITOMI_ACTIVATION_RANGE_AC = 7000;   // GGXXACPR_Win.exe+246BA8
         public const int TESTAMENT_HITOMI_ACTIVATION_RANGE_PR = 5500;   // GGXXACPR_Win.exe+246BA1
 
@@ -60,7 +61,6 @@ namespace GGXXACPROverlay.GGXXACPR
         public const int FAUST_HACK_N_SLASH_FAIL_ACT_ID = 190;
         public const int FAUST_HACK_N_SLASH_UNBLOCKABLE_ACT_ID = 122;
 
-        public const int FAUST_ENTITY_ID = 0x2B;
         public const int FAUST_DONUT_PICKUP_ACT_ID = 18;
         public const int FAUST_CHOCOLATE_PICKUP_ACT_ID = 19;
         public const int FAUST_CHIKUWA_PICKUP_ACT_ID = 53;
@@ -71,7 +71,6 @@ namespace GGXXACPROverlay.GGXXACPR
 
         // Horizontal check is made by multiplying Eddie's Mark var by 100;
         // Horizontal check only made if Eddie's localid == 1 && trans == 0
-        public const int EDDIE_ENTITY_ID = 0x23;
         public const int EDDIE_PUDDLE_VERTICAL_RANGE = 4000;   // GGXXACPR_Win.exe+22BF88
 
         // This range check is based on PUSHBOX_EDGE_DISTANCE when Mark != 0
@@ -219,7 +218,7 @@ namespace GGXXACPROverlay.GGXXACPR
 
             // Special case for Slide head's unblockable hitbox. Not sure the exact checks for this,
             // but it appears in the first slot of the extra hitbox set and is active when the act header flags are in a certain state.
-            if (e->Id == (int)CharacterID.POTEMKIN && e->ActionId == SLIDE_HEAD_ACT_ID &&
+            if (e->Id == (int)EntityId.POTEMKIN && e->ActionId == SLIDE_HEAD_ACT_ID &&
                 e->ActionHeaderFlags == SLIDE_HEAD_UNBLOCKABLE_ACT_HEADER_VALUE && e->HitboxExtraSet is not null)
             {
                 temp[bufferIndex++] = e->HitboxExtraSet[0];
@@ -412,7 +411,7 @@ namespace GGXXACPROverlay.GGXXACPR
             }
 
             // see BRIDGET_SHOOT_ACT_ID comment
-            if (p.CharId == CharacterID.BRIDGET && p.ActionId == BRIDGET_SHOOT_ACT_ID)
+            if (p.CharId == EntityId.BRIDGET && p.ActionId == BRIDGET_SHOOT_ACT_ID)
             {
                 // Game makes Y adjustment here too, but that's already handled by checking the PushboxOffsetP1 / P2 address
                 height += BRIDGET_SHOOT_PUSHBOX_ADJUST;
@@ -457,7 +456,7 @@ namespace GGXXACPROverlay.GGXXACPR
             box = default;
             if (!p.IsValid) return false;
 
-            if (p.CharId == CharacterID.POTEMKIN &&
+            if (p.CharId == EntityId.POTEMKIN &&
                 p.ActionId == POTEMKIN_SLIDE_HEAD_ACT_ID &&
                 p.Mark != 0)
             {
@@ -465,7 +464,7 @@ namespace GGXXACPROverlay.GGXXACPR
                 box = new(push.X - POTEMKIN_SLIDE_HEAD_RANGE, push.Y, push.Width + POTEMKIN_SLIDE_HEAD_RANGE * 2, push.Height);
                 return true;
             }
-            else if (p.CharId == CharacterID.FAUST &&
+            else if (p.CharId == EntityId.FAUST &&
                 (p.ActionId == FAUST_HACK_N_SLASH_FAIL_ACT_ID || p.ActionId == FAUST_HACK_N_SLASH_UNBLOCKABLE_ACT_ID) &&
                 p.AnimationCounter == 1)
             {
@@ -482,13 +481,14 @@ namespace GGXXACPROverlay.GGXXACPR
             if (!e.IsValid) return false;
 
             var halfHeight = Settings.Hitboxes.HitboxBorderThickness * 150.0f;
+            var id = (EntityId)e.Id;
 
-            if (e.Id == ROBO_KY_MAT_ID)
+            if (id == EntityId.ROBOKY_ENTITY_1 && e.ActionId == ROBO_KY_MAT_ACT_ID)
             {
                 box = new(-ROBO_KY_MAT_COLLISION_RANGE, -halfHeight, ROBO_KY_MAT_COLLISION_RANGE * 2, halfHeight * 2);
                 return true;
             }
-            else if (e.Id == TESTAMENT_ENTITY_ID && e.ActionId == 10)
+            else if (id == EntityId.TESTAMENT_ENTITY_2 && e.ActionId is TESTAMENT_HITOMI_SET_ACT_ID or TESTAMENT_ENHANCED_HITOMI_SET_ACT_ID)
             {
                 var range = IsPlusR ? TESTAMENT_HITOMI_ACTIVATION_RANGE_PR : TESTAMENT_HITOMI_ACTIVATION_RANGE_AC;
 
@@ -499,13 +499,13 @@ namespace GGXXACPROverlay.GGXXACPR
 
                 return true;
             }
-            else if (e.Id == FAUST_ENTITY_ID && 
+            else if (id == EntityId.FAUST_ENTITY_1 && 
                 (e.ActionId is FAUST_DONUT_PICKUP_ACT_ID or FAUST_CHOCOLATE_PICKUP_ACT_ID or FAUST_CHIKUWA_PICKUP_ACT_ID))
             {
                 box = new(-FAUST_FOOD_PICKUP_RANGE, -halfHeight, FAUST_FOOD_PICKUP_RANGE * 2, halfHeight * 2);
                 return true;
             }
-            else if (e.Id == EDDIE_ENTITY_ID && e.LocalId == 1 && e.Transition == 0)
+            else if (id == EntityId.EDDIE_ENTITY_SHADOW && e.LocalId == 1 && e.Transition == 0)
             {
                 box = new(-e.Mark * 100, -EDDIE_PUDDLE_VERTICAL_RANGE, e.Mark * 200, EDDIE_PUDDLE_VERTICAL_RANGE * 2);
                 return true;
