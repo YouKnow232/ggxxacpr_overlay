@@ -411,7 +411,7 @@ namespace GGXXACPROverlay.GGXXACPR
             }
 
             // see BRIDGET_SHOOT_ACT_ID comment
-            if (p.CharId == EntityId.BRIDGET && p.ActionId == BRIDGET_SHOOT_ACT_ID)
+            if (IsPlusR && p.CharId == EntityId.BRIDGET && p.ActionId == BRIDGET_SHOOT_ACT_ID)
             {
                 // Game makes Y adjustment here too, but that's already handled by checking the PushboxOffsetP1 / P2 address
                 height += BRIDGET_SHOOT_PUSHBOX_ADJUST;
