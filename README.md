@@ -1,3 +1,16 @@
+# Update!
+ggxxacpr_overlay has moved to the following projects:
+- [ACPR_FrameMeter](https://github.com/YouKnow232/ACPR_FrameMeter)
+- [ACPR_Hitboxes](https://github.com/YouKnow232/ACPR_Hitboxes)
+
+This repo will no longer be maintained.
+
+## Why?
+To support Linux and provide compatiblity with other mods this project has been split up and ported to [GearLoader](https://github.com/YouKnow232/GearLoader).
+
+I initially choose to develop this project with C# purely out of familiarity with the language. While I did accomplish my initial goals as the project grew it became apparent that some features would be too difficult or undwieldly to implement. The major issues for C# were interfacing with native assembly, and the clunkiness of supporting a custom .NET host injection across platforms. It's with this reason the project has been ported to C++.
+
+
 # GGXXACPROverlay
 Displays hitboxes and a frame meter in an overlay for the Steam release of Guilty Gear XX Accent Core Plus R.
 
